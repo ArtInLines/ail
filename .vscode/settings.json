@@ -1,0 +1,22 @@
+{
+	"terminal.integrated.defaultProfile.windows": "cmd",
+	"terminal.integrated.profiles.windows": {
+		"PowerShell": null,
+		"vcvarsall": {
+			"path": ["${env:windir}\\Sysnative\\cmd.exe", "${env:windir}\\System32\\cmd.exe"],
+			"args": ["/k", "C:\\Program^ Files^ ^(x86)\\Microsoft^ Visual^ Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build\\vcvarsall.bat", "x64"],
+			"icon": "terminal-cmd"
+		},
+		"cmd": {
+			"path": ["${env:windir}\\Sysnative\\cmd.exe", "${env:windir}\\System32\\cmd.exe"],
+			"args": [],
+			"icon": "terminal-cmd"
+		},
+		"Command Prompt": null
+	},
+	"files.associations": {
+		"*.pl": "prolog",
+		"*.rb": "ruby",
+		"limits": "c"
+	}
+}
