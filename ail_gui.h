@@ -110,7 +110,7 @@ Gui_Label gui_newCenteredLabel(Rectangle bounds, i32 w, char *text, Gui_El_Style
 void gui_centerLabel(Gui_Label *self, Rectangle bounds, i32 w);
 void gui_rmCharLabel(Gui_Label *self, u32 idx);
 void gui_insertCharLabel(Gui_Label *self, i32 idx, char c);
-void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, i32 slice_size);
+void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, u32 slice_size);
 Gui_El_State gui_getState(i32 x, i32 y, i32 w, i32 h);
 Vector2 gui_measureLabelText(Gui_Label self, Gui_El_State state);
 void gui_resizeLabel(Gui_Label *self, Gui_El_State state);
@@ -403,7 +403,7 @@ void gui_insertCharLabel(Gui_Label *self, i32 idx, char c)
     ail_da_insert(&self->text, idx, c);
 }
 
-void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, i32 slice_size)
+void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, u32 slice_size)
 {
     ail_da_insertn(&self->text, idx, slice, slice_size);
 }
