@@ -20,67 +20,14 @@
 #if  defined(AIL_MALLOC) &&  defined(AIL_FREE)
 #define AIL_GUI_MALLOC AIL_MALLOC
 #define AIL_GUI_FREE   AIL_FREE
-#endif
+#else
 #include <stdlib.h>
 #define AIL_GUI_MALLOC(size) malloc(size)
 #define AIL_GUI_FREE(ptr)    free(ptr)
+#endif
 #elif !defined(AIL_GUI_MALLOC) || !defined(AIL_GUI_FREE)
 #error "You must define both AIL_GUI_MALLOC and AIL_GUI_FREE, or neither."
 #endif
-
-typedef struct Vector2 {
-    f32 x;
-    f32 y;
-} Vector2;
-
-typedef struct Color {
-    u8 r;
-    u8 g;
-    u8 b;
-    u8 a;
-} Color;
-
-typedef struct Rectangle {
-    f32 x;                // Rectangle top-left corner position x
-    f32 y;                // Rectangle top-left corner position y
-    f32 width;            // Rectangle width
-    f32 height;           // Rectangle height
-} Rectangle;
-
-typedef struct Image {
-    void *data;             // Image raw data
-    i32 width;              // Image base width
-    i32 height;             // Image base height
-    i32 mipmaps;            // Mipmap levels, 1 by default
-    i32 format;             // Data format (PixelFormat type)
-} Image;
-
-typedef struct GlyphInfo {
-    i32 value;              // Character value (Unicode)
-    i32 offsetX;            // Character offset X when drawing
-    i32 offsetY;            // Character offset Y when drawing
-    i32 advanceX;           // Character advance position X
-    Image image;            // Character image data
-} GlyphInfo;
-
-typedef struct Texture {
-    u32 id;        // OpenGL texture id
-    i32 width;              // Texture base width
-    i32 height;             // Texture base height
-    i32 mipmaps;            // Mipmap levels, 1 by default
-    i32 format;             // Data format (PixelFormat type)
-} Texture;
-
-typedef Texture Texture2D;
-
-typedef struct Font {
-    i32 baseSize;           // Base size (default chars height)
-    i32 glyphCount;         // Number of glyph characters
-    i32 glyphPadding;       // Padding around the glyph characters
-    Texture2D texture;      // Texture atlas containing the glyphs
-    Rectangle *recs;        // Rectangles in texture for the glyphs
-    GlyphInfo *glyphs;      // Glyphs info data
-} Font;
 
 typedef enum __attribute__((__packed__)) {
     EL_STATE_HIDDEN,   // Element is not displayed
@@ -113,27 +60,27 @@ typedef struct {
 
 typedef struct {
     // @Note: All coordinates here are absolute and not relative to any bounding box
-    const char *text;  // Text to be drawn
-    u16  *lineOffsets; // (dynamic array) Amount of chars until the next line should start ('\n' is ignored)
-    i32  *lineXs;      // (dynamic array) x coordinates of line starts (y coordinates come from Gui_El_Style)
-    i32   y;           // y coordinate of first line
-    float w;           // Width of text (Height can be calculated via amount of lines and style)
-    u32   text_len;    // Amount of bytes in tet
+    const char *text;        // Text to be drawn
+    AIL_DA(u16) lineOffsets; // Amount of chars until the next line should start ('\n' is ignored)
+    AIL_DA(i32) lineXs;      // x coordinates of line starts (y coordinates come from Gui_El_Style)
+    i32   y;                 // y coordinate of first line
+    float w;                 // Width of text (Height can be calculated via amount of lines and style)
+    u32   text_len;          // Amount of bytes in tet
 } Gui_Drawable_Text;
 
 typedef struct {
-    Rectangle bounds;
-    char *text;
+    Rectangle    bounds;
+    AIL_DA(char) text;
     Gui_El_Style defaultStyle;
     Gui_El_Style hovered;
 } Gui_Label;
 
 typedef struct {
-    char *placeholder;      // Placeholder
-    Gui_Label label;        // Gui_Label to display and update on input
-    u32 cur;                // Index in the text at which the cursor should be displayed
-    i32 anim_idx;           // Current index in playing animation - if negative, it is currently in waiting time
-    u16  rows;              // Amount of rows in label.text. If there's no newline, `rows == 1`
+    const char *placeholder; // Placeholder
+    Gui_Label label;         // Gui_Label to display and update on input
+    u32 cur;                 // Index in the text at which the cursor should be displayed
+    i32 anim_idx;            // Current index in playing animation - if negative, it is currently in waiting time
+    u16  rows;               // Amount of rows in label.text. If there's no newline, `rows == 1`
     bool resize;
     bool multiline;
     bool selected;
@@ -153,7 +100,7 @@ bool gui_isPointInRec(i32 px, i32 py, i32 rx, i32 ry, i32 rw, i32 rh);
 Gui_El_Style gui_defaultStyle(Font font);
 Gui_El_Style gui_cloneStyle(Gui_El_Style self);
 Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui_El_Style style);
-Vector2 gui_measureText(char *text, Rectangle bounds, Gui_El_Style style, Gui_Drawable_Text *drawable_text);
+Vector2 gui_measureText(const char *text, Rectangle bounds, Gui_El_Style style, Gui_Drawable_Text *drawable_text);
 void gui_drawPreparedText(Gui_Drawable_Text text, Gui_El_Style style);
 void gui_drawText(const char *text, Rectangle bounds, Gui_El_Style style);
 void gui_drawSized(const char *text, Rectangle bounds, Gui_El_Style style);
@@ -167,7 +114,7 @@ void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, i32 slice
 Gui_El_State gui_getState(i32 x, i32 y, i32 w, i32 h);
 Vector2 gui_measureLabelText(Gui_Label self, Gui_El_State state);
 void gui_resizeLabel(Gui_Label *self, Gui_El_State state);
-Gui_Drawable_Text gui_resizeLabelEx(Gui_Label *self, Gui_El_State state, char *text);
+Gui_Drawable_Text gui_resizeLabelEx(Gui_Label *self, Gui_El_State state, const char *text);
 Gui_El_State gui_drawLabel(Gui_Label self);
 Gui_Input_Box gui_newInputBox(char *placeholder, bool resize, bool multiline, bool selected, Gui_Label label);
 bool gui_isInputBoxHovered(Gui_Input_Box self);
@@ -244,8 +191,8 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
     Gui_Drawable_Text out = {0};
     out.text = text;
     out.y    = y;
-    stbds_arrsetcap(out.lineOffsets, 16);
-    stbds_arrsetcap(out.lineXs, 17);
+    out.lineOffsets = ail_da_with_cap(u16, 16);
+    out.lineXs      = ail_da_with_cap(i32, 17);
 
     float scaleFactor = style.font_size / (float)style.font.baseSize; // Character quad scaling factor
     float lineWidth   = 0.0f;
@@ -257,17 +204,17 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
     float cpWidth; // Width of current codepoint
     for (; (cp = GetCodepointNext(text, &cpSize)); text += cpSize, out.text_len += cpSize, lineOffset += cpSize) {
         if (cp == '\n') {
-            stbds_arrput(out.lineOffsets, lineOffset);
+            ail_da_push(&out.lineOffsets, lineOffset);
             if (lineWidth > out.w) out.w = lineWidth;
             switch (style.hAlign) {
                 case TEXT_ALIGN_LT:
-                    stbds_arrput(out.lineXs, bounds.x + style.pad);
+                    ail_da_push(&out.lineXs, bounds.x + style.pad);
                     break;
                 case TEXT_ALIGN_C:
-                    stbds_arrput(out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
+                    ail_da_push(&out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
                     break;
                 case TEXT_ALIGN_RB:
-                    stbds_arrput(out.lineXs, bounds.x + bounds.width - lineWidth);
+                    ail_da_push(&out.lineXs, bounds.x + bounds.width - lineWidth);
                     break;
             }
             y += style.font_size + style.lSpacing;
@@ -281,17 +228,17 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
 
             // @TODO: When splittin text into new lines, it would be nice to split text by words instead of by characters
             if (lineWidth + cpWidth > bounds.width - style.pad) {
-                stbds_arrput(out.lineOffsets, lineOffset - 1);
+                ail_da_push(&out.lineOffsets, lineOffset - 1);
                 if (lineWidth > out.w) out.w = lineWidth;
                 switch (style.hAlign) {
                     case TEXT_ALIGN_LT:
-                        stbds_arrput(out.lineXs, bounds.x + style.pad);
+                        ail_da_push(&out.lineXs, bounds.x + style.pad);
                         break;
                     case TEXT_ALIGN_C:
-                        stbds_arrput(out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
+                        ail_da_push(&out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
                         break;
                     case TEXT_ALIGN_RB:
-                        stbds_arrput(out.lineXs, bounds.x + bounds.width - lineWidth - style.pad);
+                        ail_da_push(&out.lineXs, bounds.x + bounds.width - lineWidth - style.pad);
                         break;
                 }
                 y += style.font_size + style.lSpacing;
@@ -308,13 +255,13 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
     if (lineWidth > out.w) out.w = lineWidth;
     switch (style.hAlign) {
         case TEXT_ALIGN_LT:
-            stbds_arrput(out.lineXs, bounds.x + style.pad);
+            ail_da_push(&out.lineXs, bounds.x + style.pad);
             break;
         case TEXT_ALIGN_C:
-            stbds_arrput(out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
+            ail_da_push(&out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
             break;
         case TEXT_ALIGN_RB:
-            stbds_arrput(out.lineXs, bounds.x + bounds.width - lineWidth);
+            ail_da_push(&out.lineXs, bounds.x + bounds.width - lineWidth);
             break;
     }
 
@@ -336,11 +283,10 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
 }
 
 // drawable_text will be written to, except if text == drawable_text.text
-Vector2 gui_measureText(char *text, Rectangle bounds, Gui_El_Style style, Gui_Drawable_Text *drawable_text)
+Vector2 gui_measureText(const char *text, Rectangle bounds, Gui_El_Style style, Gui_Drawable_Text *drawable_text)
 {
     if (text != drawable_text->text) *drawable_text = gui_prepTextForDrawing(text, bounds, style);
-    i32 lines_count = stbds_arrlen(drawable_text->lineXs);
-    float height = lines_count*style.font_size + (lines_count - 1)*style.lSpacing;
+    float height = drawable_text->lineXs.len*style.font_size + (drawable_text->lineXs.len - 1)*style.lSpacing;
     return (Vector2) {
         .x = drawable_text->w,
         .y = height,
@@ -357,17 +303,17 @@ void gui_drawPreparedText(Gui_Drawable_Text text, Gui_El_Style style)
 {
     if (!text.text) return;
     float scaleFactor = style.font_size/style.font.baseSize; // Character quad scaling factor
-    Vector2 pos = { .x = text.lineXs[0], .y = text.y }; // Position to draw current codepoint at
-    i32 lastOffset = 0;
+    Vector2 pos = { .x = text.lineXs.data[0], .y = text.y }; // Position to draw current codepoint at
+    u32 lastOffset = 0;
     i32 cp;        // Current codepoint
     i32 cpSize;    // Current codepoint size in bytes
-    for (i32 i = 0, lineIdx = 0, xIdx = 1; (cp = GetCodepointNext(&text.text[i], &cpSize)) != 0; i += cpSize) {
+    for (u32 i = 0, lineIdx = 0, xIdx = 1; (cp = GetCodepointNext(&text.text[i], &cpSize)) != 0; i += cpSize) {
         if ((cp != '\n') && (cp != ' ') && (cp != '\t') && (cp != '\r')) {
             DrawTextCodepoint(style.font, cp, pos, style.font_size, style.color);
         }
-        if (UNLIKELY(lineIdx < stbds_arrlen(text.lineOffsets) && i == lastOffset + (i32)text.lineOffsets[lineIdx])) {
+        if (AIL_UNLIKELY(lineIdx < text.lineOffsets.len && i == lastOffset + (i32)text.lineOffsets.data[lineIdx])) {
             pos.y += style.font_size + style.lSpacing;
-            pos.x  = text.lineXs[xIdx];
+            pos.x  = text.lineXs.data[xIdx];
             xIdx++;
             lineIdx++;
             lastOffset = i;
@@ -400,20 +346,20 @@ Vector2* gui_drawSizedEx(Gui_Drawable_Text text, Rectangle bounds, Gui_El_Style 
     if (!text.text) return NULL;
     Vector2 *res = AIL_GUI_MALLOC(text.text_len * sizeof(Vector3));
     float scaleFactor = style.font_size/style.font.baseSize; // Character quad scaling factor
-    Vector2 pos = { .x = text.lineXs[0], .y = text.y }; // Position to draw current codepoint at
-    i32 lastOffset = 0;
+    Vector2 pos = { .x = text.lineXs.data[0], .y = text.y }; // Position to draw current codepoint at
+    u32 lastOffset = 0;
     i32 cp;        // Current codepoint
     i32 cpSize;    // Current codepoint size in bytes
-    for (i32 i = 0, lineIdx = 0, xIdx = 1; (cp = GetCodepointNext(&text.text[i], &cpSize)) != 0; i += cpSize) {
+    for (u32 i = 0, lineIdx = 0, xIdx = 1; (cp = GetCodepointNext(&text.text[i], &cpSize)) != 0; i += cpSize) {
         for (i32 j = 0; j < cpSize; j++) {
             res[i + j] = pos;
         }
         if ((cp != '\n') && (cp != ' ') && (cp != '\t') && (cp != '\r')) {
             DrawTextCodepoint(style.font, cp, pos, style.font_size, style.color);
         }
-        if (UNLIKELY(lineIdx < stbds_arrlen(text.lineOffsets) && i == lastOffset + (i32)text.lineOffsets[lineIdx])) {
+        if (AIL_UNLIKELY(lineIdx < text.lineOffsets.len && i == lastOffset + (i32)text.lineOffsets.data[lineIdx])) {
             pos.y += style.font_size + style.lSpacing;
-            pos.x  = text.lineXs[xIdx];
+            pos.x  = text.lineXs.data[xIdx];
             xIdx++;
             lineIdx++;
             lastOffset = i;
@@ -428,11 +374,11 @@ Vector2* gui_drawSizedEx(Gui_Drawable_Text text, Rectangle bounds, Gui_El_Style 
 
 Gui_Label gui_newLabel(Rectangle bounds, char *text, Gui_El_Style defaultStyle, Gui_El_Style hovered)
 {
-    char *arrList = NULL;
-    i32 text_len  = text == NULL ? 0 : TextLength(text);
-    stbds_arrsetlen(arrList, text_len + 1);
-    if (text_len > 0) memcpy(arrList, text, text_len + 1);
-    arrList[text_len] = 0;
+    i32 text_len = text == NULL ? 0 : TextLength(text);
+    AIL_DA(char) arrList = ail_da_with_cap(char, text_len + 1);
+    arrList.len = text_len + 1;
+    if (text_len > 0) memcpy(arrList.data, text, text_len);
+    arrList.data[text_len] = 0;
 
     return (Gui_Label) {
         // .x            = x - defaultStyle.pad,
@@ -448,21 +394,18 @@ Gui_Label gui_newLabel(Rectangle bounds, char *text, Gui_El_Style defaultStyle, 
 
 void gui_rmCharLabel(Gui_Label *self, u32 idx)
 {
-    if (idx >= stbds_arrlen(self->text)) return;
-    stbds_arrdel(self->text, idx);
+    if (idx >= self->text.len) return;
+    ail_da_rm(&self->text, idx);
 }
 
 void gui_insertCharLabel(Gui_Label *self, i32 idx, char c)
 {
-    stbds_arrins(self->text, idx, c);
+    ail_da_insert(&self->text, idx, c);
 }
 
 void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, i32 slice_size)
 {
-    stbds_arrinsn(self->text, idx, slice_size);
-    for (i32 i = 0; i < slice_size; i++) {
-        self->text[idx + i] = slice[i];
-    }
+    ail_da_insertn(&self->text, idx, slice, slice_size);
 }
 
 Gui_El_State gui_getState(i32 x, i32 y, i32 w, i32 h)
@@ -475,10 +418,10 @@ Gui_El_State gui_getState(i32 x, i32 y, i32 w, i32 h)
 
 inline void gui_resizeLabel(Gui_Label *self, Gui_El_State state)
 {
-    gui_resizeLabelEx(self, state, self->text);
+    gui_resizeLabelEx(self, state, self->text.data);
 }
 
-Gui_Drawable_Text gui_resizeLabelEx(Gui_Label *self, Gui_El_State state, char *text)
+Gui_Drawable_Text gui_resizeLabelEx(Gui_Label *self, Gui_El_State state, const char *text)
 {
     Gui_El_Style style = (state >= EL_STATE_HOVERED) ? self->hovered : self->defaultStyle;
     Gui_Drawable_Text drawable = {0};
@@ -491,7 +434,7 @@ Gui_Drawable_Text gui_resizeLabelEx(Gui_Label *self, Gui_El_State state, char *t
 Vector2 gui_measureLabelText(Gui_Label self, Gui_El_State state)
 {
     Gui_El_Style style = (state >= EL_STATE_HOVERED) ? self.hovered : self.defaultStyle;
-    return MeasureTextEx(style.font, self.text, style.font_size, style.cSpacing);
+    return MeasureTextEx(style.font, self.text.data, style.font_size, style.cSpacing);
 }
 
 Gui_El_State gui_drawLabel(Gui_Label self)
@@ -501,7 +444,7 @@ Gui_El_State gui_drawLabel(Gui_Label self)
     bool hovered = state >= EL_STATE_HOVERED;
     Gui_El_Style style   = (hovered) ? self.hovered : self.defaultStyle;
 
-    Gui_Drawable_Text prepText = gui_prepTextForDrawing(self.text, self.bounds, style);
+    Gui_Drawable_Text prepText = gui_prepTextForDrawing(self.text.data, self.bounds, style);
     gui_drawPreparedText(prepText, style);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     return state;
@@ -511,15 +454,15 @@ Gui_Input_Box gui_newInputBox(char *placeholder, bool resize, bool multiline, bo
 {
     u16 rows = 1;
     u32 i = 0;
-    while (i < stbds_arrlen(label.text)) {
-        if (label.text[i] == '\n') rows += 1;
+    while (i < label.text.len) {
+        if (label.text.data[i] == '\n') rows += 1;
         i += 1;
     }
 
     return (Gui_Input_Box) {
         .placeholder = placeholder,
         .label       = label,
-        .cur         = (stbds_arrlen(label.text) == 0) ? 0 : stbds_arrlen(label.text) - 1,
+        .cur         = (label.text.len == 0) ? 0 : label.text.len - 1,
         .anim_idx    = 0,
         .rows        = rows,
         .resize      = resize,
@@ -577,7 +520,7 @@ Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
     } else if (IsKeyPressed(KEY_TAB)) {
         res.tab = true;
     } else if (IsKeyPressed(KEY_RIGHT)) {
-        if (self->cur < stbds_arrlen(self->label.text) - 1) self->cur += 1;
+        if (self->cur < self->label.text.len - 1) self->cur += 1;
     } else if (IsKeyPressed(KEY_LEFT)) {
         if (self->cur > 0) self->cur -= 1;
     } else if (IsKeyPressed(KEY_UP)) {
@@ -585,7 +528,7 @@ Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
         u32 curr_row = 0;
         u32 i = 0;
         while (i < self->cur) {
-            if (self->label.text[i] == '\n') {
+            if (self->label.text.data[i] == '\n') {
                 prev_row = curr_row;
                 curr_row = i + 1;
             }
@@ -606,7 +549,7 @@ Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
             res.updated = true;
         }
     } else if (IsKeyPressed(KEY_DELETE)) {
-        if (self->cur < stbds_arrlen(self->label.text) - 1) {
+        if (self->cur < self->label.text.len - 1) {
             gui_rmCharLabel(&self->label, self->cur);
             res.updated = true;
         }
@@ -645,7 +588,7 @@ Gui_Update_Res gui_drawInputBox(Gui_Input_Box *self)
     if (state == EL_STATE_HIDDEN) return res;
     Gui_El_Style style = (hovered || gui_stateIsActive(state)) ? self->label.hovered : self->label.defaultStyle;
 
-    char *text = self->label.text;
+    const char *text = self->label.text.data;
     if (!text || !text[0]) text = self->placeholder;
 
     Gui_Drawable_Text prepText = {0};
@@ -654,7 +597,7 @@ Gui_Update_Res gui_drawInputBox(Gui_Input_Box *self)
         if (res.updated || self->resize) prepText = gui_resizeLabelEx(&self->label, state, text);
     }
 
-    if (!prepText.lineXs) prepText = gui_prepTextForDrawing(text, self->label.bounds, style);
+    if (!prepText.lineXs.len) prepText = gui_prepTextForDrawing(text, self->label.bounds, style);
     Vector2 *coords = gui_drawSizedEx(prepText, self->label.bounds, style);
 
     // If mouse was clicked on the label, the cursor should be updated correspondingly
@@ -704,7 +647,7 @@ Gui_Update_Res gui_drawInputBox(Gui_Input_Box *self)
             y = coords[self->cur].y;
         } else {
             i32 cp_size    = 0;
-            i32 cp         = GetCodepointNext(&self->label.text[prepText.text_len-1], &cp_size);
+            i32 cp         = GetCodepointNext(&self->label.text.data[prepText.text_len-1], &cp_size);
             float advanceX = (float)(GetGlyphInfo(style.font, cp).advanceX);
             x = coords[prepText.text_len-1].x + advanceX;
             y = coords[prepText.text_len-1].y;
