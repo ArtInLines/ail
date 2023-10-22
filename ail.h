@@ -99,74 +99,100 @@
 #define AIL_DA_INIT_CAP 256
 #endif
 
-typedef struct AIL_DA {
-	char  *data;      // The list of elements, stored as char* instead of void* to avoid endless casting in macros
-	size_t elLen;	  // The length of a single element
-	unsigned int len; // The amount of elements currently stored in the array
-	unsigned int cap; // The currently allocated capacity (in amount of elements) for the array
-} AIL_DA;
+#define AIL_DA_INIT(type) struct AIL_DA_##type { type * data; unsigned int len; unsigned int cap; }
+#define AIL_DA(type) struct AIL_DA_##type
 
-#define ail_da_new(type) (AIL_DA) { .data = AIL_MALLOC(AIL_DA_INIT_CAP * sizeof(type)), .elLen = sizeof(type), .len = 0, .cap = AIL_DA_INIT_CAP }
-#define ail_da_with_cap(type, c) (AIL_DA) { .data = AIL_MALLOC((c) * sizeof(type)), .elLen = sizeof(type), .len = 0, .cap = (c) }
-#define ail_da_new_empty(type) (AIL_DA) { .data = NULL, .elLen = sizeof(type), .len = 0, .cap = 0 }
-#define ail_da_set(daPtr, idx, elem) {                                                                    \
-		for (unsigned int _ail_da_set_i_ = 0; _ail_da_set_i_ < (daPtr)->elLen; _ail_da_set_i_++) {        \
-			(daPtr)->data[(idx)*(daPtr)->elLen + _ail_da_set_i_] = ((elem) << (8*_ail_da_set_i_)) & 0xff; \
-		}                                                                                                 \
-	}
+AIL_DA_INIT(void);
+AIL_DA_INIT(char);
+
+#ifdef AIL_TYPES_IMPL
+AIL_DA_INIT(u8);
+AIL_DA_INIT(u16);
+AIL_DA_INIT(u32);
+AIL_DA_INIT(u64);
+AIL_DA_INIT(i8);
+AIL_DA_INIT(i16);
+AIL_DA_INIT(i32);
+AIL_DA_INIT(i64);
+AIL_DA_INIT(f32);
+AIL_DA_INIT(f64);
+#endif
+
+// typedef struct AIL_DA {
+// 	char  *data;      // The list of elements, stored as char* instead of void* to avoid endless casting in macros
+// 	size_t elLen;	  // The length of a single element
+// 	unsigned int len; // The amount of elements currently stored in the array
+// 	unsigned int cap; // The currently allocated capacity (in amount of elements) for the array
+// } AIL_DA;
+
+// #define AIL_DA(type) AIL_DA // To allow adding the element type in array definitions - serves only as documentation
+
+#define ail_da_new(type)         (struct AIL_DA_##type) { .data = AIL_MALLOC(AIL_DA_INIT_CAP * sizeof(type)), .len = 0, .cap = AIL_DA_INIT_CAP }
+#define ail_da_with_cap(type, c) (struct AIL_DA_##type) { .data = AIL_MALLOC((c) * sizeof(type)), .len = 0, .cap = (c) }
+#define ail_da_new_empty(type)   (struct AIL_DA_##type) { .data = NULL, .len = 0, .cap = 0 }
+#define ail_da_free(da)          AIL_FREE(da.data)
 #define ail_da_setn(daPtr, idx, elems, n) {                                                \
 		for (unsigned int _ail_da_setn_i_ = 0; _ail_da_setn_i_ < (n); _ail_da_setn_i_++) { \
-			ail_da_set(daPtr, (idx) + _ail_da_setn_i_, (elems)[_ail_da_setn_i_])           \
+			(daPtr)->data[(idx) + _ail_da_setn_i_] = (elems)[_ail_da_setn_i_];             \
 		}                                                                                  \
 	}
-#define ail_da_grow(daPtr, newCap) {                                         \
-		(daPtr)->cap = (newCap);                                             \
-		(daPtr)->data = AIL_REALLOC((daPtr)->data, (newCap)*(daPtr)->elLen); \
+
+#define ail_da_grow(daPtr, newCap, elSize) {                           \
+		(daPtr)->cap = (newCap);                                       \
+		(daPtr)->data = AIL_REALLOC((daPtr)->data, (elSize)*(newCap)); \
 	}
-#define ail_da_maybe_grow(daPtr, n) {                                    \
-		if ((daPtr)->len + (n) > (daPtr)->cap)                           \
-		ail_da_grow(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
+#define ail_da_maybe_grow(daPtr, n) {                                                              \
+		if ((daPtr)->len + (n) > (daPtr)->cap)                                                     \
+		ail_da_grow(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), sizeof(*((daPtr)->data))); \
 	}
-#define ail_da_push(daPtr, elem) {             \
-		ail_da_maybe_grow(daPtr, 1);           \
-		ail_da_set(daPtr, (daPtr)->len, elem); \
-		(daPtr)->len++;						   \
+#define ail_da_push(daPtr, elem) {              \
+		ail_da_maybe_grow(daPtr, 1);            \
+		(daPtr)->data[(daPtr)->len++] = (elem); \
 	}
-#define ail_da_pushn(daPtr, elems, n) {                                                       \
-		ail_da_maybe_grow(daPtr, n);                                                          \
-		AIL_MEMCPY((daPtr)->data + (daPtr)->elLen*(daPtr)->len, (elems), (n)*(daPtr)->elLen); \
-		(daPtr)->len += (n);                                                                  \
+#define ail_da_pushn(daPtr, elems, n) {                                                  \
+		ail_da_maybe_grow(daPtr, n);                                                     \
+		AIL_MEMCPY((daPtr)->data + (daPtr)->len, (elems), sizeof(*((daPtr)->data))*(n)); \
+		(daPtr)->len += (n);                                                             \
 	}
-#define ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap) {                                                                                                       \
-		(daPtr)->cap = (newCap);                                                                                                                                      \
-		char *_ail_da_gwg_ptr_ = AIL_MALLOC((newCap)*(daPtr)->elLen);                                                                                                 \
-		AIL_ASSERT(_ail_da_gwg_ptr_ != NULL);                                                                                                                         \
-		AIL_MEMCPY(_ail_da_gwg_ptr_, (daPtr)->data, (gapStart)*(daPtr)->elLen);                                                                                       \
-		AIL_MEMCPY(_ail_da_gwg_ptr_ + ((gapStart) + (gapLen))*(daPtr)->elLen, (daPtr)->data + (gapStart)*(daPtr)->elLen, ((daPtr)->len - (gapStart))*(daPtr)->elLen); \
-		AIL_FREE((daPtr)->data);                                                                                                                                      \
-		(daPtr)->data = _ail_da_gwg_ptr_;                                                                                                                             \
-		(daPtr)->len += (gapLen);                                                                                                                                     \
+
+#define ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize) {                                                                    \
+		(daPtr)->cap = (newCap);                                                                                                           \
+		char *_ail_da_gwg_ptr_ = (char *) (daPtr)->data;                                                                                   \
+		(daPtr)->data = AIL_MALLOC((elSize)*(newCap));                                                                                     \
+		AIL_ASSERT((daPtr)->data != NULL);                                                                                                 \
+		AIL_MEMCPY((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
+		AIL_MEMCPY(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
+		AIL_FREE(_ail_da_gwg_ptr_);                                                                                                        \
+		(daPtr)->len += (gapLen);                                                                                                          \
 	}
-#define ail_da_maybe_grow_with_gap(daPtr, idx, n) {                                                               \
-		if ((daPtr)->len + (n) > (daPtr)->cap) {                                                                  \
-			ail_da_grow_with_gap((daPtr), (idx), (n), AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)));               \
-		} else {                                                                                                  \
-			for (unsigned int _ail_da_i_ = 1; _ail_da_i_ <= ((daPtr)->len - (idx))*(daPtr)->elLen; _ail_da_i_++) { \
-				char _ail_da_el_ = (daPtr)->data[(daPtr)->len*(daPtr)->elLen - _ail_da_i_];                       \
-				(daPtr)->data[((daPtr)->len + (n))*(daPtr)->elLen - _ail_da_i_] = _ail_da_el_;                    \
-			}                                                                                                     \
-			(daPtr)->len += (n);																	              \
-		}                                                                                                         \
+#define ail_da_maybe_grow_with_gap(daPtr, idx, n) {                                                                           \
+		if ((daPtr)->len + (n) > (daPtr)->cap) {                                                                              \
+			ail_da_grow_with_gap((daPtr), (idx), (n), AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), sizeof(*((daPtr)->data))); \
+		} else {                                                                                                              \
+			for (unsigned int _ail_da_i_ = 1; _ail_da_i_ <= ((daPtr)->len - (idx)); _ail_da_i_++) {                           \
+				(daPtr)->data[((daPtr)->len + (n)) - _ail_da_i_] =  (daPtr)->data[(daPtr)->len - _ail_da_i_];                 \
+			}                                                                                                                 \
+			(daPtr)->len += (n);                                                                                              \
+		}                                                                                                                     \
 	}
 #define ail_da_insert(daPtr, idx, elem) {          \
 		ail_da_maybe_grow_with_gap(daPtr, idx, 1); \
-		ail_da_set(daPtr, idx, elem);              \
+		(daPtr)->data[(idx)] = (elem);             \
 	}
 #define ail_da_insertn(daPtr, idx, elems, n) {     \
 		ail_da_maybe_grow_with_gap(daPtr, idx, n); \
 		ail_da_setn(daPtr, idx, elems, n);         \
 	}
-// @TODO: Add macros to remove, join, ...
+
+// @TODO: Add ail_da_shrink & ail_da_maybe_shrink (they should only ever be explicitly called by the user)
+
+#define ail_da_rm(daPtr, idx) {                                                          \
+        (daPtr)->len--;                                                                  \
+        for (u32 _ail_da_rm_i_ = (idx); _ail_da_rm_i_ < (daPtr)->len; _ail_da_rm_i_++) { \
+            (daPtr)->data[_ail_da_rm_i_] = (daPtr)->data[_ail_da_rm_i_ + 1];             \
+        }                                                                                \
+    }
+#define ail_da_rm_swap(daPtr, idx) (daPtr)->data[(idx)] = (daPtr)->data[(daPtr)->len--]
 
 #endif // _AIL_DA_GUARD_
 #endif // AIL_DA_IMPL
