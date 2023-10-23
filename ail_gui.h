@@ -508,6 +508,7 @@ void gui_resetInputBoxAnim(Gui_Input_Box *self)
 Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
 {
     Gui_Update_Res res = {0}; // @TODO: Default values
+    if (AIL_UNLIKELY(self->cur > self->label.text.len)) self->cur = self->label.text.len - 1;
 
     if (IsKeyPressed(KEY_ENTER)) {
         if (self->multiline || (IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT))) {
