@@ -605,7 +605,6 @@ AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
 
     // If mouse was clicked on the label, the cursor should be updated correspondingly
     if (state == AIL_GUI_STATE_PRESSED) {
-        printf("Test\n");
         Vector2 mouse  = GetMousePosition();
         u32 newCur     = 0;
         float distance = FLT_MAX;
