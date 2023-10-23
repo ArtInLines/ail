@@ -30,18 +30,18 @@
 #endif
 
 typedef enum __attribute__((__packed__)) {
-    EL_STATE_HIDDEN,   // Element is not displayed
-    EL_STATE_INACTIVE, // Element is not active in any way. `state > EL_STATE_INACTIVE` can be used to check if the element is active in anyway
-    EL_STATE_HOVERED,  // Element is currently being hovered
-    EL_STATE_PRESSED,  // Element is just being clicked on in this frame. It is active from now on
-    EL_STATE_FOCUSED,  // Element is being focused on and active. To be active is to accept user input
-} Gui_El_State;
+    AIL_GUI_STATE_HIDDEN,   // Element is not displayed
+    AIL_GUI_STATE_INACTIVE, // Element is not active in any way. `state > AIL_GUI_STATE_INACTIVE` can be used to check if the element is active in anyway
+    AIL_GUI_STATE_HOVERED,  // Element is currently being hovered
+    AIL_GUI_STATE_PRESSED,  // Element is just being clicked on in this frame. It is active from now on
+    AIL_GUI_STATE_FOCUSED,  // Element is being focused on and active. To be active is to accept user input
+} AIL_Gui_State;
 
 typedef enum __attribute__((__packed__)) {
-    TEXT_ALIGN_LT, // Align left and/or top
-    TEXT_ALIGN_C,  // Align center
-    TEXT_ALIGN_RB, // Align right and/or bottom
-} Gui_Text_Align;
+    AIL_GUI_ALIGN_LT, // Align left and/or top
+    AIL_GUI_ALIGN_C,  // Align center
+    AIL_GUI_ALIGN_RB, // Align right and/or bottom
+} AIL_Gui_Align;
 
 typedef struct {
     Color bg;           // Color for background
@@ -54,30 +54,30 @@ typedef struct {
     float font_size; // Font Size
     float cSpacing;  // Spacing between characters of text
     float lSpacing;  // Spacing between lines of text
-    Gui_Text_Align hAlign; // Horizontal Text Alignment
-    Gui_Text_Align vAlign; // Vertical Text Alignment
-} Gui_El_Style;
+    AIL_Gui_Align hAlign; // Horizontal Text Alignment
+    AIL_Gui_Align vAlign; // Vertical Text Alignment
+} AIL_Gui_Style;
 
 typedef struct {
     // @Note: All coordinates here are absolute and not relative to any bounding box
     const char *text;        // Text to be drawn
     AIL_DA(u16) lineOffsets; // Amount of chars until the next line should start ('\n' is ignored)
-    AIL_DA(i32) lineXs;      // x coordinates of line starts (y coordinates come from Gui_El_Style)
+    AIL_DA(i32) lineXs;      // x coordinates of line starts (y coordinates come from AIL_Gui_Style)
     i32   y;                 // y coordinate of first line
     float w;                 // Width of text (Height can be calculated via amount of lines and style)
     u32   text_len;          // Amount of bytes in tet
-} Gui_Drawable_Text;
+} AIL_Gui_Drawable_Text;
 
 typedef struct {
     Rectangle    bounds;
     AIL_DA(char) text;
-    Gui_El_Style defaultStyle;
-    Gui_El_Style hovered;
-} Gui_Label;
+    AIL_Gui_Style defaultStyle;
+    AIL_Gui_Style hovered;
+} AIL_Gui_Label;
 
 typedef struct {
     const char *placeholder; // Placeholder
-    Gui_Label label;         // Gui_Label to display and update on input
+    AIL_Gui_Label label;         // AIL_Gui_Label to display and update on input
     u32 cur;                 // Index in the text at which the cursor should be displayed
     i32 anim_idx;            // Current index in playing animation - if negative, it is currently in waiting time
     u16  rows;               // Amount of rows in label.text. If there's no newline, `rows == 1`
@@ -85,44 +85,44 @@ typedef struct {
     bool multiline;
     bool selected;
     // @TODO:
-} Gui_Input_Box;
+} AIL_Gui_Input_Box;
 
 typedef struct {
     bool updated;
     bool enter;
     bool tab;
-    Gui_El_State state;
-} Gui_Update_Res;
+    AIL_Gui_State state;
+} AIL_Gui_Update_Res;
 
-void gui_setTextLineSpacing(i32 spacing);
-bool gui_stateIsActive(Gui_El_State state);
-bool gui_isPointInRec(i32 px, i32 py, i32 rx, i32 ry, i32 rw, i32 rh);
-Gui_El_Style gui_defaultStyle(Font font);
-Gui_El_Style gui_cloneStyle(Gui_El_Style self);
-Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui_El_Style style);
-Vector2 gui_measureText(const char *text, Rectangle bounds, Gui_El_Style style, Gui_Drawable_Text *drawable_text);
-void gui_drawPreparedText(Gui_Drawable_Text text, Gui_El_Style style);
-void gui_drawText(const char *text, Rectangle bounds, Gui_El_Style style);
-void gui_drawSized(const char *text, Rectangle bounds, Gui_El_Style style);
-Vector2* gui_drawSizedEx(Gui_Drawable_Text text, Rectangle bounds, Gui_El_Style style);
-Gui_Label gui_newLabel(Rectangle bounds, char *text, Gui_El_Style defaultStyle, Gui_El_Style hovered);
-Gui_Label gui_newCenteredLabel(Rectangle bounds, i32 w, char *text, Gui_El_Style defaultStyle, Gui_El_Style hovered);
-void gui_centerLabel(Gui_Label *self, Rectangle bounds, i32 w);
-void gui_rmCharLabel(Gui_Label *self, u32 idx);
-void gui_insertCharLabel(Gui_Label *self, i32 idx, char c);
-void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, u32 slice_size);
-Gui_El_State gui_getState(i32 x, i32 y, i32 w, i32 h);
-Vector2 gui_measureLabelText(Gui_Label self, Gui_El_State state);
-void gui_resizeLabel(Gui_Label *self, Gui_El_State state);
-Gui_Drawable_Text gui_resizeLabelEx(Gui_Label *self, Gui_El_State state, const char *text);
-Gui_El_State gui_drawLabel(Gui_Label self);
-Gui_Input_Box gui_newInputBox(char *placeholder, bool resize, bool multiline, bool selected, Gui_Label label);
-bool gui_isInputBoxHovered(Gui_Input_Box self);
-Gui_El_State gui_getInputBoxState(Gui_Input_Box *self);
-Gui_El_State gui_getInputBoxStateHelper(Gui_Input_Box *self, bool hovered);
-void gui_resetInputBoxAnim(Gui_Input_Box *self);
-Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self);
-Gui_Update_Res gui_drawInputBox(Gui_Input_Box *self);
+void ail_gui_setTextLineSpacing(i32 spacing);
+bool ail_gui_stateIsActive(AIL_Gui_State state);
+bool ail_gui_isPointInRec(i32 px, i32 py, i32 rx, i32 ry, i32 rw, i32 rh);
+AIL_Gui_Style ail_gui_defaultStyle(Font font);
+AIL_Gui_Style ail_gui_cloneStyle(AIL_Gui_Style self);
+AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, Rectangle bounds, AIL_Gui_Style style);
+Vector2 ail_gui_measureText(const char *text, Rectangle bounds, AIL_Gui_Style style, AIL_Gui_Drawable_Text *drawable_text);
+void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style);
+void ail_gui_drawText(const char *text, Rectangle bounds, AIL_Gui_Style style);
+void ail_gui_drawSized(const char *text, Rectangle bounds, AIL_Gui_Style style);
+Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL_Gui_Style style);
+AIL_Gui_Label ail_gui_newLabel(Rectangle bounds, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered);
+AIL_Gui_Label ail_gui_newCenteredLabel(Rectangle bounds, i32 w, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered);
+void ail_gui_centerLabel(AIL_Gui_Label *self, Rectangle bounds, i32 w);
+void ail_gui_rmCharLabel(AIL_Gui_Label *self, u32 idx);
+void ail_gui_insertCharLabel(AIL_Gui_Label *self, i32 idx, char c);
+void ail_gui_insertSliceLabel(AIL_Gui_Label *self, i32 idx, const char *slice, u32 slice_size);
+AIL_Gui_State ail_gui_getState(i32 x, i32 y, i32 w, i32 h);
+Vector2 ail_gui_measureLabelText(AIL_Gui_Label self, AIL_Gui_State state);
+void ail_gui_resizeLabel(AIL_Gui_Label *self, AIL_Gui_State state);
+AIL_Gui_Drawable_Text ail_gui_resizeLabelEx(AIL_Gui_Label *self, AIL_Gui_State state, const char *text);
+AIL_Gui_State ail_gui_drawLabel(AIL_Gui_Label self);
+AIL_Gui_Input_Box ail_gui_newInputBox(char *placeholder, bool resize, bool multiline, bool selected, AIL_Gui_Label label);
+bool ail_gui_isInputBoxHovered(AIL_Gui_Input_Box self);
+AIL_Gui_State ail_gui_getInputBoxState(AIL_Gui_Input_Box *self);
+AIL_Gui_State ail_gui_getInputBoxStateHelper(AIL_Gui_Input_Box *self, bool hovered);
+void ail_gui_resetInputBoxAnim(AIL_Gui_Input_Box *self);
+AIL_Gui_Update_Res ail_gui_handleKeysInputBox(AIL_Gui_Input_Box *self);
+AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self);
 
 #endif // AIL_GUI_H_
 
@@ -138,25 +138,25 @@ static i32   Input_Box_cur_width = 4;    // Width of the displayed cursor
 static Color Input_Box_cur_color = { 0, 121, 241, 255 }; // Color of the displayed cursor
 static i32   text_line_spacing   = 15;   // Same as in raylib;
 
-inline void gui_setTextLineSpacing(i32 spacing)
+inline void ail_gui_setTextLineSpacing(i32 spacing)
 {
     text_line_spacing = spacing;
     SetTextLineSpacing(spacing);
 }
 
-inline bool gui_stateIsActive(Gui_El_State state)
+inline bool ail_gui_stateIsActive(AIL_Gui_State state)
 {
-    return state >= EL_STATE_PRESSED;
+    return state >= AIL_GUI_STATE_PRESSED;
 }
 
-inline bool gui_isPointInRec(i32 px, i32 py, i32 rx, i32 ry, i32 rw, i32 rh)
+inline bool ail_gui_isPointInRec(i32 px, i32 py, i32 rx, i32 ry, i32 rw, i32 rh)
 {
     return (px >= rx) && (px <= rx + rw) && (py >= ry) && (py <= ry + rh);
 }
 
-Gui_El_Style gui_defaultStyle(Font font)
+AIL_Gui_Style ail_gui_defaultStyle(Font font)
 {
-    return (Gui_El_Style) {
+    return (AIL_Gui_Style) {
         .bg           = BLANK,
         .border_color = BLANK,
         .border_width = 0,
@@ -169,9 +169,9 @@ Gui_El_Style gui_defaultStyle(Font font)
     };
 }
 
-Gui_El_Style gui_cloneStyle(Gui_El_Style self)
+AIL_Gui_Style ail_gui_cloneStyle(AIL_Gui_Style self)
 {
-    return (Gui_El_Style) {
+    return (AIL_Gui_Style) {
         .bg           = self.bg,
         .border_color = self.border_color,
         .border_width = self.border_width,
@@ -184,11 +184,11 @@ Gui_El_Style gui_cloneStyle(Gui_El_Style self)
     };
 }
 
-Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui_El_Style style)
+AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, Rectangle bounds, AIL_Gui_Style style)
 {
-    if (!text) return (Gui_Drawable_Text) {0};
+    if (!text) return (AIL_Gui_Drawable_Text) {0};
     float y = bounds.y + style.pad;
-    Gui_Drawable_Text out = {0};
+    AIL_Gui_Drawable_Text out = {0};
     out.text = text;
     out.y    = y;
     out.lineOffsets = ail_da_with_cap(u16, 16);
@@ -207,13 +207,13 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
             ail_da_push(&out.lineOffsets, lineOffset);
             if (lineWidth > out.w) out.w = lineWidth;
             switch (style.hAlign) {
-                case TEXT_ALIGN_LT:
+                case AIL_GUI_ALIGN_LT:
                     ail_da_push(&out.lineXs, bounds.x + style.pad);
                     break;
-                case TEXT_ALIGN_C:
+                case AIL_GUI_ALIGN_C:
                     ail_da_push(&out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
                     break;
-                case TEXT_ALIGN_RB:
+                case AIL_GUI_ALIGN_RB:
                     ail_da_push(&out.lineXs, bounds.x + bounds.width - lineWidth);
                     break;
             }
@@ -231,13 +231,13 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
                 ail_da_push(&out.lineOffsets, lineOffset - 1);
                 if (lineWidth > out.w) out.w = lineWidth;
                 switch (style.hAlign) {
-                    case TEXT_ALIGN_LT:
+                    case AIL_GUI_ALIGN_LT:
                         ail_da_push(&out.lineXs, bounds.x + style.pad);
                         break;
-                    case TEXT_ALIGN_C:
+                    case AIL_GUI_ALIGN_C:
                         ail_da_push(&out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
                         break;
-                    case TEXT_ALIGN_RB:
+                    case AIL_GUI_ALIGN_RB:
                         ail_da_push(&out.lineXs, bounds.x + bounds.width - lineWidth - style.pad);
                         break;
                 }
@@ -254,13 +254,13 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
     // @Cleanup: Almost identical code with switch-case here 3 times
     if (lineWidth > out.w) out.w = lineWidth;
     switch (style.hAlign) {
-        case TEXT_ALIGN_LT:
+        case AIL_GUI_ALIGN_LT:
             ail_da_push(&out.lineXs, bounds.x + style.pad);
             break;
-        case TEXT_ALIGN_C:
+        case AIL_GUI_ALIGN_C:
             ail_da_push(&out.lineXs, bounds.x + (bounds.width - lineWidth)/2.0f);
             break;
-        case TEXT_ALIGN_RB:
+        case AIL_GUI_ALIGN_RB:
             ail_da_push(&out.lineXs, bounds.x + bounds.width - lineWidth);
             break;
     }
@@ -269,12 +269,12 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
     float height = y - out.y;
     if (lineOffset) height += style.font_size;
     switch (style.vAlign) {
-        case TEXT_ALIGN_LT:
+        case AIL_GUI_ALIGN_LT:
             break;
-        case TEXT_ALIGN_C:
+        case AIL_GUI_ALIGN_C:
             out.y = bounds.y + (bounds.height - height)/2.0f;
             break;
-        case TEXT_ALIGN_RB:
+        case AIL_GUI_ALIGN_RB:
             out.y = bounds.y + bounds.height - height - style.pad;
             break;
     }
@@ -283,9 +283,9 @@ Gui_Drawable_Text gui_prepTextForDrawing(const char *text, Rectangle bounds, Gui
 }
 
 // drawable_text will be written to, except if text == drawable_text.text
-Vector2 gui_measureText(const char *text, Rectangle bounds, Gui_El_Style style, Gui_Drawable_Text *drawable_text)
+Vector2 ail_gui_measureText(const char *text, Rectangle bounds, AIL_Gui_Style style, AIL_Gui_Drawable_Text *drawable_text)
 {
-    if (text != drawable_text->text) *drawable_text = gui_prepTextForDrawing(text, bounds, style);
+    if (text != drawable_text->text) *drawable_text = ail_gui_prepTextForDrawing(text, bounds, style);
     float height = drawable_text->lineXs.len*style.font_size + (drawable_text->lineXs.len - 1)*style.lSpacing;
     return (Vector2) {
         .x = drawable_text->w,
@@ -293,13 +293,13 @@ Vector2 gui_measureText(const char *text, Rectangle bounds, Gui_El_Style style, 
     };
 }
 
-void gui_drawText(const char *text, Rectangle bounds, Gui_El_Style style)
+void ail_gui_drawText(const char *text, Rectangle bounds, AIL_Gui_Style style)
 {
-    Gui_Drawable_Text preppedText = gui_prepTextForDrawing(text, bounds, style);
-    gui_drawPreparedText(preppedText, style);
+    AIL_Gui_Drawable_Text preppedText = ail_gui_prepTextForDrawing(text, bounds, style);
+    ail_gui_drawPreparedText(preppedText, style);
 }
 
-void gui_drawPreparedText(Gui_Drawable_Text text, Gui_El_Style style)
+void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
 {
     if (!text.text) return;
     float scaleFactor = style.font_size/style.font.baseSize; // Character quad scaling factor
@@ -325,19 +325,19 @@ void gui_drawPreparedText(Gui_Drawable_Text text, Gui_El_Style style)
     }
 }
 
-void gui_drawSized(const char *text, Rectangle bounds, Gui_El_Style style)
+void ail_gui_drawSized(const char *text, Rectangle bounds, AIL_Gui_Style style)
 {
     if (style.border_width > 0) {
         DrawRectangle(bounds.x - style.border_width, bounds.y - style.border_width, bounds.width + 2*style.border_width, bounds.height + 2*style.border_width, style.border_color);
     }
     DrawRectangle(bounds.x, bounds.y, bounds.width, bounds.height, style.bg);
-    gui_drawText(text, bounds, style);
+    ail_gui_drawText(text, bounds, style);
 }
 
-/// Same as gui_drawSized, except it returns an array of coordinates for each byte in the drawn text
-Vector2* gui_drawSizedEx(Gui_Drawable_Text text, Rectangle bounds, Gui_El_Style style)
+/// Same as ail_gui_drawSized, except it returns an array of coordinates for each byte in the drawn text
+Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL_Gui_Style style)
 {
-    // @Cleanup: Almost identical code to gui_drawPreparedText
+    // @Cleanup: Almost identical code to ail_gui_drawPreparedText
     if (style.border_width > 0) {
         DrawRectangle(bounds.x - style.border_width, bounds.y - style.border_width, bounds.width + 2*style.border_width, bounds.height + 2*style.border_width, style.border_color);
     }
@@ -372,7 +372,7 @@ Vector2* gui_drawSizedEx(Gui_Drawable_Text text, Rectangle bounds, Gui_El_Style 
     return res;
 }
 
-Gui_Label gui_newLabel(Rectangle bounds, char *text, Gui_El_Style defaultStyle, Gui_El_Style hovered)
+AIL_Gui_Label ail_gui_newLabel(Rectangle bounds, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered)
 {
     i32 text_len = text == NULL ? 0 : TextLength(text);
     AIL_DA(char) arrList = ail_da_with_cap(char, text_len + 1);
@@ -380,7 +380,7 @@ Gui_Label gui_newLabel(Rectangle bounds, char *text, Gui_El_Style defaultStyle, 
     if (text_len > 0) memcpy(arrList.data, text, text_len);
     arrList.data[text_len] = 0;
 
-    return (Gui_Label) {
+    return (AIL_Gui_Label) {
         // .x            = x - defaultStyle.pad,
         // .y            = y - defaultStyle.pad,
         // .w            = ((i32) size.x) + 2*defaultStyle.pad,
@@ -392,65 +392,65 @@ Gui_Label gui_newLabel(Rectangle bounds, char *text, Gui_El_Style defaultStyle, 
     };
 }
 
-void gui_rmCharLabel(Gui_Label *self, u32 idx)
+void ail_gui_rmCharLabel(AIL_Gui_Label *self, u32 idx)
 {
     if (idx >= self->text.len) return;
     ail_da_rm(&self->text, idx);
 }
 
-void gui_insertCharLabel(Gui_Label *self, i32 idx, char c)
+void ail_gui_insertCharLabel(AIL_Gui_Label *self, i32 idx, char c)
 {
     ail_da_insert(&self->text, idx, c);
 }
 
-void gui_insertSliceLabel(Gui_Label *self, i32 idx, const char *slice, u32 slice_size)
+void ail_gui_insertSliceLabel(AIL_Gui_Label *self, i32 idx, const char *slice, u32 slice_size)
 {
     ail_da_insertn(&self->text, idx, slice, slice_size);
 }
 
-Gui_El_State gui_getState(i32 x, i32 y, i32 w, i32 h)
+AIL_Gui_State ail_gui_getState(i32 x, i32 y, i32 w, i32 h)
 {
     Vector2 mouse = GetMousePosition();
-    bool hovered   = gui_isPointInRec((i32) mouse.x, (i32) mouse.y, x, y, w, h);
-    if (hovered > 0) return (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) ? EL_STATE_PRESSED : EL_STATE_HOVERED;
-    else return EL_STATE_INACTIVE;
+    bool hovered   = ail_gui_isPointInRec((i32) mouse.x, (i32) mouse.y, x, y, w, h);
+    if (hovered > 0) return (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) ? AIL_GUI_STATE_PRESSED : AIL_GUI_STATE_HOVERED;
+    else return AIL_GUI_STATE_INACTIVE;
 }
 
-inline void gui_resizeLabel(Gui_Label *self, Gui_El_State state)
+inline void ail_gui_resizeLabel(AIL_Gui_Label *self, AIL_Gui_State state)
 {
-    gui_resizeLabelEx(self, state, self->text.data);
+    ail_gui_resizeLabelEx(self, state, self->text.data);
 }
 
-Gui_Drawable_Text gui_resizeLabelEx(Gui_Label *self, Gui_El_State state, const char *text)
+AIL_Gui_Drawable_Text ail_gui_resizeLabelEx(AIL_Gui_Label *self, AIL_Gui_State state, const char *text)
 {
-    Gui_El_Style style = (state >= EL_STATE_HOVERED) ? self->hovered : self->defaultStyle;
-    Gui_Drawable_Text drawable = {0};
-    Vector2 size  = gui_measureText(text, self->bounds, style, &drawable);
+    AIL_Gui_Style style = (state >= AIL_GUI_STATE_HOVERED) ? self->hovered : self->defaultStyle;
+    AIL_Gui_Drawable_Text drawable = {0};
+    Vector2 size  = ail_gui_measureText(text, self->bounds, style, &drawable);
     self->bounds.width  = size.x + 2*style.pad;
     self->bounds.height = size.y + 2*style.pad;
     return drawable;
 }
 
-Vector2 gui_measureLabelText(Gui_Label self, Gui_El_State state)
+Vector2 ail_gui_measureLabelText(AIL_Gui_Label self, AIL_Gui_State state)
 {
-    Gui_El_Style style = (state >= EL_STATE_HOVERED) ? self.hovered : self.defaultStyle;
+    AIL_Gui_Style style = (state >= AIL_GUI_STATE_HOVERED) ? self.hovered : self.defaultStyle;
     return MeasureTextEx(style.font, self.text.data, style.font_size, style.cSpacing);
 }
 
-Gui_El_State gui_drawLabel(Gui_Label self)
+AIL_Gui_State ail_gui_drawLabel(AIL_Gui_Label self)
 {
-    Gui_El_State state = gui_getState(self.bounds.x, self.bounds.y, self.bounds.width, self.bounds.height);
-    if (state == EL_STATE_HIDDEN) return state;
-    bool hovered = state >= EL_STATE_HOVERED;
-    Gui_El_Style style   = (hovered) ? self.hovered : self.defaultStyle;
+    AIL_Gui_State state = ail_gui_getState(self.bounds.x, self.bounds.y, self.bounds.width, self.bounds.height);
+    if (state == AIL_GUI_STATE_HIDDEN) return state;
+    bool hovered = state >= AIL_GUI_STATE_HOVERED;
+    AIL_Gui_Style style   = (hovered) ? self.hovered : self.defaultStyle;
 
-    Gui_Drawable_Text prepText = gui_prepTextForDrawing(self.text.data, self.bounds, style);
-    gui_drawPreparedText(prepText, style);
+    AIL_Gui_Drawable_Text prepText = ail_gui_prepTextForDrawing(self.text.data, self.bounds, style);
+    ail_gui_drawPreparedText(prepText, style);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     return state;
 }
 
-Gui_Input_Box gui_newInputBox(char *placeholder, bool resize, bool multiline, bool selected, Gui_Label label)
+AIL_Gui_Input_Box ail_gui_newInputBox(char *placeholder, bool resize, bool multiline, bool selected, AIL_Gui_Label label)
 {
     u16 rows = 1;
     u32 i = 0;
@@ -459,7 +459,7 @@ Gui_Input_Box gui_newInputBox(char *placeholder, bool resize, bool multiline, bo
         i += 1;
     }
 
-    return (Gui_Input_Box) {
+    return (AIL_Gui_Input_Box) {
         .placeholder = placeholder,
         .label       = label,
         .cur         = (label.text.len == 0) ? 0 : label.text.len - 1,
@@ -471,48 +471,48 @@ Gui_Input_Box gui_newInputBox(char *placeholder, bool resize, bool multiline, bo
     };
 }
 
-bool gui_isInputBoxHovered(Gui_Input_Box self)
+bool ail_gui_isInputBoxHovered(AIL_Gui_Input_Box self)
 {
     Vector2 mouse = GetMousePosition();
-    return gui_isPointInRec((i32)mouse.x, (i32)mouse.y, self.label.bounds.x, self.label.bounds.y, self.label.bounds.width, self.label.bounds.height);
+    return ail_gui_isPointInRec((i32)mouse.x, (i32)mouse.y, self.label.bounds.x, self.label.bounds.y, self.label.bounds.width, self.label.bounds.height);
 }
 
-inline Gui_El_State gui_getInputBoxState(Gui_Input_Box *self)
+inline AIL_Gui_State ail_gui_getInputBoxState(AIL_Gui_Input_Box *self)
 {
-    return gui_getInputBoxStateHelper(self, gui_isInputBoxHovered(*self));
+    return ail_gui_getInputBoxStateHelper(self, ail_gui_isInputBoxHovered(*self));
 }
 
-Gui_El_State gui_getInputBoxStateHelper(Gui_Input_Box *self, bool hovered)
+AIL_Gui_State ail_gui_getInputBoxStateHelper(AIL_Gui_Input_Box *self, bool hovered)
 {
-    bool EL_STATE_PRESSED = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    if (!hovered && EL_STATE_PRESSED) {
+    bool AIL_GUI_STATE_PRESSED = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    if (!hovered && AIL_GUI_STATE_PRESSED) {
         self->selected = false;
-        return EL_STATE_INACTIVE;
-    } else if (EL_STATE_PRESSED) {
+        return AIL_GUI_STATE_INACTIVE;
+    } else if (AIL_GUI_STATE_PRESSED) {
         self->selected = true;
-        return EL_STATE_PRESSED;
+        return AIL_GUI_STATE_PRESSED;
     } else if (self->selected) {
-        return EL_STATE_FOCUSED;
+        return AIL_GUI_STATE_FOCUSED;
     } else if (hovered) {
-        return EL_STATE_HOVERED;
+        return AIL_GUI_STATE_HOVERED;
     } else {
-        return EL_STATE_INACTIVE;
+        return AIL_GUI_STATE_INACTIVE;
     }
 }
 
-void gui_resetInputBoxAnim(Gui_Input_Box *self)
+void ail_gui_resetInputBoxAnim(AIL_Gui_Input_Box *self)
 {
     self->anim_idx = -Input_Box_anim_len;
 }
 
-Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
+AIL_Gui_Update_Res ail_gui_handleKeysInputBox(AIL_Gui_Input_Box *self)
 {
     Gui_Update_Res res = {0}; // @TODO: Default values
     if (AIL_UNLIKELY(self->cur > self->label.text.len)) self->cur = self->label.text.len - 1;
 
     if (IsKeyPressed(KEY_ENTER)) {
         if (self->multiline || (IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT))) {
-            gui_insertCharLabel(&self->label, self->cur, '\n');
+            ail_gui_insertCharLabel(&self->label, self->cur, '\n');
             self->cur += 1;
             res.updated = true;
         } else {
@@ -545,13 +545,13 @@ Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
         // @TODO
     } else if (IsKeyPressed(KEY_BACKSPACE)) {
         if (self->cur > 0) {
-            gui_rmCharLabel(&self->label, self->cur - 1);
+            ail_gui_rmCharLabel(&self->label, self->cur - 1);
             self->cur -= 1;
             res.updated = true;
         }
     } else if (IsKeyPressed(KEY_DELETE)) {
         if (self->cur < self->label.text.len - 1) {
-            gui_rmCharLabel(&self->label, self->cur);
+            ail_gui_rmCharLabel(&self->label, self->cur);
             res.updated = true;
         }
     } else {
@@ -559,19 +559,19 @@ Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
         if (codepoint > 0) {
             res.updated = true;
             if (codepoint <= 0xff) {
-                gui_insertCharLabel(&self->label, self->cur, (u8) codepoint);
+                ail_gui_insertCharLabel(&self->label, self->cur, (u8) codepoint);
                 self->cur += 1;
             } else if (codepoint <= 0xffff) {
                 char slice[] = {(u8)(codepoint & 0xff00), (u8)(codepoint & 0xff)};
-                gui_insertSliceLabel(&self->label, self->cur, slice, 2);
+                ail_gui_insertSliceLabel(&self->label, self->cur, slice, 2);
                 self->cur += 2;
             } else if (codepoint <= 0xffffff) {
                 char slice[] = {(u8)(codepoint & 0xff0000), (u8)(codepoint & 0xff00), (u8)(codepoint & 0xff)};
-                gui_insertSliceLabel(&self->label, self->cur, slice, 3);
+                ail_gui_insertSliceLabel(&self->label, self->cur, slice, 3);
                 self->cur += 3;
             } else {
                 char slice[] = {(u8)(codepoint & 0xff000000), (u8)(codepoint & 0xff0000), (u8)(codepoint & 0xff00), (u8)(codepoint & 0xff)};
-                gui_insertSliceLabel(&self->label, self->cur, slice, 4);
+                ail_gui_insertSliceLabel(&self->label, self->cur, slice, 4);
                 self->cur += 4;
             }
         }
@@ -580,29 +580,29 @@ Gui_Update_Res gui_handleKeysInputBox(Gui_Input_Box *self)
     return res;
 }
 
-// Draws the Gui_Input_Box, but also does more, like handling any user input if the box is active
-Gui_Update_Res gui_drawInputBox(Gui_Input_Box *self)
+// Draws the AIL_Gui_Input_Box, but also does more, like handling any user input if the box is active
+AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
 {
-    Gui_Update_Res res = {0}; // @TODO: Default values
-    bool hovered  = gui_isInputBoxHovered(*self);
-    Gui_El_State state = gui_getInputBoxStateHelper(self, hovered);
-    if (state == EL_STATE_HIDDEN) return res;
-    Gui_El_Style style = (hovered || gui_stateIsActive(state)) ? self->label.hovered : self->label.defaultStyle;
+    AIL_Gui_Update_Res res = {0}; // @TODO: Default values
+    bool hovered  = ail_gui_isInputBoxHovered(*self);
+    AIL_Gui_State state = ail_gui_getInputBoxStateHelper(self, hovered);
+    if (state == AIL_GUI_STATE_HIDDEN) return res;
+    AIL_Gui_Style style = (hovered || ail_gui_stateIsActive(state)) ? self->label.hovered : self->label.defaultStyle;
 
     const char *text = self->label.text.data;
     if (!text || !text[0]) text = self->placeholder;
 
-    Gui_Drawable_Text prepText = {0};
+    AIL_Gui_Drawable_Text prepText = {0};
     if (self->selected) {
-        res = gui_handleKeysInputBox(self);
-        if (res.updated || self->resize) prepText = gui_resizeLabelEx(&self->label, state, text);
+        res = ail_gui_handleKeysInputBox(self);
+        if (res.updated || self->resize) prepText = ail_gui_resizeLabelEx(&self->label, state, text);
     }
 
-    if (!prepText.lineXs.len) prepText = gui_prepTextForDrawing(text, self->label.bounds, style);
-    Vector2 *coords = gui_drawSizedEx(prepText, self->label.bounds, style);
+    if (!prepText.lineXs.len) prepText = ail_gui_prepTextForDrawing(text, self->label.bounds, style);
+    Vector2 *coords = ail_gui_drawSizedEx(prepText, self->label.bounds, style);
 
     // If mouse was clicked on the label, the cursor should be updated correspondingly
-    if (state == EL_STATE_PRESSED) {
+    if (state == AIL_GUI_STATE_PRESSED) {
         Vector2 mouse  = GetMousePosition();
         u32 newCur     = 0;
         float distance = FLT_MAX;

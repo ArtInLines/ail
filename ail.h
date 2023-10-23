@@ -131,7 +131,9 @@ AIL_DA_INIT(f64);
 #define ail_da_new(type)         (struct AIL_DA_##type) { .data = AIL_MALLOC(AIL_DA_INIT_CAP * sizeof(type)), .len = 0, .cap = AIL_DA_INIT_CAP }
 #define ail_da_with_cap(type, c) (struct AIL_DA_##type) { .data = AIL_MALLOC((c) * sizeof(type)), .len = 0, .cap = (c) }
 #define ail_da_new_empty(type)   (struct AIL_DA_##type) { .data = NULL, .len = 0, .cap = 0 }
-#define ail_da_free(da)          AIL_FREE(da.data)
+#define ail_da_from_parts(type, d, l, c) (struct AIL_DA_##type) { .data = (d), .len = (l), .cap = (c) }
+
+#define ail_da_free(da) AIL_FREE(da.data)
 #define ail_da_setn(daPtr, idx, elems, n) {                                                \
 		for (unsigned int _ail_da_setn_i_ = 0; _ail_da_setn_i_ < (n); _ail_da_setn_i_++) { \
 			(daPtr)->data[(idx) + _ail_da_setn_i_] = (elems)[_ail_da_setn_i_];             \
