@@ -75,12 +75,12 @@
 #define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
 #define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
 #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
-#define AIL_SWAP(x, y) { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; }
-#define AIL_DBG_EXIT() { *(char *)0 = 0; exit(1); }
-#define AIL_PANIC(...) { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); }
-#define AIL_TODO() { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); }
-#define AIL_UNREACHABLE() { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); }
-#define AIL_STATIC_ASSERT_MSG(expr, msg) { extern int __attribute__((error("assertion failure: '" #msg "' in " __FILE__ ":" AIL_STR_LINE))) compile_time_check(); ((expr)?0:compile_time_check()),(void)0; }
+#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+#define AIL_DBG_EXIT() do { *(char *)0 = 0; exit(1); } while(0)
+#define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_STATIC_ASSERT_MSG(expr, msg) do { extern int __attribute__((error("assertion failure: '" #msg "' in " __FILE__ ":" AIL_STR_LINE))) compile_time_check(); ((expr)?0:compile_time_check()),(void)0; } while(0)
 #define AIL_STATIC_ASSERT(expr) AIL_STATIC_ASSERT_MSG(expr, #expr);
 
 
@@ -100,8 +100,8 @@
 #define AIL_DA_INIT_CAP 256
 #endif
 
-#define AIL_DA_INIT(type) struct AIL_DA_##type { type * data; unsigned int len; unsigned int cap; }
-#define AIL_DA(type) struct AIL_DA_##type
+#define AIL_DA_INIT(type) typedef struct AIL_DA_##type { type *data; unsigned int len; unsigned int cap; } AIL_DA_##type
+#define AIL_DA(type) AIL_DA_##type
 
 AIL_DA_INIT(void);
 AIL_DA_INIT(char);
