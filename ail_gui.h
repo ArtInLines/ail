@@ -69,6 +69,11 @@ typedef struct {
 } AIL_Gui_Drawable_Text;
 
 typedef struct {
+    u32 start;
+    u32 end;
+} AIL_Gui_Selection;
+
+typedef struct {
     Rectangle    bounds;
     AIL_DA(char) text;
     AIL_Gui_Style defaultStyle;
