@@ -87,10 +87,12 @@ typedef struct {
     // @TODO:
 } AIL_Gui_Input_Box;
 
+// @Memory: Store the boolean flags as a bitfield?
 typedef struct {
     bool updated;
     bool enter;
     bool tab;
+    bool escape;
     AIL_Gui_State state;
 } AIL_Gui_Update_Res;
 
@@ -484,11 +486,11 @@ inline AIL_Gui_State ail_gui_getInputBoxState(AIL_Gui_Input_Box *self)
 
 AIL_Gui_State ail_gui_getInputBoxStateHelper(AIL_Gui_Input_Box *self, bool hovered)
 {
-    bool AIL_GUI_STATE_PRESSED = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    if (!hovered && AIL_GUI_STATE_PRESSED) {
+    bool clicked = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    if (!hovered && clicked) {
         self->selected = false;
         return AIL_GUI_STATE_INACTIVE;
-    } else if (AIL_GUI_STATE_PRESSED) {
+    } else if (clicked) {
         self->selected = true;
         return AIL_GUI_STATE_PRESSED;
     } else if (self->selected) {
@@ -507,10 +509,12 @@ void ail_gui_resetInputBoxAnim(AIL_Gui_Input_Box *self)
 
 AIL_Gui_Update_Res ail_gui_handleKeysInputBox(AIL_Gui_Input_Box *self)
 {
-    Gui_Update_Res res = {0}; // @TODO: Default values
+    AIL_Gui_Update_Res res = {0}; // @TODO: Default values
     if (AIL_UNLIKELY(self->cur > self->label.text.len)) self->cur = self->label.text.len - 1;
 
-    if (IsKeyPressed(KEY_ENTER)) {
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        res.escape = true;
+    } else if (IsKeyPressed(KEY_ENTER)) {
         if (self->multiline || (IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT))) {
             ail_gui_insertCharLabel(&self->label, self->cur, '\n');
             self->cur += 1;
@@ -593,10 +597,8 @@ AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
     if (!text || !text[0]) text = self->placeholder;
 
     AIL_Gui_Drawable_Text prepText = {0};
-    if (self->selected) {
-        res = ail_gui_handleKeysInputBox(self);
-        if (res.updated || self->resize) prepText = ail_gui_resizeLabelEx(&self->label, state, text);
-    }
+    if (self->selected) res = ail_gui_handleKeysInputBox(self);
+    if (res.updated || self->resize) prepText = ail_gui_resizeLabelEx(&self->label, state, text);
 
     if (!prepText.lineXs.len) prepText = ail_gui_prepTextForDrawing(text, self->label.bounds, style);
     Vector2 *coords = ail_gui_drawSizedEx(prepText, self->label.bounds, style);
@@ -631,7 +633,7 @@ AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
     }
 
     // Display cursor
-    {
+    if (ail_gui_stateIsActive(state)) {
         float anim_len_half = (float)(Input_Box_anim_len)/2.0f;
         i32 ai = (self->anim_idx < 0) ? 0 : self->anim_idx;
             ai = anim_len_half - ai;
