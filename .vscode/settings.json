@@ -13,10 +13,5 @@
 			"icon": "terminal-cmd"
 		},
 		"Command Prompt": null
-	},
-	"files.associations": {
-		"*.pl": "prolog",
-		"*.rb": "ruby",
-		"limits": "c"
 	}
 }
