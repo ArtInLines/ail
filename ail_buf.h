@@ -40,23 +40,29 @@ void ail_buf_ensure_size(AIL_Buffer *buf, u64 n);
 void ail_buf_free(AIL_Buffer buf);
 u8  ail_buf_peek1   (AIL_Buffer  buf);
 u16 ail_buf_peek2lsb(AIL_Buffer  buf);
+u32 ail_buf_peek3lsb(AIL_Buffer  buf);
 u32 ail_buf_peek4lsb(AIL_Buffer  buf);
 u64 ail_buf_peek8lsb(AIL_Buffer  buf);
 u16 ail_buf_peek2msb(AIL_Buffer  buf);
+u32 ail_buf_peek3msb(AIL_Buffer  buf);
 u32 ail_buf_peek4msb(AIL_Buffer  buf);
 u64 ail_buf_peek8msb(AIL_Buffer  buf);
 u8  ail_buf_read1   (AIL_Buffer *buf);
 u16 ail_buf_read2lsb(AIL_Buffer *buf);
+u32 ail_buf_read3lsb(AIL_Buffer *buf);
 u32 ail_buf_read4lsb(AIL_Buffer *buf);
 u64 ail_buf_read8lsb(AIL_Buffer *buf);
 u16 ail_buf_read2msb(AIL_Buffer *buf);
+u32 ail_buf_read3msb(AIL_Buffer *buf);
 u32 ail_buf_read4msb(AIL_Buffer *buf);
 u64 ail_buf_read8msb(AIL_Buffer *buf);
 void ail_buf_write1   (AIL_Buffer *buf, u8  val);
 void ail_buf_write2lsb(AIL_Buffer *buf, u16 val);
+void ail_buf_write3lsb(AIL_Buffer *buf, u32 val);
 void ail_buf_write4lsb(AIL_Buffer *buf, u32 val);
 void ail_buf_write8lsb(AIL_Buffer *buf, u64 val);
 void ail_buf_write2msb(AIL_Buffer *buf, u16 val);
+void ail_buf_write3msb(AIL_Buffer *buf, u32 val);
 void ail_buf_write4msb(AIL_Buffer *buf, u32 val);
 void ail_buf_write8msb(AIL_Buffer *buf, u64 val);
 #endif // AIL_BUF_H_
@@ -145,6 +151,11 @@ inline u16 ail_buf_peek2lsb(AIL_Buffer buf)
 	return ((u16)buf.data[buf.idx + 1] << 8) | ((u16)buf.data[buf.idx + 0] << 0);
 }
 
+inline u32 ail_buf_peek3lsb(AIL_Buffer buf)
+{
+	return ((u32)buf.data[buf.idx + 2] << 16) | ((u32)buf.data[buf.idx + 1] << 8) | ((u32)buf.data[buf.idx + 0] << 0);
+}
+
 inline u32 ail_buf_peek4lsb(AIL_Buffer buf)
 {
 	return ((u32)buf.data[buf.idx + 3] << 24) | ((u32)buf.data[buf.idx + 2] << 16) | ((u32)buf.data[buf.idx + 1] << 8) | ((u32)buf.data[buf.idx + 0] << 0);
@@ -159,6 +170,11 @@ inline u64 ail_buf_peek8lsb(AIL_Buffer buf)
 inline u16 ail_buf_peek2msb(AIL_Buffer buf)
 {
 	return ((u16)buf.data[buf.idx + 0] << 8) | ((u16)buf.data[buf.idx + 1] << 0);
+}
+
+inline u32 ail_buf_peek3msb(AIL_Buffer buf)
+{
+	return ((u32)buf.data[buf.idx + 0] << 16) | ((u32)buf.data[buf.idx + 1] << 8) | ((u32)buf.data[buf.idx + 2] << 0);
 }
 
 inline u32 ail_buf_peek4msb(AIL_Buffer buf)
@@ -186,6 +202,13 @@ u16 ail_buf_read2lsb(AIL_Buffer *buf)
 	return out;
 }
 
+u32 ail_buf_read3lsb(AIL_Buffer *buf)
+{
+	u32 out   = ail_buf_peek3lsb(*buf);
+	buf->idx += 3;
+	return out;
+}
+
 u32 ail_buf_read4lsb(AIL_Buffer *buf)
 {
 	u32 out   = ail_buf_peek4lsb(*buf);
@@ -204,6 +227,13 @@ u16 ail_buf_read2msb(AIL_Buffer *buf)
 {
 	u16 out   = ail_buf_peek2msb(*buf);
 	buf->idx += sizeof(u16);
+	return out;
+}
+
+u32 ail_buf_read3msb(AIL_Buffer *buf)
+{
+	u32 out   = ail_buf_peek3msb(*buf);
+	buf->idx += 3;
 	return out;
 }
 
@@ -240,6 +270,16 @@ void ail_buf_write2lsb(AIL_Buffer *buf, u16 val)
 	if (AIL_LIKELY(buf->idx > buf->size)) buf->size = buf->idx;
 }
 
+void ail_buf_write3lsb(AIL_Buffer *buf, u32 val)
+{
+	ail_buf_ensure_size(buf, 3);
+	for (u8 i = 0; i < 3; i++) {
+		buf->data[buf->idx++] = (u8)(val & 0xff);
+		val >>= 8;
+	}
+	if (AIL_LIKELY(buf->idx > buf->size)) buf->size = buf->idx;
+}
+
 void ail_buf_write4lsb(AIL_Buffer *buf, u32 val)
 {
 	ail_buf_ensure_size(buf, sizeof(u32));
@@ -265,6 +305,16 @@ void ail_buf_write2msb(AIL_Buffer *buf, u16 val)
 	ail_buf_ensure_size(buf, sizeof(u16));
 	for (u8 i = 0; i < (u8)sizeof(u16); i++) {
 		buf->data[buf->idx++] = (u8)(val & (0xff << 8*(sizeof(u16) - 1)));
+		val <<= 8;
+	}
+	if (AIL_LIKELY(buf->idx > buf->size)) buf->size = buf->idx;
+}
+
+void ail_buf_write3msb(AIL_Buffer *buf, u32 val)
+{
+	ail_buf_ensure_size(buf, 3);
+	for (u8 i = 0; i < 3; i++) {
+		buf->data[buf->idx++] = (u8)(val & (0xff << 8*(3 - 1)));
 		val <<= 8;
 	}
 	if (AIL_LIKELY(buf->idx > buf->size)) buf->size = buf->idx;
