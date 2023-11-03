@@ -2,6 +2,10 @@
 
 [stb](https://github.com/nothings/stb)-[style](https://github.com/nothings/stb/blob/master/docs/stb_howto.txt) single-file MIT licensed libraries for C/C++.
 
+## Disclaimer
+
+These libraries are still heavily under development as I experiment with using them in my own projects. There is not any documentation yet and breaking changes might be introduced at any point.
+
 Unlike the original stb-libraries, all libraries here depend on the [ail.h](./ail.h) file, so you should always include that file along with all other libraries you want from here.
 
 All libraries are written in C99.
@@ -10,29 +14,36 @@ I'm writing these libraries primarily for myself. I will thus add features that 
 
 ## Libraries
 
-| library                      | latest version | description                                                                           |
+| library                      | description                                                                           |
 | ---------------------------- | -------------- | ------------------------------------------------------------------------------------- |
-| [ail.h](./ail.h)             | 0.1            | Common definitions used by all other libraries. This file should always be included   |
-| [ail_alloc.h](./ail_alloc.h) | 0.1            | Allocators                                                                            |
-| [ail_fs.h](./ail_fs.h)       | 0.1            | File-System                                                                           |
-| [ail_buf.h](./ail_buf.h)     | 0.1            | Simple Read-Write Buffer implementation                                               |
-| [ail_gui.h](./ail_gui.h)     | 0.2            | GUI-Library for use with Raylib (can only be compiled with raylib.h already included) |
+| [ail.h](./ail.h)             | Common definitions used by all other libraries. This file should always be included   |
+| [ail_hm.h](./ail_hm.h)       | Generic Hashmap implementation, where keys and values can be of any type              |
+| [ail_alloc.h](./ail_alloc.h) | Allocators                                                                            |
+| [ail_fs.h](./ail_fs.h)       | File-System                                                                           |
+| [ail_buf.h](./ail_buf.h)     | Simple Read-Write Buffer implementation                                               |
+| [ail_gui.h](./ail_gui.h)     | GUI-Library for use with Raylib (can only be compiled with raylib.h already included) |
 
-## Versioning
+## Conventions
 
-I may change it in the future but at the moment it is like this this:
+All libraries here follow the following conventions. Knowing these can make usage more intuitive (especially while documentation is still lacking):
 
-`1.23b`
+-   Everything (except the type macros in `ail.h`) is prefixed with the name of the library (e.g. `ail_hm_new`). This is done because C99 has no feature for namespacing
+-   All functions use snake case (this is not consisten across all libraries yet)
+-   Macros are uppe-case, unless they are meant to be used like normal functions
+-   Upper-case parameters in a macro definition are Types
+-   Parameters to a macro are never meant to be pointers unless they are called `...Ptr` (eg. `daPtr`)
 
--   `1` = major version
--   `23` = minor version
--   `b` = patch
-    -   1.23 => zero patches
-    -   1.23a => patch 1
-    -   1.23b => patch 2
-    -   etc.
+## Notes on Generic Data Structures
 
-For versions below `1.0`, all versions are major or patch versions
+There are currently implementation for generic dynamic arrays (prefixed with `ail_da` in [ail.h](./ail.h)) and generic hashmaps ([ail_hm.h](./ail_hm.h)). Both are implemented in very similar ways.
+
+To be generic, they use duck-typing via macros. Thus, any structure that contains the same fields as my dynamic arrays or my hashmaps, can be treated like one.
+
+Instead of having to create a new structure each time, you can simply use `AIL_DA(T)`, where `T` is the type of the elements in your array (same for hashmaps with `AIL_HM(K, V)`, where `K`, `V` are the types for the keys and values). This macro translates to a specific name for the necessary structure.
+
+Some common structures (like `AIL_DA(char)`) are already predefined and can just be used. Other structures still need to be defined of course, which can be done with the macro `AIL_DA_INIT(T)`. Since the initialization macro translates to a type-definition, it neds to be put in your file's global scope. You can see [test/ail_da.c](./test/ail_da.c) for an example usage.
+
+The main benefit of this approach is that you can use any structure that names its fields in the right way as a dynamic array or hashmap. Further, the types of dynamic arrays / hashmaps become very explicit in the code, when variables are defined with `AIL_DA(char) x;`.
 
 ## Why is it named 'ail'?
 
