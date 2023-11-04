@@ -207,7 +207,7 @@ AIL_DA_INIT(f64);
         }                                                                                \
     } while(0)
 
-#define ail_da_rm_swap(daPtr, idx) (daPtr)->data[(idx)] = (daPtr)->data[(daPtr)->len--]
+#define ail_da_rm_swap(daPtr, idx) (daPtr)->data[(idx)] = (daPtr)->data[--(daPtr)->len]
 
 #endif // _AIL_DA_GUARD_
 #endif // AIL_DA_IMPL
