@@ -34,6 +34,9 @@
 
 char* ail_fs_read_file(const char *fpath, u64 *size);
 bool  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
+const char *ail_fs_get_file_ext(const char *filename);
+bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
+bool ail_fs_is_file(const char *path);
 
 #endif // AIL_FS_H_
 
@@ -77,6 +80,34 @@ fd_end:
     close(fd);
 end:
     return out;
+}
+
+bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
+{
+	while (*a && *b && *a++ == *b++) {}
+    return *a == *b && !*a;
+}
+
+const char *ail_fs_get_file_ext(const char *filename)
+{
+    u32 idx = 0;
+    for (u32 i = 0; filename[i]; i++) {
+        if (filename[i] == '.') idx = i + 1;
+    }
+    return &filename[idx];
+}
+
+bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext)
+{
+    const char *file_ext = ail_fs_get_file_ext(filename);
+    return ail_fs_str_eq(file_ext, ext);
+}
+
+bool ail_fs_is_file(const char *path)
+{
+    struct stat result = {0};
+    stat(path, &result);
+    return S_ISREG(result.st_mode);
 }
 
 #endif // _AIL_FS_IMPL_GUARD_
