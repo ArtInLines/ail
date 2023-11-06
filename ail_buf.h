@@ -68,8 +68,9 @@ void ail_buf_write8msb(AIL_Buffer *buf, u64 val);
 #endif // AIL_BUF_H_
 
 
-#define AIL_BUF_IMPLEMENTATION
-#ifdef  AIL_BUF_IMPLEMENTATION
+#ifdef  AIL_BUF_IMPL
+#ifndef _AIL_BUF_IMPL_GUARD_
+#define _AIL_BUF_IMPL_GUARD_
 
 #ifdef AIL_FS_H_
 AIL_Buffer ail_buf_from_file(const char *filename)
@@ -337,4 +338,5 @@ void ail_buf_write8msb(AIL_Buffer *buf, u64 val)
 }
 
 
-#endif // AIL_BUF_IMPLEMENTATION
+#endif // _AIL_BUF_IMPL_GUARD_
+#endif // AIL_BUF_IMPL
