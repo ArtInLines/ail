@@ -110,6 +110,9 @@ AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, Rectangle bou
 Vector2 ail_gui_measureText(const char *text, Rectangle bounds, AIL_Gui_Style style, AIL_Gui_Drawable_Text *drawable_text);
 void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style);
 void ail_gui_drawText(const char *text, Rectangle bounds, AIL_Gui_Style style);
+void ail_gui_drawBounds(Rectangle bounds, AIL_Gui_Style style);
+Rectangle ail_gui_getMinBounds(AIL_Gui_Drawable_Text text, AIL_Gui_Style style);
+void ail_gui_drawPreparedSized(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL_Gui_Style style);
 void ail_gui_drawSized(const char *text, Rectangle bounds, AIL_Gui_Style style);
 Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL_Gui_Style style);
 AIL_Gui_Label ail_gui_newLabel(Rectangle bounds, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered);
@@ -332,12 +335,34 @@ void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
     }
 }
 
-void ail_gui_drawSized(const char *text, Rectangle bounds, AIL_Gui_Style style)
+void ail_gui_drawBounds(Rectangle bounds, AIL_Gui_Style style)
 {
     if (style.border_width > 0) {
         DrawRectangle(bounds.x - style.border_width, bounds.y - style.border_width, bounds.width + 2*style.border_width, bounds.height + 2*style.border_width, style.border_color);
     }
     DrawRectangle(bounds.x, bounds.y, bounds.width, bounds.height, style.bg);
+}
+
+Rectangle ail_gui_getMinBounds(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
+{
+    i32 x = text.lineXs.data[0];
+    for (u32 i = 1; i < text.lineXs.len; i++) x = AIL_MIN(x, text.lineXs.data[i]);
+    x -= style.pad;
+    i32 y = text.y - style.pad;
+    i32 w = text.w + 2*style.pad;
+    i32 h = text.lineOffsets.len * style.lSpacing + text.lineXs.len * style.font_size + 2*style.pad;
+    return (Rectangle) {x, y, w, h};
+}
+
+void ail_gui_drawPreparedSized(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL_Gui_Style style)
+{
+    ail_gui_drawBounds(bounds, style);
+    ail_gui_drawPreparedText(text, style);
+}
+
+void ail_gui_drawSized(const char *text, Rectangle bounds, AIL_Gui_Style style)
+{
+    ail_gui_drawBounds(bounds, style);
     ail_gui_drawText(text, bounds, style);
 }
 
@@ -452,7 +477,7 @@ AIL_Gui_State ail_gui_drawLabel(AIL_Gui_Label self)
     AIL_Gui_Style style   = (hovered) ? self.hovered : self.defaultStyle;
 
     AIL_Gui_Drawable_Text prepText = ail_gui_prepTextForDrawing(self.text.data, self.bounds, style);
-    ail_gui_drawPreparedText(prepText, style);
+    ail_gui_drawPreparedSized(prepText, self.bounds, style);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     return state;
 }
