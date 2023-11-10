@@ -176,6 +176,8 @@ AIL_Gui_Style ail_gui_defaultStyle(Font font)
         .font_size    = 30,
         .cSpacing     = 0,
         .lSpacing     = 5,
+        .hAlign       = AIL_GUI_ALIGN_LT,
+        .vAlign       = AIL_GUI_ALIGN_LT,
     };
 }
 
@@ -191,6 +193,8 @@ AIL_Gui_Style ail_gui_cloneStyle(AIL_Gui_Style self)
         .font_size    = self.font_size,
         .cSpacing     = self.cSpacing,
         .lSpacing     = self.lSpacing,
+        .hAlign       = self.hAlign,
+        .vAlign       = self.vAlign,
     };
 }
 
