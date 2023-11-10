@@ -145,14 +145,13 @@ AIL_DA_INIT(f64);
 		}                                                                                  \
 	} while(0)
 
-#define ail_da_grow(daPtr, newCap, elSize) do {                        \
-		(daPtr)->cap  = (newCap);                                      \
-		(daPtr)->data = AIL_REALLOC((daPtr)->data, (elSize)*(newCap)); \
+#define ail_da_grow(daPtr, newCap) do {                        					       \
+		(daPtr)->data = AIL_REALLOC((daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
 	} while(0)
 
-#define ail_da_maybe_grow(daPtr, n) {                                                              \
-		if ((daPtr)->len + (n) > (daPtr)->cap)                                                     \
-		ail_da_grow(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), sizeof(*((daPtr)->data))); \
+#define ail_da_maybe_grow(daPtr, n) {                                    \
+		if ((daPtr)->len + (n) > (daPtr)->cap)                           \
+		ail_da_grow(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
 	}
 
 #define ail_da_push(daPtr, elem) do {           \
