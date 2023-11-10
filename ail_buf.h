@@ -19,6 +19,15 @@
 #error "You must define both AIL_BUF_MALLOC and AIL_BUF_FREE, or neither."
 #endif
 
+#ifndef AIL_BUF_MEMCPY
+#ifdef AIL_MEMCPY
+#define AIL_BUF_MEMCPY AIL_MEMCPY
+#elif
+#include <string.h>
+#define AIL_BUF_MEMCPY(dst, src, len) memcpy(dst, src, len)
+#endif
+#endif
+
 typedef struct {
 	u8 *data;
 	u64 idx;
@@ -47,6 +56,8 @@ u16 ail_buf_peek2msb(AIL_Buffer  buf);
 u32 ail_buf_peek3msb(AIL_Buffer  buf);
 u32 ail_buf_peek4msb(AIL_Buffer  buf);
 u64 ail_buf_peek8msb(AIL_Buffer  buf);
+char *ail_buf_peekstr (AIL_Buffer buf, u64 len);
+char *ail_buf_peekcstr(AIL_Buffer buf);
 u8  ail_buf_read1   (AIL_Buffer *buf);
 u16 ail_buf_read2lsb(AIL_Buffer *buf);
 u32 ail_buf_read3lsb(AIL_Buffer *buf);
@@ -56,6 +67,8 @@ u16 ail_buf_read2msb(AIL_Buffer *buf);
 u32 ail_buf_read3msb(AIL_Buffer *buf);
 u32 ail_buf_read4msb(AIL_Buffer *buf);
 u64 ail_buf_read8msb(AIL_Buffer *buf);
+char *ail_buf_readstr (AIL_Buffer *buf, u64 len);
+char *ail_buf_readcstr(AIL_Buffer *buf);
 void ail_buf_write1   (AIL_Buffer *buf, u8  val);
 void ail_buf_write2lsb(AIL_Buffer *buf, u16 val);
 void ail_buf_write3lsb(AIL_Buffer *buf, u32 val);
@@ -65,6 +78,9 @@ void ail_buf_write2msb(AIL_Buffer *buf, u16 val);
 void ail_buf_write3msb(AIL_Buffer *buf, u32 val);
 void ail_buf_write4msb(AIL_Buffer *buf, u32 val);
 void ail_buf_write8msb(AIL_Buffer *buf, u64 val);
+void ail_buf_writestr (AIL_Buffer *buf, char *str, u64 len);
+void ail_buf_writecstr(AIL_Buffer *buf, char *str);
+
 #endif // AIL_BUF_H_
 
 
@@ -189,6 +205,20 @@ inline u64 ail_buf_peek8msb(AIL_Buffer buf)
 		   ((u64)buf.data[buf.idx + 4] << 24) | ((u64)buf.data[buf.idx + 5] << 16) | ((u64)buf.data[buf.idx + 6] <<  8) | ((u64)buf.data[buf.idx + 7] <<  0);
 }
 
+char *ail_buf_peekstr(AIL_Buffer buf, u64 len)
+{
+	char *out = AIL_BUF_MALLOC(sizeof(char) * len);
+	AIL_BUF_MEMCPY(out, &buf.data[buf.idx], len);
+	return out;
+}
+
+char *ail_buf_peekcstr(AIL_Buffer buf)
+{
+	u64 i = 0;
+	while (buf.data[buf.idx + i] != 0 && buf.len > buf.idx + i) i++;
+	return ail_buf_peekstr(buf, i + 1);
+}
+
 u8  ail_buf_read1(AIL_Buffer *buf)
 {
 	return buf->data[buf->idx++];
@@ -251,6 +281,21 @@ u64 ail_buf_read8msb(AIL_Buffer *buf)
 	buf->idx += sizeof(u64);
 	return out;
 }
+
+char *ail_buf_readstr(AIL_Buffer *buf, u64 len)
+{
+	char out = ail_buf_peekstr(*buf, len);
+	buf->idx += len;
+	return out;
+}
+
+char *ail_buf_readcstr(AIL_Buffer *buf)
+{
+	u64 i = 0;
+	while (buf->data[buf->idx + i] != 0 && buf->len > buf->idx + i) i++;
+	return ail_buf_readstr(buf, i);
+}
+
 
 void ail_buf_write1(AIL_Buffer *buf, u8  val)
 {
@@ -337,6 +382,18 @@ void ail_buf_write8msb(AIL_Buffer *buf, u64 val)
 	if (AIL_LIKELY(buf->idx > buf->len)) buf->len = buf->idx;
 }
 
+void ail_buf_writestr(AIL_Buffer *buf, char *str, u64 len)
+{
+	for (u64 i = 0; i < len; i++) buf->data[buf->idx++] = str[i];
+	if (AIL_LIKELY(buf->idx > buf->len)) buf->len = buf->idx;
+}
+
+void ail_buf_writecstr(AIL_Buffer *buf, char *str)
+{
+	for (u64 i = 0; str[i] != 0; i++) buf->data[buf->idx++] = str[i];
+	buf->data[buf->idx++] = 0;
+	if (AIL_LIKELY(buf->idx > buf->len)) buf->len = buf->idx;
+}
 
 #endif // _AIL_BUF_IMPL_GUARD_
 #endif // AIL_BUF_IMPL
