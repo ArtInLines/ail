@@ -207,8 +207,9 @@ inline u64 ail_buf_peek8msb(AIL_Buffer buf)
 
 char *ail_buf_peekstr(AIL_Buffer buf, u64 len)
 {
-	char *out = AIL_BUF_MALLOC(sizeof(char) * len);
+	char *out = AIL_BUF_MALLOC(sizeof(char) * (len + 1));
 	AIL_BUF_MEMCPY(out, &buf.data[buf.idx], len);
+	out[len] = 0;
 	return out;
 }
 
@@ -216,7 +217,7 @@ char *ail_buf_peekcstr(AIL_Buffer buf)
 {
 	u64 i = 0;
 	while (buf.data[buf.idx + i] != 0 && buf.len > buf.idx + i) i++;
-	return ail_buf_peekstr(buf, i + 1);
+	return ail_buf_peekstr(buf, i);
 }
 
 u8  ail_buf_read1(AIL_Buffer *buf)
@@ -284,16 +285,18 @@ u64 ail_buf_read8msb(AIL_Buffer *buf)
 
 char *ail_buf_readstr(AIL_Buffer *buf, u64 len)
 {
-	char out = ail_buf_peekstr(*buf, len);
+	char *out = ail_buf_peekstr(*buf, len);
 	buf->idx += len;
 	return out;
 }
 
 char *ail_buf_readcstr(AIL_Buffer *buf)
 {
-	u64 i = 0;
-	while (buf->data[buf->idx + i] != 0 && buf->len > buf->idx + i) i++;
-	return ail_buf_readstr(buf, i);
+	u64 len = 0;
+	while (buf->data[buf->idx + len] != 0 && buf->len > buf->idx + len) len++;
+	char *out = ail_buf_readstr(buf, len);
+	buf->idx = len + 1;
+	return out;
 }
 
 
