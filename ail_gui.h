@@ -15,6 +15,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <float.h>
+#include "raylib.h"
+#include "rlgl.h"
 
 #if !defined(AIL_GUI_MALLOC) && !defined(AIL_GUI_FREE)
 #if  defined(AIL_MALLOC) &&  defined(AIL_FREE)
@@ -29,7 +31,7 @@
 #error "You must define both AIL_GUI_MALLOC and AIL_GUI_FREE, or neither."
 #endif
 
-typedef enum __attribute__((__packed__)) {
+typedef enum {
     AIL_GUI_STATE_HIDDEN,   // Element is not displayed
     AIL_GUI_STATE_INACTIVE, // Element is not active in any way. `state > AIL_GUI_STATE_INACTIVE` can be used to check if the element is active in anyway
     AIL_GUI_STATE_HOVERED,  // Element is currently being hovered
@@ -37,7 +39,7 @@ typedef enum __attribute__((__packed__)) {
     AIL_GUI_STATE_FOCUSED,  // Element is being focused on and active. To be active is to accept user input
 } AIL_Gui_State;
 
-typedef enum __attribute__((__packed__)) {
+typedef enum {
     AIL_GUI_ALIGN_LT, // Align left and/or top
     AIL_GUI_ALIGN_C,  // Align center
     AIL_GUI_ALIGN_RB, // Align right and/or bottom
@@ -108,16 +110,20 @@ AIL_Gui_Style ail_gui_defaultStyle(Font font);
 AIL_Gui_Style ail_gui_cloneStyle(AIL_Gui_Style self);
 AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, Rectangle bounds, AIL_Gui_Style style);
 Vector2 ail_gui_measureText(const char *text, Rectangle bounds, AIL_Gui_Style style, AIL_Gui_Drawable_Text *drawable_text);
+void ail_gui_drawPreparedTextHelper(AIL_Gui_Drawable_Text text, AIL_Gui_Style style, bool outerBounds, Rectangle outer);
+void ail_gui_drawPreparedTextOuterBounds(AIL_Gui_Drawable_Text text, Rectangle outer, AIL_Gui_Style style);
 void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style);
 void ail_gui_drawText(const char *text, Rectangle bounds, AIL_Gui_Style style);
+void ail_gui_drawTextOuterBounds(const char *text, Rectangle inner, Rectangle outer, AIL_Gui_Style style);
 void ail_gui_drawBounds(Rectangle bounds, AIL_Gui_Style style);
+void ail_gui_drawBoundsOuterBounds(Rectangle inner, Rectangle outer, AIL_Gui_Style style);
 Rectangle ail_gui_getMinBounds(AIL_Gui_Drawable_Text text, AIL_Gui_Style style);
 void ail_gui_drawPreparedSized(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL_Gui_Style style);
+void ail_gui_drawPreparedSizedOuterBounds(AIL_Gui_Drawable_Text text, Rectangle inner, Rectangle outer, AIL_Gui_Style style);
 void ail_gui_drawSized(const char *text, Rectangle bounds, AIL_Gui_Style style);
+void ail_gui_drawSizedOuterBounds(const char *text, Rectangle inner, Rectangle outer, AIL_Gui_Style style);
 Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL_Gui_Style style);
 AIL_Gui_Label ail_gui_newLabel(Rectangle bounds, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered);
-AIL_Gui_Label ail_gui_newCenteredLabel(Rectangle bounds, i32 w, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered);
-void ail_gui_centerLabel(AIL_Gui_Label *self, Rectangle bounds, i32 w);
 void ail_gui_rmCharLabel(AIL_Gui_Label *self, u32 idx);
 void ail_gui_insertCharLabel(AIL_Gui_Label *self, i32 idx, char c);
 void ail_gui_insertSliceLabel(AIL_Gui_Label *self, i32 idx, const char *slice, u32 slice_size);
@@ -126,6 +132,7 @@ Vector2 ail_gui_measureLabelText(AIL_Gui_Label self, AIL_Gui_State state);
 void ail_gui_resizeLabel(AIL_Gui_Label *self, AIL_Gui_State state);
 AIL_Gui_Drawable_Text ail_gui_resizeLabelEx(AIL_Gui_Label *self, AIL_Gui_State state, const char *text);
 AIL_Gui_State ail_gui_drawLabel(AIL_Gui_Label self);
+AIL_Gui_State ail_gui_drawLabelOuterBounds(AIL_Gui_Label self, Rectangle outer_bounds);
 AIL_Gui_Input_Box ail_gui_newInputBox(char *placeholder, bool resize, bool multiline, bool selected, AIL_Gui_Label label);
 bool ail_gui_isInputBoxHovered(AIL_Gui_Input_Box self);
 AIL_Gui_State ail_gui_getInputBoxState(AIL_Gui_Input_Box *self);
@@ -211,7 +218,6 @@ AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, Rectangle bou
     float scaleFactor = style.font_size / (float)style.font.baseSize; // Character quad scaling factor
     float lineWidth   = 0.0f;
     u16   lineOffset  = 0;
-
 
     i32 cp;        // Current codepoint
     i32 cpSize;    // Current codepoint size in bytes
@@ -313,7 +319,53 @@ void ail_gui_drawText(const char *text, Rectangle bounds, AIL_Gui_Style style)
     ail_gui_drawPreparedText(preppedText, style);
 }
 
-void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
+void ail_gui_drawTextOuterBounds(const char *text, Rectangle inner, Rectangle outer, AIL_Gui_Style style)
+{
+    AIL_Gui_Drawable_Text preppedText = ail_gui_prepTextForDrawing(text, inner, style);
+    ail_gui_drawPreparedTextOuterBounds(preppedText, outer, style);
+}
+
+void ail_gui_drawTextCodepointOuterBounds(Font font, i32 codepoint, Vector2 position, Rectangle outer, f32 fontSize, Color col)
+{
+    // @Note: Code adapted from raylib/rtext.c/DrawTextCodepoint
+    i32 index = GetGlyphIndex(font, codepoint);
+    f32 scaleFactor = fontSize/font.baseSize;
+
+    // All rectangles here are given via the top-left and bottom-right coordinates, which will be <rect>1<x/y> and <rect>2<x/y> respectively
+    // 'd' is the destination, 's' the source, 'p' the actually displayed destination and 'q' the actually displayed source
+    // Further, 't' are the interpolation variables
+    f32 d1x = position.x + font.glyphs[index].offsetX*scaleFactor - (f32)font.glyphPadding*scaleFactor;
+    f32 d1y = position.y + font.glyphs[index].offsetY*scaleFactor - (f32)font.glyphPadding*scaleFactor;
+    f32 d2x = d1x + (font.recs[index].width  + 2.0f*font.glyphPadding)*scaleFactor;
+    f32 d2y = d1y + (font.recs[index].height + 2.0f*font.glyphPadding)*scaleFactor;
+
+    f32 s1x = font.recs[index].x - (f32)font.glyphPadding;
+    f32 s1y = font.recs[index].y - (f32)font.glyphPadding;
+    f32 s2x = s1x + font.recs[index].width  + 2.0f*font.glyphPadding;
+    f32 s2y = s1y + font.recs[index].height + 2.0f*font.glyphPadding;
+
+    i32 p1x = AIL_MAX(outer.x, d1x);
+    i32 p1y = AIL_MAX(outer.y, d1y);
+    i32 p2x = AIL_MIN(outer.x + outer.width,  d2x);
+    i32 p2y = AIL_MIN(outer.y + outer.height, d2y);
+
+    f32 t1x = AIL_REV_LERP(p1x, d1x, d2x);
+    f32 t1y = AIL_REV_LERP(p1y, d1y, d2y);
+    f32 t2x = AIL_REV_LERP(p2x, d1x, d2x);
+    f32 t2y = AIL_REV_LERP(p2y, d1y, d2y);
+
+    i32 q1x = AIL_LERP(t1x, s1x, s2x);
+    i32 q1y = AIL_LERP(t1y, s1y, s2y);
+    i32 q2x = AIL_LERP(t2x, s1x, s2x);
+    i32 q2y = AIL_LERP(t2y, s1y, s2y);
+
+    Rectangle src = { q1x, q1y, q2x - q1x, q2y - q1y };
+    Rectangle dst = { p1x, p1y, p2x - p1x, p2y - p1y };
+
+    DrawTexturePro(font.texture, src, dst, (Vector2){0.0f, 0.0f}, 0.0f, col);
+}
+
+inline void ail_gui_drawPreparedTextHelper(AIL_Gui_Drawable_Text text, AIL_Gui_Style style, bool outerBounds, Rectangle outer)
 {
     if (!text.text) return;
     float scaleFactor = style.font_size/style.font.baseSize; // Character quad scaling factor
@@ -323,7 +375,11 @@ void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
     i32 cpSize;    // Current codepoint size in bytes
     for (u32 i = 0, lineIdx = 0, xIdx = 1; (cp = GetCodepointNext(&text.text[i], &cpSize)) != 0; i += cpSize) {
         if ((cp != '\n') && (cp != ' ') && (cp != '\t') && (cp != '\r')) {
-            DrawTextCodepoint(style.font, cp, pos, style.font_size, style.color);
+            if (outerBounds) {
+                ail_gui_drawTextCodepointOuterBounds(style.font, cp, pos, outer, style.font_size, style.color);
+            } else {
+                DrawTextCodepoint(style.font, cp, pos, style.font_size, style.color);
+            }
         }
         if (AIL_UNLIKELY(lineIdx < text.lineOffsets.len && i == lastOffset + (i32)text.lineOffsets.data[lineIdx])) {
             pos.y += style.font_size + style.lSpacing;
@@ -339,12 +395,38 @@ void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
     }
 }
 
+void ail_gui_drawPreparedText(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
+{
+    ail_gui_drawPreparedTextHelper(text, style, false, (Rectangle){0});
+}
+
+void ail_gui_drawPreparedTextOuterBounds(AIL_Gui_Drawable_Text text, Rectangle outer, AIL_Gui_Style style)
+{
+    ail_gui_drawPreparedTextHelper(text, style, true, outer);
+}
+
 void ail_gui_drawBounds(Rectangle bounds, AIL_Gui_Style style)
 {
     if (style.border_width > 0) {
         DrawRectangle(bounds.x - style.border_width, bounds.y - style.border_width, bounds.width + 2*style.border_width, bounds.height + 2*style.border_width, style.border_color);
     }
     DrawRectangle(bounds.x, bounds.y, bounds.width, bounds.height, style.bg);
+}
+
+void ail_gui_drawBoundsOuterBounds(Rectangle inner, Rectangle outer, AIL_Gui_Style style)
+{
+    f32 p1x = AIL_MAX(inner.x, outer.x);
+    f32 p1y = AIL_MAX(inner.y, outer.y);
+    f32 p2x = AIL_MIN(inner.x + inner.width, outer.x + outer.width);
+    f32 p2y = AIL_MIN(inner.y + inner.height, outer.y + outer.height);
+    if (style.border_width > 0) {
+        f32 q1x = AIL_MAX(inner.x - style.border_width, outer.x);
+        f32 q1y = AIL_MAX(inner.y - style.border_width, outer.y);
+        f32 q2x = AIL_MIN(inner.x + style.border_width + inner.width, outer.x + outer.width);
+        f32 q2y = AIL_MIN(inner.y + style.border_width + inner.height, outer.y + outer.height);
+        DrawRectangle(q1x, q1y, q2x - q1x, q2y - q1y, style.border_color);
+    }
+    DrawRectangle(p1x, p1y, p2x - p1x, p2y - p1y, style.bg);
 }
 
 Rectangle ail_gui_getMinBounds(AIL_Gui_Drawable_Text text, AIL_Gui_Style style)
@@ -364,10 +446,22 @@ void ail_gui_drawPreparedSized(AIL_Gui_Drawable_Text text, Rectangle bounds, AIL
     ail_gui_drawPreparedText(text, style);
 }
 
+void ail_gui_drawPreparedSizedOuterBounds(AIL_Gui_Drawable_Text text, Rectangle inner, Rectangle outer, AIL_Gui_Style style)
+{
+    ail_gui_drawBoundsOuterBounds(inner, outer, style);
+    ail_gui_drawPreparedTextOuterBounds(text, outer, style);
+}
+
 void ail_gui_drawSized(const char *text, Rectangle bounds, AIL_Gui_Style style)
 {
     ail_gui_drawBounds(bounds, style);
     ail_gui_drawText(text, bounds, style);
+}
+
+void ail_gui_drawSizedOuterBounds(const char *text, Rectangle inner, Rectangle outer, AIL_Gui_Style style)
+{
+    ail_gui_drawBoundsOuterBounds(inner, outer, style);
+    ail_gui_drawTextOuterBounds(text, inner, outer, style);
 }
 
 /// Same as ail_gui_drawSized, except it returns an array of coordinates for each byte in the drawn text
@@ -482,6 +576,19 @@ AIL_Gui_State ail_gui_drawLabel(AIL_Gui_Label self)
 
     AIL_Gui_Drawable_Text prepText = ail_gui_prepTextForDrawing(self.text.data, self.bounds, style);
     ail_gui_drawPreparedSized(prepText, self.bounds, style);
+    if (hovered) SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+    return state;
+}
+
+AIL_Gui_State ail_gui_drawLabelOuterBounds(AIL_Gui_Label self, Rectangle outer_bounds)
+{
+    AIL_Gui_State state = ail_gui_getState(self.bounds.x, self.bounds.y, self.bounds.width, self.bounds.height);
+    if (state == AIL_GUI_STATE_HIDDEN) return state;
+    bool hovered = state >= AIL_GUI_STATE_HOVERED;
+    AIL_Gui_Style style   = (hovered) ? self.hovered : self.defaultStyle;
+
+    AIL_Gui_Drawable_Text prepText = ail_gui_prepTextForDrawing(self.text.data, self.bounds, style);
+    ail_gui_drawPreparedSizedOuterBounds(prepText, self.bounds, outer_bounds, style);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     return state;
 }
