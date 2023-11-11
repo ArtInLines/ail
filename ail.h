@@ -70,13 +70,19 @@ typedef double   f64;
 #define AIL_STRINGIZE2(x) #x
 #define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
 #define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
+
 #define AIL_MAX(a, b) ((a > b) ? a : b)
 #define AIL_MIN(a, b) ((a < b) ? a : b)
 #define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
+#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+
+// AIL_LERP(AIL_LERP(x, min, max), min, max) = x
 #define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
+#define AIL_REV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
+
 #define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
 #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
-#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+
 #define AIL_DBG_EXIT() do { *(char *)0 = 0; exit(1); } while(0)
 #define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
