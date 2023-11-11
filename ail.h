@@ -91,13 +91,13 @@ typedef double   f64;
 #define AIL_STATIC_ASSERT(expr) AIL_STATIC_ASSERT_MSG(expr, #expr);
 
 #define AIL_IS_2POWER(x) x && !(x & (x - 1))
-#define AIL_NEXT_2POWER(x, out) do {                                                                                                       \
-        out = x;                                                                                                                           \
-        out--;                                                                                                                             \
+#define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
+        out = x;                                                                                                                              \
+        out--;                                                                                                                                \
         for (size_t _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
-            out |= out >> _ail_next_2power_shift_;                                                                                         \
-        out++;                                                                                                                             \
-        out += (out==0);                                                                                                                   \
+            out |= out >> _ail_next_2power_shift_;                                                                                            \
+        out++;                                                                                                                                \
+        out += (out==0);                                                                                                                      \
     } while(0)
 
 

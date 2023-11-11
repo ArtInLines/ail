@@ -11,7 +11,7 @@
 #include "ail.h"
 
 #if !defined(AIL_HM_CALLOC) && !defined(AIL_HM_FREE)
-#if  defined(AIL_CALLOC)    && defined(AIL_MALLOC)     &&  defined(AIL_FREE)
+#if  defined(AIL_CALLOC)    &&  defined(AIL_FREE)
 #define AIL_HM_CALLOC AIL_CALLOC
 #define AIL_HM_FREE   AIL_FREE
 #else
