@@ -739,7 +739,7 @@ AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
 
     AIL_Gui_Drawable_Text prepText = {0};
     if (self->selected) res = ail_gui_handleKeysInputBox(self);
-    if (res.updated || self->resize) prepText = ail_gui_resizeLabelEx(&self->label, state, text);
+    if (res.updated && self->resize) prepText = ail_gui_resizeLabelEx(&self->label, state, text);
 
     if (!prepText.lineXs.len) prepText = ail_gui_prepTextForDrawing(text, self->label.bounds, style);
     Vector2 *coords = ail_gui_drawSizedEx(prepText, self->label.bounds, style);
