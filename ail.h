@@ -153,6 +153,7 @@ AIL_DA_INIT(f64);
 
 #define ail_da_grow(daPtr, newCap) do {                        					       \
 		(daPtr)->data = AIL_REALLOC((daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
+		(daPtr)->cap  = (newCap);													   \
 	} while(0)
 
 #define ail_da_maybe_grow(daPtr, n) {                                    \
