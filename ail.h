@@ -143,7 +143,7 @@ AIL_DA_INIT(f64);
 #define ail_da_new_empty(T)           (AIL_DA(T)) { .data = NULL, .len = 0, .cap = 0 }
 #define ail_da_new_zero_init(T, c)    (AIL_DA(T)) { .data = AIL_CALLOC(c, sizeof(T)), .len = 0, .cap = (c) }
 #define ail_da_from_parts(T, d, l, c) (AIL_DA(T)) { .data = (d), .len = (l), .cap = (c) }
-#define ail_da_free(da) AIL_FREE(da.data)
+#define ail_da_free(daPtr) do { AIL_FREE((daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
 
 #define ail_da_setn(daPtr, idx, elems, n) do {                                             \
 		for (unsigned int _ail_da_setn_i_ = 0; _ail_da_setn_i_ < (n); _ail_da_setn_i_++) { \
@@ -151,14 +151,15 @@ AIL_DA_INIT(f64);
 		}                                                                                  \
 	} while(0)
 
-#define ail_da_grow(daPtr, newCap) do {                        					       \
+#define ail_da_resize(daPtr, newCap) do {                        					   \
 		(daPtr)->data = AIL_REALLOC((daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
 		(daPtr)->cap  = (newCap);													   \
+		if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                  \
 	} while(0)
 
-#define ail_da_maybe_grow(daPtr, n) {                                    \
-		if ((daPtr)->len + (n) > (daPtr)->cap)                           \
-		ail_da_grow(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
+#define ail_da_maybe_grow(daPtr, n) {                                      \
+		if ((daPtr)->len + (n) > (daPtr)->cap)                             \
+		ail_da_resize(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
 	}
 
 #define ail_da_push(daPtr, elem) do {           \
