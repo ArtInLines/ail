@@ -59,7 +59,7 @@ typedef double   f64;
 /////////////////////////
 #ifndef AIL_DBG_PRINT
 #include <stdio.h>
-#define AIL_DBG_PRINT puts
+#define AIL_DBG_PRINT printf
 #endif // AIL_DBG_PRINT
 
 #ifndef AIL_ASSERT
@@ -83,7 +83,7 @@ typedef double   f64;
 #define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
 #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
 
-#define AIL_DBG_EXIT() do { *(char *)0 = 0; exit(1); } while(0)
+#define AIL_DBG_EXIT() do { exit(1); } while(0)
 #define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
@@ -112,6 +112,11 @@ typedef double   f64;
 #ifdef  AIL_DA_IMPL
 #ifndef _AIL_DA_GUARD_
 #define _AIL_DA_GUARD_
+
+#ifndef AIL_DA_PRINT
+#include <stdio.h>
+#define AIL_DA_PRINT printf
+#endif
 
 #ifndef AIL_DA_INIT_CAP
 #define AIL_DA_INIT_CAP 256
@@ -144,6 +149,15 @@ AIL_DA_INIT(f64);
 #define ail_da_new_zero_init(T, c)    (AIL_DA(T)) { .data = AIL_CALLOC(c, sizeof(T)), .len = 0, .cap = (c) }
 #define ail_da_from_parts(T, d, l, c) (AIL_DA(T)) { .data = (d), .len = (l), .cap = (c) }
 #define ail_da_free(daPtr) do { AIL_FREE((daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
+
+#define ail_da_printf(da, format, ...) do {                                       \
+		AIL_DA_PRINT("{\n  cap: %d,\n  len: %d,\n  data: [", (da).cap, (da).len); \
+		for (u32 i = 0; i < (da).len; i++) {                                      \
+			AIL_DA_PRINT("\n    " format ",", __VA_ARGS__);                       \
+		}                                                                         \
+		if ((da).len > 0) AIL_DA_PRINT("\n");                                     \
+		AIL_DA_PRINT("  ]\n}\n");                                                 \
+	} while(0)
 
 #define ail_da_setn(daPtr, idx, elems, n) do {                                             \
 		for (unsigned int _ail_da_setn_i_ = 0; _ail_da_setn_i_ < (n); _ail_da_setn_i_++) { \
