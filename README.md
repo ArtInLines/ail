@@ -15,13 +15,14 @@ I'm writing these libraries primarily for myself. I will thus add features that 
 ## Libraries
 
 | library                      | description                                                                           |
-| ---------------------------- | -------------- | ------------------------------------------------------------------------------------- |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
 | [ail.h](./ail.h)             | Common definitions used by all other libraries. This file should always be included   |
 | [ail_hm.h](./ail_hm.h)       | Generic Hashmap implementation, where keys and values can be of any type              |
 | [ail_alloc.h](./ail_alloc.h) | Allocators                                                                            |
 | [ail_fs.h](./ail_fs.h)       | File-System                                                                           |
 | [ail_buf.h](./ail_buf.h)     | Simple Read-Write Buffer implementation                                               |
 | [ail_gui.h](./ail_gui.h)     | GUI-Library for use with Raylib (can only be compiled with raylib.h already included) |
+| [ail_sv.h](./ail_sv.h)       | String-View                                                                           |
 
 ## Conventions
 
