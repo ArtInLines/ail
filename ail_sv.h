@@ -96,14 +96,14 @@ AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_empty)
     u64 lstart = 0;
     u64 llen   = 0;
     if (sv.len >= split_by.len) {
-        for (u64 i = 0; i < sv.len - split_by.len; i++) {
+        for (u64 i = 0; i <= sv.len - split_by.len; i++) {
             if (ail_sv_starts_with(ail_sv_offset(sv, i), split_by)) {
                 if (!ignore_empty || llen > 0) {
                     ail_da_push(&res, ail_sv_from_parts(&sv.str[lstart], llen));
                 }
-                i += split_by.len;
-                lstart = i;
-                llen   = 1;
+                i += split_by.len - 1;
+                lstart = i + 1;
+                llen   = 0;
             } else {
                 llen++;
             }
@@ -151,13 +151,18 @@ AIL_SV ail_sv_offset(AIL_SV sv, u64 offset)
     return ail_sv_from_parts(&sv.str[offset], sv.len - offset);
 }
 
+bool ail_sv_is_space(char c)
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
 AIL_SV ail_sv_trim(AIL_SV sv)
 {
     if (sv.len == 0) return sv;
     u64 start = 0;
     u64 end   = sv.len - 1;
-    while (start < sv.len && isspace(sv.str[start])) start++;
-    while (end > start && isspace(sv.str[end])) end--;
+    while (start < sv.len && ail_sv_is_space(sv.str[start])) start++;
+    while (end > start && ail_sv_is_space(sv.str[end])) end--;
     if (start < sv.len) return ail_sv_from_parts(&sv.str[start], end - start + 1);
     else return ail_sv_from_parts("", 0);
 }
