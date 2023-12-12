@@ -1,4 +1,5 @@
 #define AIL_FS_IMPL
+#define AIL_HM_IMPL
 #include "../ail_hm.h"
 #include "../ail_fs.h"
 #include <stdlib.h>

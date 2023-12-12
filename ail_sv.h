@@ -1,8 +1,26 @@
+// String View
+//
+
 #ifndef AIL_SV_H_
 #define AIL_SV_H_
 
 #define AIL_ALL_IMPL
 #include "ail.h"
+
+#ifndef AIL_SV_DEF
+#ifdef  AIL_DEF
+#define AIL_SV_DEF AIL_DEF
+#else
+#define AIL_SV_DEF
+#endif // AIL_DEF
+#endif // AIL_SV_DEF
+#ifndef AIL_SV_DEF_INLINE
+#ifdef  AIL_DEF_INLINE
+#define AIL_SV_DEF_INLINE AIL_DEF_INLINE
+#else
+#define AIL_SV_DEF_INLINE inline
+#endif // AIL_DEF_INLINE
+#endif // AIL_SV_DEF_INLINE
 
 #if !defined(AIL_SV_MALLOC)
 #if  defined(AIL_MALLOC)
@@ -30,22 +48,22 @@ typedef struct AIL_SV {
 } AIL_SV;
 AIL_DA_INIT(AIL_SV);
 
-AIL_SV ail_sv_from_parts(const char *str, u64 len);
-AIL_SV ail_sv_from_da(AIL_DA(char) str);
-AIL_SV ail_sv_from_cstr(const char *str);
-char* ail_sv_copy_to_cstr(AIL_SV sv);
-bool ail_sv_eq(AIL_SV a, AIL_SV b);
-bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix);
-bool ail_sv_starts_with_char(AIL_SV str, char prefix);
-bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix);
-bool ail_sv_ends_with_char(AIL_SV str, char suffix);
-AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_empty);
-AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty);
-AIL_SV ail_sv_offset(AIL_SV sv, u64 offset);
-AIL_SV ail_sv_trim(AIL_SV sv);
-AIL_SV ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner);
-AIL_SV ail_sv_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner);
-AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with);
+AIL_SV_DEF AIL_SV ail_sv_from_parts(const char *str, u64 len);
+AIL_SV_DEF AIL_SV ail_sv_from_da(AIL_DA(char) str);
+AIL_SV_DEF AIL_SV ail_sv_from_cstr(const char *str);
+AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv);
+AIL_SV_DEF bool ail_sv_eq(AIL_SV a, AIL_SV b);
+AIL_SV_DEF bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix);
+AIL_SV_DEF bool ail_sv_starts_with_char(AIL_SV str, char prefix);
+AIL_SV_DEF bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix);
+AIL_SV_DEF bool ail_sv_ends_with_char(AIL_SV str, char suffix);
+AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_empty);
+AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty);
+AIL_SV_DEF AIL_SV ail_sv_offset(AIL_SV sv, u64 offset);
+AIL_SV_DEF AIL_SV ail_sv_trim(AIL_SV sv);
+AIL_SV_DEF AIL_SV ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner);
+AIL_SV_DEF AIL_SV ail_sv_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner);
+AIL_SV_DEF AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with);
 
 #endif // AIL_SV_H_
 
@@ -53,7 +71,7 @@ AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with);
 #ifndef _AIL_SV_IMPL_GUARD_
 #define _AIL_SV_IMPL_GUARD_
 
-AIL_SV ail_sv_from_parts(const char *s, u64 len)
+AIL_SV_DEF AIL_SV ail_sv_from_parts(const char *s, u64 len)
 {
     return (AIL_SV) {
         .str = s,
@@ -61,19 +79,19 @@ AIL_SV ail_sv_from_parts(const char *s, u64 len)
     };
 }
 
-AIL_SV ail_sv_from_da(AIL_DA(char) str)
+AIL_SV_DEF AIL_SV ail_sv_from_da(AIL_DA(char) str)
 {
     return ail_sv_from_parts(str.data, str.len);
 }
 
-AIL_SV ail_sv_from_cstr(const char *str)
+AIL_SV_DEF AIL_SV ail_sv_from_cstr(const char *str)
 {
     u64 len = 0;
     while (str[len]) len++;
     return ail_sv_from_parts(str, len);
 }
 
-char* ail_sv_copy_to_cstr(AIL_SV sv)
+AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv)
 {
     char *out = AIL_SV_MALLOC(sv.len + 1);
     AIL_SV_MEMCPY(out, sv.str, sv.len);
@@ -81,7 +99,7 @@ char* ail_sv_copy_to_cstr(AIL_SV sv)
     return out;
 }
 
-bool ail_sv_eq(AIL_SV a, AIL_SV b)
+AIL_SV_DEF bool ail_sv_eq(AIL_SV a, AIL_SV b)
 {
     if (a.len != b.len) return false;
     for (u32 i = 0; i < a.len; i++) {
@@ -90,7 +108,7 @@ bool ail_sv_eq(AIL_SV a, AIL_SV b)
     return true;
 }
 
-AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_empty)
+AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_empty)
 {
     AIL_DA(AIL_SV) res = ail_da_new(AIL_SV);
     u64 lstart = 0;
@@ -118,7 +136,7 @@ AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_empty)
     return res;
 }
 
-AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty)
+AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty)
 {
     // @Cleanup: Almost identical to ail_sv_split - maybe we can unite them somehow
     AIL_DA(AIL_SV) res = ail_da_new(AIL_SV);
@@ -146,17 +164,17 @@ AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty)
     return res;
 }
 
-AIL_SV ail_sv_offset(AIL_SV sv, u64 offset)
+AIL_SV_DEF AIL_SV ail_sv_offset(AIL_SV sv, u64 offset)
 {
     return ail_sv_from_parts(&sv.str[offset], sv.len - offset);
 }
 
-bool ail_sv_is_space(char c)
+AIL_SV_DEF bool ail_sv_is_space(char c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-AIL_SV ail_sv_trim(AIL_SV sv)
+AIL_SV_DEF AIL_SV ail_sv_trim(AIL_SV sv)
 {
     if (sv.len == 0) return sv;
     u64 start = 0;
@@ -167,7 +185,7 @@ AIL_SV ail_sv_trim(AIL_SV sv)
     else return ail_sv_from_parts("", 0);
 }
 
-AIL_SV ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner)
+AIL_SV_DEF AIL_SV ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner)
 {
     if (n == 0) return ail_sv_from_parts("", 0);
     u64 res_len = joiner.len*(n - 1);
@@ -184,12 +202,12 @@ AIL_SV ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner)
     return ail_sv_from_parts(res, res_len);
 }
 
-AIL_SV ail_sv_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner)
+AIL_SV_DEF AIL_SV ail_sv_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner)
 {
     return ail_sv_join(list.data, list.len, joiner);
 }
 
-AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with)
+AIL_SV_DEF AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with)
 {
     AIL_DA(AIL_SV) list = ail_sv_split(sv, to_replace, true);
     // ail_da_printf(list, "'%s'", ail_sv_copy_to_cstr(list.data[i]));
@@ -199,7 +217,7 @@ AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with)
     return out;
 }
 
-bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
+AIL_SV_DEF bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
 {
     if (prefix.len > str.len) return false;
     for (u32 i = 0; i < prefix.len; i++) {
@@ -208,12 +226,12 @@ bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
     return true;
 }
 
-bool ail_sv_starts_with_char(AIL_SV str, char prefix)
+AIL_SV_DEF bool ail_sv_starts_with_char(AIL_SV str, char prefix)
 {
     return str.len > 0 && str.str[0] == prefix;
 }
 
-bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
+AIL_SV_DEF bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
 {
     if (suffix.len > str.len) return false;
     for (u32 i = suffix.len; i > 0; i--) {
@@ -222,7 +240,7 @@ bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
     return true;
 }
 
-bool ail_sv_ends_with_char(AIL_SV str, char suffix)
+AIL_SV_DEF bool ail_sv_ends_with_char(AIL_SV str, char suffix)
 {
     return str.len > 0 && str.str[str.len - 1] == suffix;
 }

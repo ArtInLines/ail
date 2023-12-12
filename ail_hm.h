@@ -1,6 +1,5 @@
 // General Hashmap implementation
 //
-// You do not need to define `AIL_HM_IMPL`, as all implementation is via macros, that are defined in the header section
 
 #ifndef AIL_HM_H_
 #define AIL_HM_H_
@@ -9,6 +8,21 @@
 #define AIL_TYPES_IMPL
 #endif // AIL_TYPES_IMPL
 #include "ail.h"
+
+#ifndef AIL_HM_DEF
+#ifdef  AIL_DEF
+#define AIL_HM_DEF AIL_DEF
+#else
+#define AIL_HM_DEF
+#endif // AIL_DEF
+#endif // AIL_HM_DEF
+#ifndef AIL_HM_DEF_INLINE
+#ifdef  AIL_DEF_INLINE
+#define AIL_HM_DEF_INLINE AIL_DEF_INLINE
+#else
+#define AIL_HM_DEF_INLINE inline
+#endif // AIL_DEF_INLINE
+#endif // AIL_HM_DEF_INLINE
 
 #if !defined(AIL_HM_CALLOC) && !defined(AIL_HM_FREE)
 #if  defined(AIL_CALLOC)    &&  defined(AIL_FREE)
@@ -48,6 +62,8 @@ typedef enum {
     AIL_HM_CUR_OCCUPIED  = 2, // 10
     AIL_HM_OCCUPIED      = 3, // 11
 } AIL_HM_OCCUPATION;
+
+AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
 
 // @Note on Terminology: Box refers to an individual element in the list of elements in the hashmap
 #define AIL_HM_KEY_VAL(K, V) AIL_HM_KEY_VAL_##K##_##V
@@ -169,10 +185,17 @@ typedef enum {
 #define ail_hm_rm(hmPtr, k) do { \
     } while(0)
 
-u32 ail_hm_next_u32_2power(u32 x)
+#endif // AIL_HM_H_
+
+#ifdef AIL_HM_IMPL
+#ifndef AIL_HM_IMPL_GUARD
+#define AIL_HM_IMPL_GUARD
+
+AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x)
 {
     AIL_NEXT_2POWER(x, x);
     return x;
 }
 
-#endif // AIL_HM_H_
+#endif // AIL_HM_IMPL_GUARD
+#endif // AIL_HM_IMPL

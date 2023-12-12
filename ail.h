@@ -113,6 +113,15 @@ typedef double   f64;
 #ifndef _AIL_DA_GUARD_
 #define _AIL_DA_GUARD_
 
+// AIL_DEF and AIL_DEF_INLINE don't actually effect any of the functions in this file, as only macros are defined here
+// They do however serve as defaults for the other ail headers
+#ifndef AIL_DEF
+#define AIL_DEF
+#endif // AIL_DEF
+#ifndef AIL_DEF_INLINE
+#define AIL_DEF_INLINE inline
+#endif // AIL_DEF_INLINE
+
 #ifndef AIL_DA_PRINT
 #include <stdio.h>
 #define AIL_DA_PRINT printf

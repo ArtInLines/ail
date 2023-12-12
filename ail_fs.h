@@ -10,6 +10,21 @@
 #include <fcntl.h>    // For file access flags
 #include <sys/stat.h> // For file stats
 
+#ifndef AIL_FS_DEF
+#ifdef  AIL_DEF
+#define AIL_FS_DEF AIL_DEF
+#else
+#define AIL_FS_DEF
+#endif // AIL_DEF
+#endif // AIL_FS_DEF
+#ifndef AIL_FS_DEF_INLINE
+#ifdef  AIL_DEF_INLINE
+#define AIL_FS_DEF_INLINE AIL_DEF_INLINE
+#else
+#define AIL_FS_DEF_INLINE inline
+#endif // AIL_DEF_INLINE
+#endif // AIL_FS_DEF_INLINE
+
 #ifndef AIL_FS_MALLOC
 #ifdef  AIL_MALLOC
 #define AIL_FS_MALLOC(sz) AIL_MALLOC(sz)
@@ -32,11 +47,11 @@
 // 	#define sleep(t)              Sleep((t)*1000)
 // #endif
 
-char* ail_fs_read_file(const char *fpath, u64 *size);
-bool  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
-const char *ail_fs_get_file_ext(const char *filename);
-bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
-bool ail_fs_is_file(const char *path);
+AIL_FS_DEF char* ail_fs_read_file(const char *fpath, u64 *size);
+AIL_FS_DEF bool  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
+AIL_FS_DEF const char *ail_fs_get_file_ext(const char *filename);
+AIL_FS_DEF bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
+AIL_FS_DEF bool ail_fs_is_file(const char *path);
 
 #endif // AIL_FS_H_
 
@@ -44,7 +59,7 @@ bool ail_fs_is_file(const char *path);
 #ifndef _AIL_FS_IMPL_GUARD_
 #define _AIL_FS_IMPL_GUARD_
 
-char* ail_fs_read_file(const char *fpath, u64 *size)
+AIL_FS_DEF char* ail_fs_read_file(const char *fpath, u64 *size)
 {
     // Adapted from https://stackoverflow.com/a/68156485/13764271
     char* out = NULL;
@@ -64,7 +79,7 @@ end:
     return out;
 }
 
-bool ail_fs_write_file(const char *fpath, const char *buf, u64 size)
+AIL_FS_DEF bool ail_fs_write_file(const char *fpath, const char *buf, u64 size)
 {
     bool out = false;
     int fd = open(fpath, O_WRONLY | O_CREAT | O_TRUNC, 0777);
@@ -82,13 +97,13 @@ end:
     return out;
 }
 
-bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
+AIL_FS_DEF bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
 {
 	while (*a && *b && *a++ == *b++) {}
     return *a == *b && !*a;
 }
 
-const char *ail_fs_get_file_ext(const char *filename)
+AIL_FS_DEF const char *ail_fs_get_file_ext(const char *filename)
 {
     u32 idx = 0;
     for (u32 i = 0; filename[i]; i++) {
@@ -97,13 +112,13 @@ const char *ail_fs_get_file_ext(const char *filename)
     return &filename[idx];
 }
 
-bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext)
+AIL_FS_DEF bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext)
 {
     const char *file_ext = ail_fs_get_file_ext(filename);
     return ail_fs_str_eq(file_ext, ext);
 }
 
-bool ail_fs_is_file(const char *path)
+AIL_FS_DEF bool ail_fs_is_file(const char *path)
 {
     struct stat result = {0};
     stat(path, &result);
