@@ -9,10 +9,10 @@ int main(void)
 {
 	static const char *buf = "Hello World\n";
 	mkdir("./tmp");
-	bool succ = ail_fs_writeFile("./tmp/test.txt", buf, 13);
+	bool succ = ail_fs_write_file("./tmp/test.txt", buf, 13);
 	assert(succ);
 	u64 size;
-	char *out = ail_fs_readFile("./tmp/test.txt", &size);
+	char *out = ail_fs_read_file("./tmp/test.txt", &size);
 	assert(strcmp(buf, out) == 0);
 	rmdir("./tmp");
 	return 0;
