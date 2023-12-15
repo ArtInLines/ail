@@ -119,7 +119,7 @@ typedef double   f64;
 #define AIL_DEF
 #endif // AIL_DEF
 #ifndef AIL_DEF_INLINE
-#define AIL_DEF_INLINE inline
+#define AIL_DEF_INLINE static inline
 #endif // AIL_DEF_INLINE
 
 #ifndef AIL_DA_PRINT

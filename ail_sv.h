@@ -33,7 +33,7 @@
 #ifdef  AIL_DEF_INLINE
 #define AIL_SV_DEF_INLINE AIL_DEF_INLINE
 #else
-#define AIL_SV_DEF_INLINE inline
+#define AIL_SV_DEF_INLINE static inline
 #endif // AIL_DEF_INLINE
 #endif // AIL_SV_DEF_INLINE
 
@@ -74,9 +74,9 @@ AIL_DA_INIT(AIL_SV);
 // Creating a SV //
 ///////////////////
 
-AIL_SV_DEF AIL_SV ail_sv_from_parts(const char *str, u64 len);
-AIL_SV_DEF AIL_SV ail_sv_from_cstr (const char *str);
-AIL_SV_DEF AIL_SV ail_sv_from_da(AIL_DA(char) str);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_parts(const char *str, u64 len);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr (const char *str);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_da(AIL_DA(char) str);
 AIL_SV_DEF AIL_SV ail_sv_from_unsigned(u64 num);
 AIL_SV_DEF AIL_SV ail_sv_from_signed  (i64 num);
 AIL_SV_DEF AIL_SV ail_sv_from_float   (f64 num);
@@ -202,7 +202,7 @@ AIL_SV_DEF AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_wi
 #ifndef _AIL_SV_IMPL_GUARD_
 #define _AIL_SV_IMPL_GUARD_
 
-AIL_SV_DEF AIL_SV ail_sv_from_parts(const char *s, u64 len)
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_parts(const char *s, u64 len)
 {
     return (AIL_SV) {
         .str = s,
@@ -210,12 +210,12 @@ AIL_SV_DEF AIL_SV ail_sv_from_parts(const char *s, u64 len)
     };
 }
 
-AIL_SV_DEF AIL_SV ail_sv_from_da(AIL_DA(char) str)
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_da(AIL_DA(char) str)
 {
     return ail_sv_from_parts(str.data, str.len);
 }
 
-AIL_SV_DEF AIL_SV ail_sv_from_cstr(const char *str)
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr(const char *str)
 {
     u64 len = 0;
     while (str[len]) len++;

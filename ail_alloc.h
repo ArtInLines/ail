@@ -24,7 +24,7 @@
 #ifdef  AIL_DEF_INLINE
 #define AIL_ALLOC_DEF_INLINE AIL_DEF_INLINE
 #else
-#define AIL_ALLOC_DEF_INLINE inline
+#define AIL_ALLOC_DEF_INLINE static inline
 #endif // AIL_DEF_INLINE
 #endif // AIL_ALLOC_DEF_INLINE
 
