@@ -168,6 +168,8 @@ AIL_SV_DEF AIL_SV ail_sv_offset(AIL_SV sv, u64 offset);
 
 // Receive a new SV, that has the beginning and ending whitespace from `sv` removed
 AIL_SV_DEF AIL_SV ail_sv_trim(AIL_SV sv);
+AIL_SV_DEF AIL_SV ail_sv_ltrim(AIL_SV sv);
+AIL_SV_DEF AIL_SV ail_sv_rtrim(AIL_SV sv);
 
 // Receive a new SV, that has all appearances of `to_replace` replaced with `replace_with`
 // @Note: Since this only works by changing the underlying string, an allocation and copy of the original string is required
@@ -451,7 +453,7 @@ AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty)
 
 AIL_SV_DEF AIL_SV ail_sv_offset(AIL_SV sv, u64 offset)
 {
-    if (AIL_UNLIKELY(offset > sv.len))
+    if (AIL_UNLIKELY(offset >= sv.len))
         return ail_sv_from_parts(sv.str + sv.len, 0);
     else
         return ail_sv_from_parts(sv.str + offset, sv.len - offset);
@@ -462,8 +464,25 @@ AIL_SV_DEF bool ail_sv_is_space(char c)
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
+AIL_SV_DEF AIL_SV ail_sv_ltrim(AIL_SV sv)
+{
+    if (sv.len == 0) return sv;
+    u64 start = 0;
+    while (start < sv.len && ail_sv_is_space(sv.str[start])) start++;
+    return ail_sv_offset(sv, start);
+}
+
+AIL_SV_DEF AIL_SV ail_sv_rtrim(AIL_SV sv)
+{
+    u64 end = sv.len;
+    while (end > 0 && ail_sv_is_space(sv.str[end - 1])) end--;
+    return ail_sv_from_parts(sv.str, end);
+}
+
+
 AIL_SV_DEF AIL_SV ail_sv_trim(AIL_SV sv)
 {
+    // return ail_sv_rtrim(ail_sv_ltrim(sv));
     if (sv.len == 0) return sv;
     u64 start = 0;
     u64 end   = sv.len - 1;

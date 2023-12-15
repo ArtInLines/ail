@@ -4,14 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-// @TODO: Test the following functions
-// - ail_sv_copy_to_cstr
-// - ail_sv_split_next_char
-// - ail_sv_split_next
-// - ail_sv_split_char
-// - ail_sv_offset
-// - ail_sv_replace
-
 bool test_ail_sv_inits()
 {
     char  *a = "abcdefg";
@@ -116,8 +108,12 @@ bool test_ail_sv_cmps()
     return true;
 }
 
-bool test_ail_sv_others()
+bool test_ail_sv_split()
 {
+    // @TODO: Also test the following
+    // - ail_sv_split_next_char
+    // - ail_sv_split_next
+    // - ail_sv_split_char
     AIL_SV a = ail_sv_from_cstr("_:__:_abc_:_def_:_\nghi_:_jkl_:_");
     AIL_DA(AIL_SV) lines = ail_sv_split_lines(a, true);
     ASSERT(lines.len == 2);
@@ -137,6 +133,20 @@ bool test_ail_sv_others()
     return true;
 }
 
+bool test_ail_sv_others()
+{
+    // @TODO: Also test the following
+    // - ail_sv_copy_to_cstr
+    // - ail_sv_offset
+    // - ail_sv_replace
+    AIL_SV hello1 = ail_sv_from_cstr("   Hello World! ");
+    AIL_SV hello2 = ail_sv_from_cstr("Hello World!  ");
+
+    ASSERT(ail_sv_eq(ail_sv_trim(hello1), ail_sv_rtrim(hello2)));
+    ASSERT(ail_sv_eq(ail_sv_trim(hello1), ail_sv_ltrim(ail_sv_rtrim(hello1))));
+    return true;
+}
+
 int main(void)
 {
     if (test_ail_sv_inits()) printf("\033[032mAIL SV initialization works :)\033[0m\n");
@@ -145,6 +155,8 @@ int main(void)
     else                    printf("\033[031mAIL SV comparisons fail :(\033[0m\n");
     if (test_ail_sv_num_conversions()) printf("\033[032mAIL SV number conversions work :)\033[0m\n");
     else 							   printf("\033[031mAIL SV number conversions fail :(\033[0m\n");
+    if (test_ail_sv_split()) printf("\033[032mAIL SV split funcs work :)\033[0m\n");
+    else                     printf("\033[031mAIL SV split funcs fail :(\033[0m\n");
     if (test_ail_sv_others()) printf("\033[032mAIL SV other funcs work :)\033[0m\n");
     else                      printf("\033[031mAIL SV other funcs fail :(\033[0m\n");
 }
