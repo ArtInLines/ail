@@ -150,7 +150,7 @@ AIL_GUI_DEF AIL_Gui_State ail_gui_drawLabel(AIL_Gui_Label self);
 AIL_GUI_DEF AIL_Gui_State ail_gui_drawLabelOuterBounds(AIL_Gui_Label self, Rectangle outer_bounds);
 AIL_GUI_DEF AIL_Gui_Input_Box ail_gui_newInputBox(char *placeholder, bool resize, bool multiline, bool selected, AIL_Gui_Label label);
 AIL_GUI_DEF bool ail_gui_isInputBoxHovered(AIL_Gui_Input_Box self);
-AIL_GUI_DEF AIL_Gui_State ail_gui_getInputBoxState(AIL_Gui_Input_Box *self);
+AIL_GUI_DEF_INLINE AIL_Gui_State ail_gui_getInputBoxState(AIL_Gui_Input_Box *self);
 AIL_GUI_DEF_INLINE AIL_Gui_State ail_gui_getInputBoxStateHelper(AIL_Gui_Input_Box *self, bool hovered);
 AIL_GUI_DEF void ail_gui_resetInputBoxAnim(AIL_Gui_Input_Box *self);
 AIL_GUI_DEF AIL_Gui_Update_Res ail_gui_handleKeysInputBox(AIL_Gui_Input_Box *self);
