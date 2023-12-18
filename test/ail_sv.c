@@ -125,25 +125,63 @@ bool test_ail_sv_split()
     ASSERT(ail_sv_eq(words.data[0], ail_sv_from_cstr("abc")));
     ASSERT(ail_sv_eq(words.data[1], ail_sv_from_cstr("def")));
     ASSERT(ail_sv_eq(splitted.data[0], ail_sv_from_parts(NULL, 0)));
-    AIL_SV joined_words = ail_sv_join(words.data, words.len, ail_sv_from_cstr(" "));
-    AIL_SV joined_splitted = ail_sv_join_da(splitted, ail_sv_from_cstr(" "));
+    AIL_Str joined_words    = ail_sv_join(words.data, words.len, ail_sv_from_cstr(" "));
+    ASSERT(joined_words.str[joined_words.len] == 0);
+    AIL_Str joined_splitted = ail_sv_join_da(splitted, ail_sv_from_cstr(" "));
+    ASSERT(joined_splitted.str[joined_splitted.len] == 0);
     ASSERT(joined_words.len + 2 == joined_splitted.len);
-    ASSERT(ail_sv_eq(joined_words, ail_sv_trim(joined_splitted)));
-    ASSERT(ail_sv_eq(joined_words, ail_sv_offset(joined_splitted, 2)));
+    ASSERT(ail_sv_eq(joined_words, ail_sv_trim(ail_sv_from_str(joined_splitted))));
+    ASSERT(ail_sv_eq(joined_words, ail_sv_offset(ail_sv_from_str(joined_splitted), 2)));
     return true;
 }
 
 bool test_ail_sv_others()
 {
     // @TODO: Also test the following
-    // - ail_sv_copy_to_cstr
-    // - ail_sv_offset
-    // - ail_sv_replace
+    AIL_SV empty  = {0};
     AIL_SV hello1 = ail_sv_from_cstr("   Hello World! ");
     AIL_SV hello2 = ail_sv_from_cstr("Hello World!  ");
 
     ASSERT(ail_sv_eq(ail_sv_trim(hello1), ail_sv_rtrim(hello2)));
     ASSERT(ail_sv_eq(ail_sv_trim(hello1), ail_sv_ltrim(ail_sv_rtrim(hello1))));
+    ASSERT(ail_sv_eq(empty, ail_sv_trim(empty)));
+    ASSERT(ail_sv_eq(empty, ail_sv_ltrim(empty)));
+    ASSERT(ail_sv_eq(empty, ail_sv_rtrim(empty)));
+
+    ASSERT(ail_sv_eq(ail_sv_from_cstr("def"), ail_sv_offset(ail_sv_from_cstr("abcdef"), 3)));
+    ASSERT(ail_sv_eq(empty, ail_sv_offset(empty, 3)));
+
+    char *hello_copy = ail_sv_copy_to_cstr(hello1);
+    ASSERT(hello_copy != hello1.str); // checks that it isn't the same pointer
+    ASSERT(memcmp(hello_copy, hello1.str, hello1.len) == 0);
+    ASSERT(hello_copy[hello1.len] == 0);
+    free(hello_copy);
+
+    char *empty_copy = ail_sv_copy_to_cstr(empty);
+    ASSERT(empty_copy != empty.str); // checks that it isn't the same pointer
+    ASSERT(memcmp(empty_copy, empty.str, empty.len) == 0);
+    ASSERT(empty_copy[empty.len] == 0);
+    free(empty_copy);
+
+    AIL_SV  hello = ail_sv_from_cstr("Hello");
+    AIL_SV  hi    = ail_sv_from_cstr("Hi");
+    AIL_SV  a     = ail_sv_from_cstr("Hello World, Hello!");
+    AIL_Str b     = ail_sv_replace(a, hello, hi);
+    ASSERT(b.str[b.len] == 0);
+    ASSERT(ail_sv_eq(ail_sv_from_cstr("Hi World, Hi!"), b));
+    free(b.str);
+
+    AIL_Str s = ail_sv_replace(empty, a, ail_sv_from_str(b));
+    ASSERT(ail_sv_eq(s, empty));
+    ASSERT(s.str[0] == 0);
+
+    AIL_SV  xhi  = ail_sv_from_cstr("hi");
+    AIL_SV  xhey = ail_sv_from_cstr("hey");
+    AIL_SV  xin  = ail_sv_from_cstr("hello, hello, hello!");
+    AIL_Str xout = ail_sv_replace(xin, xhi, xhey);
+    ASSERT(ail_sv_eq(xin, xout));
+    ASSERT(xin.str != xout.str);
+    free(xout.str);
     return true;
 }
 

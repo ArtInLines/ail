@@ -1,10 +1,16 @@
 // String View
 //
-// A String View (sometimes also called string-slice) is a lightweight structure
+// A String View (sometimes also called string-slice, here AIL_SV) is a lightweight structure
 // containing a pointer to a string and its length.
 // None of the functions here change the underlying string.
-// Any function that would require changes to the underlying string (e.g. ail_sv_replace)
+// In other words: A String View does not own the memory it points at.
+//
+// This library also contains a String structure (here AIL_Str), which does own its memory.
+// The AIL_Str is guarantueed to be null-terminated, but stores its length as well.
+//
+// Any String View function that would require changes to the underlying string (e.g. ail_sv_replace)
 // instead allocates a new string, on which to produce the desired changes.
+// Usually this newly produced string is then returned as an AIL_Str
 // Any function that does allocate a new string, is annotated with '@Important'
 // and a reminder to free said memory.
 //
@@ -37,15 +43,17 @@
 #endif // AIL_DEF_INLINE
 #endif // AIL_SV_DEF_INLINE
 
-#if !defined(AIL_SV_MALLOC)
-#if  defined(AIL_MALLOC)
+#if !defined(AIL_SV_MALLOC) && !defined(AIL_SV_FREE)
+#if  defined(AIL_MALLOC)    &&  defined(AIL_FREE)
 #define AIL_SV_MALLOC AIL_MALLOC
+#define AIL_SV_FREE   AIL_FREE
 #else
 #include <stdlib.h>
 #define AIL_SV_MALLOC(size) malloc(size)
+#define AIL_SV_FREE(ptr)    free(ptr)
 #endif
-#elif !defined(AIL_SV_MALLOC) || !defined(AIL_HM_FREE)
-#error "You must define AIL_SV_MALLOC and AIL_HM_FREE, or neither."
+#elif !defined(AIL_SV_MALLOC) || !defined(AIL_SV_FREE)
+#error "You must define both AIL_SV_MALLOC and AIL_SV_FREE, or neither."
 #endif
 
 #ifndef AIL_SV_MEMCPY
@@ -63,12 +71,38 @@ typedef struct AIL_SV {
 } AIL_SV;
 AIL_DA_INIT(AIL_SV);
 
+typedef struct AIL_Str {
+    char *str;
+    u64   len;
+} AIL_Str;
+AIL_DA_INIT(AIL_Str);
+
 // @TODO: Implement the following functions:
 // - printf (whole family of printf functions)
 // - split by list of splitters
-// - parse numbers
-// - convert to numbers
+// - parse float
+// - convert to float
 
+
+////////////////////
+// Creating a Str //
+////////////////////
+
+AIL_SV_DEF_INLINE AIL_Str ail_str_from_parts(char *s, u64 len);
+AIL_SV_DEF_INLINE AIL_Str ail_str_from_cstr (char *s);
+AIL_SV_DEF_INLINE AIL_Str ail_str_from_da(AIL_DA(char) str);
+AIL_SV_DEF AIL_Str ail_str_from_unsigned(u64 num);
+AIL_SV_DEF AIL_Str ail_str_from_signed  (i64 num);
+AIL_SV_DEF AIL_Str ail_str_from_float   (f64 num);
+
+// @Important: Copies the underlying string to a new memory region. Remember to free the new AIL_Str
+AIL_SV_DEF AIL_Str ail_str_from_sv(AIL_SV sv);
+
+AIL_SV_DEF void ail_str_free(AIL_Str str);
+
+// @Note: Same as ail_str_from_sv(sv).str
+// @Important: Remmber to free the string you receive from ail_sv_copy_to_cstr
+AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv);
 
 ///////////////////
 // Creating a SV //
@@ -76,10 +110,11 @@ AIL_DA_INIT(AIL_SV);
 
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_parts(const char *str, u64 len);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr (const char *str);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_str(AIL_Str str);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_da(AIL_DA(char) str);
-AIL_SV_DEF AIL_SV ail_sv_from_unsigned(u64 num);
-AIL_SV_DEF AIL_SV ail_sv_from_signed  (i64 num);
-AIL_SV_DEF AIL_SV ail_sv_from_float   (f64 num);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_unsigned(u64 num);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_signed  (i64 num);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_float   (f64 num);
 
 /////////////////////
 // Parsing numbers //
@@ -96,7 +131,8 @@ AIL_SV_DEF f64 ail_sv_parse_float   (AIL_SV sv, u32 *len);
 // Comparison, Prefix, Suffix //
 ////////////////////////////////
 
-AIL_SV_DEF bool ail_sv_eq(AIL_SV a, AIL_SV b);
+#define ail_sv_eq(a, b) ail_sv_full_eq((a).str, (a).len, (b).str, (b).len)
+AIL_SV_DEF bool ail_sv_full_eq(const char *astr, u64 alen, const char *bstr, u64 blen);
 AIL_SV_DEF bool ail_sv_starts_with     (AIL_SV str, AIL_SV prefix);
 AIL_SV_DEF bool ail_sv_starts_with_char(AIL_SV str, char   prefix);
 AIL_SV_DEF bool ail_sv_ends_with     (AIL_SV str, AIL_SV suffix);
@@ -145,22 +181,15 @@ AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split     (AIL_SV sv, AIL_SV split_by, bool ign
 AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty);
 
 // @Note: rev_join joins the splitted substrings in reverse order
-AIL_SV_DEF AIL_SV ail_sv_join    (AIL_SV *list, u64 n, AIL_SV joiner);
-AIL_SV_DEF AIL_SV ail_sv_rev_join(AIL_SV *list, u64 n, AIL_SV joiner);
-AIL_SV_DEF AIL_SV ail_sv_join_da    (AIL_DA(AIL_SV) list, AIL_SV joiner);
-AIL_SV_DEF AIL_SV ail_sv_rev_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner);
+AIL_SV_DEF AIL_Str ail_sv_join    (AIL_SV *list, u64 n, AIL_SV joiner);
+AIL_SV_DEF AIL_Str ail_sv_rev_join(AIL_SV *list, u64 n, AIL_SV joiner);
+AIL_SV_DEF AIL_Str ail_sv_join_da    (AIL_DA(AIL_SV) list, AIL_SV joiner);
+AIL_SV_DEF AIL_Str ail_sv_rev_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner);
 
 
 //////////////////
 // Miscellanous //
 //////////////////
-
-// @Note: Sometimes (e.g. when calling OS functions) you need to use a null-terminated string again
-// In these cases, the safest option is to copy the string-slice pointed to by the SV to a new region of memory and to append a zero there
-// That way the original string slice stays unnaffected and can be coninued to be used without worries
-// ail_sv_copy_to_cstr does exactly this copying. This also means, that it has to do an allocation.
-// @Important: Remmber to free the string you receive from ail_sv_copy_to_cstr
-AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv);
 
 // Receive a new SV, that points at the same underlying string as `sv` but offset by `offset` bytes.
 // If `offset` is greater than the length of `sv`, then a SV with zero length is returned
@@ -182,16 +211,16 @@ AIL_SV_DEF AIL_SV ail_sv_rtrim(AIL_SV sv);
     AIL_SV a     = ail_sv_from_cstr("  Hello World! ");
 
     // This would lose the original pointer:
-    // AIL_SV b = ail_sv_trim(ail_sv_replace(a, hello, hi));
+    // AIL_SV b = ail_sv_trim(ail_sv_from_str(ail_sv_replace(a, hello, hi)));
 
     // This keeps the original pointer
-    AIL_SV b         = ail_sv_replace(a, hello, hi);
-    AIL_SV trimmed_b = ail_sv_trim(b);
+    AIL_Str b         = ail_sv_replace(a, hello, hi);
+    AIL_SV trimmed_b = ail_sv_trim(ail_sv_from_str(b));
     uses_the_sv_somehow(trimmed_b);
     free(b.str);
     // @Note: if AIL_SV_MALLOC is defined as something other than malloc, you probably need to use a different function for freeing too
 */
-AIL_SV_DEF AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with);
+AIL_SV_DEF AIL_Str ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with);
 
 #endif // AIL_SV_H_
 
@@ -217,6 +246,11 @@ AIL_SV_DEF_INLINE AIL_SV ail_sv_from_da(AIL_DA(char) str)
     return ail_sv_from_parts(str.data, str.len);
 }
 
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_str(AIL_Str str)
+{
+    return ail_sv_from_parts(str.str, str.len);
+}
+
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr(const char *str)
 {
     u64 len = 0;
@@ -224,27 +258,57 @@ AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr(const char *str)
     return ail_sv_from_parts(str, len);
 }
 
-AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv)
+AIL_SV_DEF_INLINE AIL_Str ail_str_from_parts(char *s, u64 len)
+{
+    return (AIL_Str) {
+        .str = s,
+        .len = len,
+    };
+}
+
+AIL_SV_DEF_INLINE AIL_Str ail_str_from_cstr(char *s)
+{
+    u64 len = 0;
+    while (s[len]) len++;
+    return ail_str_from_parts(s, len);
+}
+
+AIL_SV_DEF_INLINE AIL_Str ail_str_from_da(AIL_DA(char) str)
+{
+    return ail_str_from_parts(str.data, str.len);
+}
+
+AIL_SV_DEF AIL_Str ail_str_from_sv(AIL_SV sv)
 {
     char *out = AIL_SV_MALLOC(sv.len + 1);
     AIL_SV_MEMCPY(out, sv.str, sv.len);
     out[sv.len] = 0;
-    return out;
+    return ail_str_from_parts(out, sv.len);
 }
 
-AIL_SV_DEF bool ail_sv_eq(AIL_SV a, AIL_SV b)
+AIL_SV_DEF void ail_str_free(AIL_Str str)
 {
-    if (a.len != b.len) return false;
-    for (u32 i = 0; i < a.len; i++) {
-        if (a.str[i] != b.str[i]) return false;
+    AIL_SV_FREE(str.str);
+}
+
+AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv)
+{
+    return ail_str_from_sv(sv).str;
+}
+
+AIL_SV_DEF bool ail_sv_full_eq(const char *astr, u64 alen, const char *bstr, u64 blen)
+{
+    if (alen != blen) return false;
+    for (u32 i = 0; i < alen; i++) {
+        if (astr[i] != bstr[i]) return false;
     }
     return true;
 }
 
-AIL_SV_DEF AIL_SV ail_sv_from_unsigned(u64 num)
+AIL_SV_DEF AIL_Str ail_str_from_unsigned(u64 num)
 {
     // @Decide: max u64 is 20 chars long - should the default capacity be 24 then?
-    if (num == 0) return (AIL_SV) { .str = "0", .len = 1 };
+    if (num == 0) return (AIL_Str) { .str = "0", .len = 1 };
     AIL_DA(char) da = ail_da_with_cap(char, 16);
     while (num > 0) {
         ail_da_push(&da, '0' + (num % 10));
@@ -255,15 +319,15 @@ AIL_SV_DEF AIL_SV ail_sv_from_unsigned(u64 num)
         da.data[i] = da.data[j];
         da.data[j] = tmp;
     }
-    return (AIL_SV) {
+    return (AIL_Str) {
         .str = da.data,
         .len = da.len,
     };
 }
 
-AIL_SV_DEF AIL_SV ail_sv_from_signed(i64 num)
+AIL_SV_DEF AIL_Str ail_str_from_signed(i64 num)
 {
-    if (num == 0) return (AIL_SV) { .str = "0", .len = 1 };
+    if (num == 0) return (AIL_Str) { .str = "0", .len = 1 };
     AIL_DA(char) da = ail_da_with_cap(char, 16);
     bool is_neg = num < 0;
     if (is_neg) {
@@ -279,18 +343,34 @@ AIL_SV_DEF AIL_SV ail_sv_from_signed(i64 num)
         da.data[i] = da.data[j];
         da.data[j] = tmp;
     }
-    return (AIL_SV) {
+    return (AIL_Str) {
         .str = da.data,
         .len = da.len,
     };
 }
 
-AIL_SV_DEF AIL_SV ail_sv_from_float(f64 num)
+AIL_SV_DEF AIL_Str ail_str_from_float(f64 num)
 {
     (void)num;
     AIL_TODO();
-    return (AIL_SV) {0};
+    return (AIL_Str) {0};
 }
+
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_unsigned(u64 num)
+{
+    return ail_sv_from_str(ail_str_from_unsigned(num));
+}
+
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_signed(i64 num)
+{
+    return ail_sv_from_str(ail_str_from_signed(num));
+}
+
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_float(f64 num)
+{
+    return ail_sv_from_str(ail_str_from_float(num));
+}
+
 
 AIL_SV_DEF u64 ail_sv_parse_unsigned(AIL_SV sv, u32 *len)
 {
@@ -401,7 +481,8 @@ AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_e
     u64 lstart = 0;
     u64 llen   = 0;
     if (sv.len >= split_by.len) {
-        for (u64 i = 0; i <= sv.len - split_by.len; i++) {
+        u64 i = 0;
+        for (; i <= sv.len - split_by.len; i++) {
             if (ail_sv_starts_with(ail_sv_offset(sv, i), split_by)) {
                 if (!ignore_empty || llen > 0) {
                     ail_da_push(&res, ail_sv_from_parts(&sv.str[lstart], llen));
@@ -413,7 +494,7 @@ AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split(AIL_SV sv, AIL_SV split_by, bool ignore_e
                 llen++;
             }
         }
-        if (!ail_sv_starts_with(ail_sv_offset(sv, sv.len - split_by.len - 1), split_by)) llen += split_by.len;
+        if (!ail_sv_starts_with(ail_sv_offset(sv, i), split_by)) llen += sv.len - i;
     } else {
         llen = sv.len;
     }
@@ -492,9 +573,9 @@ AIL_SV_DEF AIL_SV ail_sv_trim(AIL_SV sv)
     else return ail_sv_from_parts("", 0);
 }
 
-AIL_SV_DEF AIL_SV ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner)
+AIL_SV_DEF AIL_Str ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner)
 {
-    if (n == 0) return ail_sv_from_parts("", 0);
+    if (n == 0) return ail_str_from_parts("", 0);
     u64 res_len = joiner.len*(n - 1);
     for (u64 i = 0; i < n; i++) res_len += list[i].len;
     char *res = AIL_SV_MALLOC(res_len + 1);
@@ -506,17 +587,18 @@ AIL_SV_DEF AIL_SV ail_sv_join(AIL_SV *list, u64 n, AIL_SV joiner)
             j += joiner.len;
         }
     }
-    return ail_sv_from_parts(res, res_len);
+    res[res_len] = 0;
+    return ail_str_from_parts(res, res_len);
 }
 
-AIL_SV_DEF AIL_SV ail_sv_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner)
+AIL_SV_DEF AIL_Str ail_sv_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner)
 {
     return ail_sv_join(list.data, list.len, joiner);
 }
 
-AIL_SV_DEF AIL_SV ail_sv_rev_join(AIL_SV *list, u64 n, AIL_SV joiner)
+AIL_SV_DEF AIL_Str ail_sv_rev_join(AIL_SV *list, u64 n, AIL_SV joiner)
 {
-    if (n == 0) return ail_sv_from_parts("", 0);
+    if (n == 0) return ail_str_from_parts("", 0);
     u64 res_len = joiner.len*(n - 1);
     for (u64 i = 0; i < n; i++) res_len += list[i].len;
     char *res = AIL_SV_MALLOC(res_len + 1);
@@ -530,18 +612,19 @@ AIL_SV_DEF AIL_SV ail_sv_rev_join(AIL_SV *list, u64 n, AIL_SV joiner)
             j -= el_len;
         }
     }
-    return ail_sv_from_parts(res, res_len);
+    res[res_len] = 0;
+    return ail_str_from_parts(res, res_len);
 }
 
-AIL_SV_DEF AIL_SV ail_sv_rev_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner)
+AIL_SV_DEF AIL_Str ail_sv_rev_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner)
 {
     return ail_sv_rev_join(list.data, list.len, joiner);
 }
 
-AIL_SV_DEF AIL_SV ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with)
+AIL_SV_DEF AIL_Str ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with)
 {
-    AIL_DA(AIL_SV) list = ail_sv_split(sv, to_replace, true);
-    AIL_SV out = ail_sv_join(list.data, list.len, replace_with);
+    AIL_DA(AIL_SV) list = ail_sv_split(sv, to_replace, false);
+    AIL_Str out = ail_sv_join(list.data, list.len, replace_with);
     ail_da_free(&list);
     return out;
 }
