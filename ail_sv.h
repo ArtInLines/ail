@@ -104,6 +104,7 @@ AIL_SV_DEF void ail_str_free(AIL_Str str);
 // @Important: Remmber to free the string you receive from ail_sv_copy_to_cstr
 AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv);
 
+
 ///////////////////
 // Creating a SV //
 ///////////////////
@@ -116,6 +117,7 @@ AIL_SV_DEF_INLINE AIL_SV ail_sv_from_unsigned(u64 num);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_signed  (i64 num);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_float   (f64 num);
 
+
 /////////////////////
 // Parsing numbers //
 /////////////////////
@@ -127,12 +129,15 @@ AIL_SV_DEF u64 ail_sv_parse_unsigned(AIL_SV sv, u32 *len);
 AIL_SV_DEF i64 ail_sv_parse_signed  (AIL_SV sv, u32 *len);
 AIL_SV_DEF f64 ail_sv_parse_float   (AIL_SV sv, u32 *len);
 
+
 ////////////////////////////////
 // Comparison, Prefix, Suffix //
 ////////////////////////////////
 
-#define ail_sv_eq(a, b) ail_sv_full_eq((a).str, (a).len, (b).str, (b).len)
-AIL_SV_DEF bool ail_sv_full_eq(const char *astr, u64 alen, const char *bstr, u64 blen);
+#define ail_sv_eq(a, b)  ail_sv_full_eq ((a).str, (a).len, (b).str, (b).len)
+#define ail_sv_cmp(a, b) ail_sv_full_cmp((a).str, (a).len, (b).str, (b).len)
+AIL_SV_DEF bool ail_sv_full_eq (const char *astr, u64 alen, const char *bstr, u64 blen);
+AIL_SV_DEF i32  ail_sv_full_cmp(const char *astr, u64 alen, const char *bstr, u64 blen);
 AIL_SV_DEF bool ail_sv_starts_with     (AIL_SV str, AIL_SV prefix);
 AIL_SV_DEF bool ail_sv_starts_with_char(AIL_SV str, char   prefix);
 AIL_SV_DEF bool ail_sv_ends_with     (AIL_SV str, AIL_SV suffix);
@@ -296,15 +301,6 @@ AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv)
     return ail_str_from_sv(sv).str;
 }
 
-AIL_SV_DEF bool ail_sv_full_eq(const char *astr, u64 alen, const char *bstr, u64 blen)
-{
-    if (alen != blen) return false;
-    for (u32 i = 0; i < alen; i++) {
-        if (astr[i] != bstr[i]) return false;
-    }
-    return true;
-}
-
 AIL_SV_DEF AIL_Str ail_str_from_unsigned(u64 num)
 {
     // @Decide: max u64 is 20 chars long - should the default capacity be 24 then?
@@ -418,6 +414,84 @@ AIL_SV_DEF f64 ail_sv_parse_float(AIL_SV sv, u32 *len)
     return 0;
 }
 
+AIL_SV_DEF bool ail_sv_full_eq(const char *astr, u64 alen, const char *bstr, u64 blen)
+{
+    if (alen != blen) return false;
+    for (u32 i = 0; i < alen; i++) {
+        if (astr[i] != bstr[i]) return false;
+    }
+    return true;
+}
+
+AIL_SV_DEF i32  ail_sv_full_cmp(const char *astr, u64 alen, const char *bstr, u64 blen)
+{
+    for (u64 i = 0; i < alen && i < blen; i++) {
+        if (astr[i] != bstr[i]) return astr[i] - bstr[i];
+    }
+    if      (alen  > blen) return astr[blen];
+    else if (alen == blen) return 0;
+    else                   return bstr[alen];
+}
+
+AIL_SV_DEF bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
+{
+    if (prefix.len > str.len) return false;
+    for (u32 i = 0; i < prefix.len; i++) {
+        if (str.str[i] != prefix.str[i]) return false;
+    }
+    return true;
+}
+
+AIL_SV_DEF bool ail_sv_starts_with_char(AIL_SV str, char prefix)
+{
+    return str.len > 0 && str.str[0] == prefix;
+}
+
+AIL_SV_DEF bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
+{
+    if (suffix.len > str.len) return false;
+    for (u32 i = suffix.len; i > 0; i--) {
+        if (str.str[str.len - i] != suffix.str[suffix.len - i]) return false;
+    }
+    return true;
+}
+
+AIL_SV_DEF bool ail_sv_ends_with_char(AIL_SV str, char suffix)
+{
+    return str.len > 0 && str.str[str.len - 1] == suffix;
+}
+
+AIL_SV_DEF i64 ail_sv_index_of(AIL_SV str, AIL_SV needle)
+{
+    for (u64 i = 0; i <= str.len - needle.len; i++) {
+        if (ail_sv_starts_with(ail_sv_offset(str, i), needle)) return (i64)i;
+    }
+    return -1;
+}
+
+AIL_SV_DEF i64 ail_sv_last_index_of(AIL_SV str, AIL_SV needle)
+{
+    for (i64 i = str.len - needle.len; i >= 0; i--) {
+        if (ail_sv_starts_with(ail_sv_offset(str, i), needle)) return (i64)i;
+    }
+    return -1;
+}
+
+AIL_SV_DEF i64 ail_sv_index_of_char(AIL_SV str, char needle)
+{
+    for (u64 i = 0; i < str.len; i++) {
+        if (str.str[i] == needle) return (i64)i;
+    }
+    return -1;
+}
+
+AIL_SV_DEF i64 ail_sv_last_index_of_char(AIL_SV str, char needle)
+{
+    for (i64 i = str.len - 1; i >= 0; i--) {
+        if (str.str[i] == needle) return (i64)i;
+    }
+    return -1;
+}
 
 AIL_SV_DEF AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, bool ignore_empty)
 {
@@ -627,66 +701,6 @@ AIL_SV_DEF AIL_Str ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_w
     AIL_Str out = ail_sv_join(list.data, list.len, replace_with);
     ail_da_free(&list);
     return out;
-}
-
-AIL_SV_DEF bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
-{
-    if (prefix.len > str.len) return false;
-    for (u32 i = 0; i < prefix.len; i++) {
-        if (str.str[i] != prefix.str[i]) return false;
-    }
-    return true;
-}
-
-AIL_SV_DEF bool ail_sv_starts_with_char(AIL_SV str, char prefix)
-{
-    return str.len > 0 && str.str[0] == prefix;
-}
-
-AIL_SV_DEF bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
-{
-    if (suffix.len > str.len) return false;
-    for (u32 i = suffix.len; i > 0; i--) {
-        if (str.str[str.len - i] != suffix.str[suffix.len - i]) return false;
-    }
-    return true;
-}
-
-AIL_SV_DEF bool ail_sv_ends_with_char(AIL_SV str, char suffix)
-{
-    return str.len > 0 && str.str[str.len - 1] == suffix;
-}
-
-AIL_SV_DEF i64 ail_sv_index_of(AIL_SV str, AIL_SV needle)
-{
-    for (u64 i = 0; i <= str.len - needle.len; i++) {
-        if (ail_sv_starts_with(ail_sv_offset(str, i), needle)) return (i64)i;
-    }
-    return -1;
-}
-
-AIL_SV_DEF i64 ail_sv_last_index_of(AIL_SV str, AIL_SV needle)
-{
-    for (i64 i = str.len - needle.len; i >= 0; i--) {
-        if (ail_sv_starts_with(ail_sv_offset(str, i), needle)) return (i64)i;
-    }
-    return -1;
-}
-
-AIL_SV_DEF i64 ail_sv_index_of_char(AIL_SV str, char needle)
-{
-    for (u64 i = 0; i < str.len; i++) {
-        if (str.str[i] == needle) return (i64)i;
-    }
-    return -1;
-}
-
-AIL_SV_DEF i64 ail_sv_last_index_of_char(AIL_SV str, char needle)
-{
-    for (i64 i = str.len - 1; i >= 0; i--) {
-        if (str.str[i] == needle) return (i64)i;
-    }
-    return -1;
 }
 
 #endif // _AIL_SV_IMPL_GUARD_
