@@ -4,6 +4,29 @@
 // Drop-in replacement for malloc/free via the global ail_alloc_ctx variable
 // Call ail_alloc_ctx_alloc, ail_alloc_ctx_free, ail_alloc_ctx_free_all to use whichever allocator is currently set as the context
 // Use AIL_ALLOC_SWITCH_CTX and AIL_ALLOC_SWITCH_BACK_CTX to change the context (back)
+//
+// LICENSE
+/*
+Copyright (c) 2024 Val Richter
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #ifndef AIL_ALLOC_H_
 #define AIL_ALLOC_H_

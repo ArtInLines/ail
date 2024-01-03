@@ -1,5 +1,27 @@
 // This header contains general utilities used throughout the other ail.h libraries
 //
+// LICENSE
+/*
+Copyright (c) 2024 Val Richter
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #ifndef AIL_H_
 #define AIL_H_
@@ -19,6 +41,14 @@
 #define AIL_MEMCPY(dst, src, n) memcpy(dst, src, n)
 #endif
 
+// AIL_DEF and AIL_DEF_INLINE don't actually effect any of the functions in this file, as only macros are defined here
+// They do however serve as defaults for the other ail headers
+#ifndef AIL_DEF
+#define AIL_DEF
+#endif // AIL_DEF
+#ifndef AIL_DEF_INLINE
+#define AIL_DEF_INLINE static inline
+#endif // AIL_DEF_INLINE
 
 // @TODO: Add support for short names via `AIL_SHORT_NAMES` macro
 
@@ -57,6 +87,9 @@ typedef double   f64;
 // Custom Utility Macros
 // always enabled
 /////////////////////////
+#ifndef _AIL_UTIL_GUARD_
+#define _AIL_UTIL_GUARD_
+
 #ifndef AIL_DBG_PRINT
 #include <stdio.h>
 #define AIL_DBG_PRINT printf
@@ -100,6 +133,7 @@ typedef double   f64;
         out += (out==0);                                                                                                                      \
     } while(0)
 
+#endif // _AIL_UTIL_GUARD_
 
 /////////////////////////
 // Dynamic Array Implementation
@@ -112,15 +146,6 @@ typedef double   f64;
 #ifdef  AIL_DA_IMPL
 #ifndef _AIL_DA_GUARD_
 #define _AIL_DA_GUARD_
-
-// AIL_DEF and AIL_DEF_INLINE don't actually effect any of the functions in this file, as only macros are defined here
-// They do however serve as defaults for the other ail headers
-#ifndef AIL_DEF
-#define AIL_DEF
-#endif // AIL_DEF
-#ifndef AIL_DEF_INLINE
-#define AIL_DEF_INLINE static inline
-#endif // AIL_DEF_INLINE
 
 #ifndef AIL_DA_PRINT
 #include <stdio.h>
