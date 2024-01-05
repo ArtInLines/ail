@@ -1,7 +1,7 @@
 // Utility for simple, good Graphical User Interfaces in Raylib
 //
 // Define AIL_GUI_IMPL in one file
-// Define AIL_GUI_MALLOC, AIL_GUI_FREE to overwrite default malloc and free functions
+// Overwrite the static ail_gui_allocator variable, to use a different allocator
 //
 // LICENSE
 /*
@@ -31,9 +31,7 @@ SOFTWARE.
 
 // @TODO: Move this to a separate repo as its own, standalone, single-header library, since I have been copy-pasting this same code between different projects already
 
-#ifndef AIL_ALL_IMPL
 #define AIL_ALL_IMPL
-#endif // AIL_ALL_IMPL
 #include "ail.h"
 #include <string.h>
 #include <stdbool.h>
@@ -55,19 +53,6 @@ SOFTWARE.
 #define AIL_GUI_DEF_INLINE static inline
 #endif // AIL_DEF_INLINE
 #endif // AIL_GUI_DEF_INLINE
-
-#if !defined(AIL_GUI_MALLOC) && !defined(AIL_GUI_FREE)
-#if  defined(AIL_MALLOC) &&  defined(AIL_FREE)
-#define AIL_GUI_MALLOC AIL_MALLOC
-#define AIL_GUI_FREE   AIL_FREE
-#else
-#include <stdlib.h>
-#define AIL_GUI_MALLOC(size) malloc(size)
-#define AIL_GUI_FREE(ptr)    free(ptr)
-#endif
-#elif !defined(AIL_GUI_MALLOC) || !defined(AIL_GUI_FREE)
-#error "You must define both AIL_GUI_MALLOC and AIL_GUI_FREE, or neither."
-#endif
 
 typedef enum {
     AIL_GUI_STATE_HIDDEN,   // Element is not displayed
@@ -146,6 +131,7 @@ AIL_GUI_DEF_INLINE bool ail_gui_stateIsActive(AIL_Gui_State state);
 AIL_GUI_DEF_INLINE bool ail_gui_isPointInRec(i32 px, i32 py, i32 rx, i32 ry, i32 rw, i32 rh);
 AIL_GUI_DEF AIL_Gui_Style ail_gui_defaultStyle(Font font);
 AIL_GUI_DEF AIL_Gui_Style ail_gui_cloneStyle(AIL_Gui_Style self);
+AIL_GUI_DEF_INLINE void ail_gui_free_drawable_text(AIL_Gui_Drawable_Text *drawableText);
 AIL_GUI_DEF AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, Rectangle bounds, AIL_Gui_Style style);
 AIL_GUI_DEF Vector2 ail_gui_measureText(const char *text, Rectangle bounds, AIL_Gui_Style style, AIL_Gui_Drawable_Text *drawable_text);
 AIL_GUI_DEF_INLINE void ail_gui_drawPreparedTextHelper(AIL_Gui_Drawable_Text text, AIL_Gui_Style style, bool outerBounds, Rectangle outer);
@@ -185,6 +171,15 @@ AIL_GUI_DEF AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self);
 #ifdef AIL_GUI_IMPL
 #ifndef _GUI_IMPL_GUARD_
 #define _GUI_IMPL_GUARD_
+
+AIL_Allocator ail_gui_allocator = {
+	.data       = NULL,
+	.alloc      = &ail_default_malloc,
+	.zero_alloc = &ail_default_calloc,
+	.re_alloc   = &ail_default_realloc,
+	.free_one   = &ail_default_free,
+	.free_all   = &ail_default_free_all,
+};
 
 // Static Variables
 static i16   Input_Box_anim_len  = 50;   // Length of animation in ms
@@ -243,6 +238,13 @@ AIL_GUI_DEF AIL_Gui_Style ail_gui_cloneStyle(AIL_Gui_Style self)
     };
 }
 
+AIL_GUI_DEF_INLINE void ail_gui_free_drawable_text(AIL_Gui_Drawable_Text *drawableText)
+{
+    ail_da_free(&drawableText->lineOffsets);
+    ail_da_free(&drawableText->lineXs);
+}
+
+// @Important This function allocates memory. The returned AIL_Gui_Drawable_Text instance has to be freed again via ail_gui_free_drawable_text
 AIL_GUI_DEF AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, Rectangle bounds, AIL_Gui_Style style)
 {
     if (!text) return (AIL_Gui_Drawable_Text) {0};
@@ -250,8 +252,8 @@ AIL_GUI_DEF AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, R
     AIL_Gui_Drawable_Text out = {0};
     out.text = text;
     out.y    = y;
-    out.lineOffsets = ail_da_with_cap(u16, 16);
-    out.lineXs      = ail_da_with_cap(i32, 17);
+    out.lineOffsets = ail_da_new_with_alloc(u16, 16, &ail_gui_allocator);
+    out.lineXs      = ail_da_new_with_alloc(i32, 17, &ail_gui_allocator);
 
     float scaleFactor = style.font_size / (float)style.font.baseSize; // Character quad scaling factor
     float lineWidth   = 0.0f;
@@ -341,26 +343,30 @@ AIL_GUI_DEF AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, R
 }
 
 // drawable_text will be written to, except if text == drawable_text.text
+// @Important: This function potentially allocates memory for the drawable_text, which should be freed again via ail_gui_free_drawable_text
 AIL_GUI_DEF Vector2 ail_gui_measureText(const char *text, Rectangle bounds, AIL_Gui_Style style, AIL_Gui_Drawable_Text *drawable_text)
 {
-    if (text != drawable_text->text) *drawable_text = ail_gui_prepTextForDrawing(text, bounds, style);
+    if (text != drawable_text->text || drawable_text->lineXs.data == NULL) *drawable_text = ail_gui_prepTextForDrawing(text, bounds, style);
     float height = drawable_text->lineXs.len*style.font_size + (drawable_text->lineXs.len - 1)*style.lSpacing;
-    return (Vector2) {
+    Vector2 out = {
         .x = drawable_text->w,
         .y = height,
     };
+    return out;
 }
 
 AIL_GUI_DEF void ail_gui_drawText(const char *text, Rectangle bounds, AIL_Gui_Style style)
 {
     AIL_Gui_Drawable_Text preppedText = ail_gui_prepTextForDrawing(text, bounds, style);
     ail_gui_drawPreparedText(preppedText, style);
+    ail_gui_free_drawable_text(&preppedText);
 }
 
 AIL_GUI_DEF void ail_gui_drawTextOuterBounds(const char *text, Rectangle inner, Rectangle outer, AIL_Gui_Style style)
 {
     AIL_Gui_Drawable_Text preppedText = ail_gui_prepTextForDrawing(text, inner, style);
     ail_gui_drawPreparedTextOuterBounds(preppedText, outer, style);
+    ail_gui_free_drawable_text(&preppedText);
 }
 
 AIL_GUI_DEF void ail_gui_drawTextCodepointOuterBounds(Font font, i32 codepoint, Vector2 position, Rectangle outer, f32 fontSize, Color col)
@@ -512,7 +518,7 @@ AIL_GUI_DEF Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle b
     DrawRectangle(bounds.x, bounds.y, bounds.width, bounds.height, style.bg);
 
     if (!text.text) return NULL;
-    Vector2 *res = AIL_GUI_MALLOC(text.text_len * sizeof(Vector3));
+    Vector2 *res = ail_gui_allocator.alloc(ail_gui_allocator.data, text.text_len * sizeof(Vector3));
     float scaleFactor = style.font_size/style.font.baseSize; // Character quad scaling factor
     Vector2 pos = { .x = text.lineXs.data[0], .y = text.y }; // Position to draw current codepoint at
     u32 lastOffset = 0;
@@ -543,7 +549,7 @@ AIL_GUI_DEF Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle b
 AIL_GUI_DEF AIL_Gui_Label ail_gui_newLabel(Rectangle bounds, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered)
 {
     i32 text_len = text == NULL ? 0 : TextLength(text);
-    AIL_DA(char) arrList = ail_da_with_cap(char, text_len + 1);
+    AIL_DA(char) arrList = ail_da_new_with_alloc(char, text_len + 1, &ail_gui_allocator);
     arrList.len = text_len + 1;
     if (text_len > 0) memcpy(arrList.data, text, text_len);
     arrList.data[text_len] = 0;
@@ -614,6 +620,7 @@ AIL_GUI_DEF AIL_Gui_State ail_gui_drawLabel(AIL_Gui_Label self)
 
     AIL_Gui_Drawable_Text prepText = ail_gui_prepTextForDrawing(self.text.data, self.bounds, style);
     ail_gui_drawPreparedSized(prepText, self.bounds, style);
+    ail_gui_free_drawable_text(&prepText);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     return state;
 }
@@ -627,6 +634,7 @@ AIL_GUI_DEF AIL_Gui_State ail_gui_drawLabelOuterBounds(AIL_Gui_Label self, Recta
 
     AIL_Gui_Drawable_Text prepText = ail_gui_prepTextForDrawing(self.text.data, self.bounds, style);
     ail_gui_drawPreparedSizedOuterBounds(prepText, self.bounds, outer_bounds, style);
+    ail_gui_free_drawable_text(&prepText);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     return state;
 }
@@ -843,7 +851,8 @@ AIL_GUI_DEF AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
         if (self->anim_idx >= Input_Box_anim_len) self->anim_idx = 0;
     }
 
-    AIL_GUI_FREE(coords);
+    ail_gui_free_drawable_text(&prepText);
+    ail_gui_allocator.free_one(ail_gui_allocator.data, coords);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_IBEAM);
     res.state = state;
     return res;
