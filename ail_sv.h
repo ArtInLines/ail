@@ -330,7 +330,7 @@ AIL_SV_DEF AIL_Str ail_str_from_unsigned(u64 num)
 {
     // @Decide: max u64 is 20 chars long - should the default capacity be 24 then?
     if (num == 0) return (AIL_Str) { .str = "0", .len = 1 };
-    AIL_DA(char) da = ail_da_with_cap(char, 16);
+    AIL_DA(char) da = ail_da_new_with_cap(char, 16);
     while (num > 0) {
         ail_da_push(&da, '0' + (num % 10));
         num /= 10;
@@ -349,7 +349,7 @@ AIL_SV_DEF AIL_Str ail_str_from_unsigned(u64 num)
 AIL_SV_DEF AIL_Str ail_str_from_signed(i64 num)
 {
     if (num == 0) return (AIL_Str) { .str = "0", .len = 1 };
-    AIL_DA(char) da = ail_da_with_cap(char, 16);
+    AIL_DA(char) da = ail_da_new_with_cap(char, 16);
     bool is_neg = num < 0;
     if (is_neg) {
         ail_da_push(&da, '-');

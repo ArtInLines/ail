@@ -1,15 +1,19 @@
 // Different types of Allocators
 //
 // Define AIL_ALLOC_IMPL in some file, to include the function bodies
-// Drop-in replacement for malloc/free via the global ail_alloc_ctx variable
-// Call ail_alloc_ctx_alloc, ail_alloc_ctx_free, ail_alloc_ctx_free_all to use whichever allocator is currently set as the context
-// Use AIL_ALLOC_SWITCH_CTX and AIL_ALLOC_SWITCH_BACK_CTX to change the context (back)
+// Define AIL_ALLOC_ALIGNMENT to change the alignment used by all custom allocators
+// Define AIL_ALLOC_PRINT_MEM to track allocations
+//
+// @TODO: Add some way to drop-in replace C malloc calls without having to change the code
+//
+// Implementation of the Arena Allocator was inspired by tsoding's arena library (https://github.com/tsoding/arena/)
+// and by gingerBill's blog post on Arena Allocators (https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/)
 //
 // LICENSE
 /*
 Copyright (c) 2024 Val Richter
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
+Permission is hereby granted, free_one of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -28,13 +32,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+
 #ifndef AIL_ALLOC_H_
 #define AIL_ALLOC_H_
 
-#ifndef AIL_TYPES_IMPL
 #define AIL_TYPES_IMPL
-#endif // AIL_TYPES_IMPL
+#define AIL_ALLOCATOR_IMPL
 #include "ail.h"
+
+#ifndef AIL_ALLOC_ALIGNMENT
+#define AIL_ALLOC_ALIGNMENT 8 // Reasonable default for all 64bit machines
+#endif // AIL_ALLOC_ALIGNMENT
+#if AIL_IS_2POWER(AIL_ALLOC_ALIGNMENT) == false
+#warning "AIL_ALLOC_ALIGNMENT should best be set to a power of two for almost all computer architectures"
+#endif
 
 #ifndef AIL_ALLOC_DEF
 #ifdef  AIL_DEF
@@ -51,118 +62,113 @@ SOFTWARE.
 #endif // AIL_DEF_INLINE
 #endif // AIL_ALLOC_DEF_INLINE
 
-typedef struct {
-	void *data;
-	void *(*alloc)(void*, size_t);
-	void *(*realloc)(void*, void*, size_t);
-    void  (*free)(void*, void*);
-    void  (*freeAll)(void*);
-} AIL_Alloc_Allocator;
+#define AIL_ALLOC_GET_HEADER(ptr, headerType) ((headerType *)(ptr) - 1)
 
-// @TODO: This allocator isn't really an arena -> need another name
-typedef struct {
-	size_t cap;
-	size_t idx;
-	void  *next;
-	AIL_Alloc_Allocator allocator;
-} Alloc_Arena_Header;
+typedef struct AIL_Alloc_Arena {
+	u8 *buf;
+	u64 cap;
+	u64 len;
+} AIL_Alloc_Arena;
 
-typedef size_t AIL_Alloc_Arena_El_Header;
+typedef struct AIL_Alloc_Arena_Header {
+	u64 size;
+} AIL_Alloc_Arena_Header;
 
-AIL_ALLOC_DEF void *ail_alloc_ctx_alloc(size_t size);
-AIL_ALLOC_DEF void *ail_alloc_ctx_calloc(size_t nelem, size_t elsize);
-AIL_ALLOC_DEF void *ail_alloc_ctx_realloc(void *ptr, size_t size);
-AIL_ALLOC_DEF void ail_alloc_ctx_free(void *ptr);
-AIL_ALLOC_DEF void ail_alloc_ctx_free_all();
+AIL_ALLOC_DEF size_t  align_size(size_t size);
+
 AIL_ALLOC_DEF void *ail_alloc_std_alloc(void *data, size_t size);
+AIL_ALLOC_DEF void *ail_alloc_std_calloc(void *data, size_t nelem, size_t elsize);
 AIL_ALLOC_DEF void *ail_alloc_std_realloc(void *data, void *ptr, size_t size);
 AIL_ALLOC_DEF void ail_alloc_std_free(void *data, void *ptr);
 AIL_ALLOC_DEF void ail_alloc_std_free_all(void *data);
-AIL_ALLOC_DEF void *ail_alloc_arena_next_block(AIL_Alloc_Allocator allocator, size_t size, bool growable);
+
+AIL_ALLOC_DEF AIL_Allocator ail_alloc_arena_new(u64 cap, AIL_Allocator *backing_allocator);
 AIL_ALLOC_DEF void *ail_alloc_arena_alloc(void *data, size_t size);
+AIL_ALLOC_DEF void *ail_alloc_arena_calloc(void *data, size_t nelem, size_t elsize);
 AIL_ALLOC_DEF void *ail_alloc_arena_realloc(void *data, void *ptr, size_t size);
 AIL_ALLOC_DEF void ail_alloc_arena_free(void *data, void *ptr);
 AIL_ALLOC_DEF void ail_alloc_arena_free_all(void *data);
 
-static AIL_Alloc_Allocator ail_alloc_std = {
-	.data    = NULL,
-	.alloc   = ail_alloc_std_alloc,
-	.realloc = ail_alloc_std_realloc,
-	.free    = ail_alloc_std_free,
-	.freeAll = ail_alloc_std_free_all,
-};
-
-static AIL_Alloc_Allocator *ail_alloc_ctx = &ail_alloc_std;
-static AIL_Alloc_Allocator *_ail_alloc_prev_ctx_ = NULL;
-#define AIL_ALLOC_SWITCH_CTX(allocator) { _ail_alloc_prev_ctx_ = ail_alloc_ctx; ail_alloc_ctx = &(allocator); }
-#define AIL_ALLOC_SWITCH_BACK_CTX() ail_alloc_ctx = _ail_alloc_prev_ctx_
-#define AIL_ALLOC_GET_HEADER(strct, data) ((strct *)(((char *)(data))-sizeof(strct)))
-
-
 #endif // AIL_ALLOC_H_
 
+#define AIL_ALLOC_IMPL
 #ifdef AIL_ALLOC_IMPL
 #ifndef _AIL_ALLOC_IMPL_GUARD_
 #define _AIL_ALLOC_IMPL_GUARD_
 
-#include <stdlib.h> // For std_allocator
+#include <stdlib.h> // For std_allocator and memset
 
+// For tracing memory
+#ifndef AIL_ALLOC_PRINT_MEM
+#define AIL_ALLOC_LOG(...) do { if (0) printf(__VA_ARGS__); } while(0)
+#else
+#define AIL_ALLOC_LOG(...) do { AIL_DBG_PRINT("AIL_Alloc Mem Trace: " __VA_ARGS__); AIL_DBG_PRINT("\n"); } while(0)
+#endif // AIL_ALLOC_PRINT_MEM
+#define AIL_ALLOC_LOG_ALLOC(allocator, ptr, size)           AIL_ALLOC_LOG("Allocate   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
+#define AIL_ALLOC_LOG_CALLOC(allocator, ptr, nelem, elsize) AIL_ALLOC_LOG("0-Allocate %4llu elements of size %4llu at %p in '" allocator "' allocator", (nelem), (elsize), (ptr));
+#define AIL_ALLOC_LOG_REALLOC(allocator, nptr, optr, size)  AIL_ALLOC_LOG("Reallocate from %p to %4llu bytes at %p in '" allocator "' allocator", (optr), (size), (nptr));
+#define AIL_ALLOC_LOG_FREE(allocator, ptr, size)            AIL_ALLOC_LOG("Free       %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
+#define AIL_ALLOC_LOG_FREE_ALL(allocator, size)             AIL_ALLOC_LOG("Free all   %4llu bytes in '" allocator "' allocator", (size));
 
-/////////////
-// Context //
-/////////////
-
-AIL_ALLOC_DEF void *ail_alloc_ctx_alloc(size_t size)
+AIL_ALLOC_DEF size_t align_size(size_t size)
 {
-	return ail_alloc_ctx->alloc(ail_alloc_ctx->data, size);
+	size_t mod;
+#if AIL_IS_2POWER(AIL_ALLOC_ALIGNMENT) == true
+	// size % alignment but faster, bc alignment is a power of two
+	mod = size & (AIL_ALLOC_ALIGNMENT - 1);
+#else
+	mod = size % AIL_ALLOC_ALIGNMENT;
+#endif
+	return size + (mod > 0)*(AIL_ALLOC_ALIGNMENT - mod);
 }
-
-AIL_ALLOC_DEF void *ail_alloc_ctx_calloc(size_t nelem, size_t elsize)
-{
-	return ail_alloc_ctx_alloc(nelem * elsize);
-}
-
-AIL_ALLOC_DEF void *ail_alloc_ctx_realloc(void *ptr, size_t size)
-{
-	return ail_alloc_ctx->realloc(ail_alloc_ctx->data, ptr, size);
-}
-
-AIL_ALLOC_DEF void ail_alloc_ctx_free(void *ptr)
-{
-	ail_alloc_ctx->free(ail_alloc_ctx->data, ptr);
-}
-
-AIL_ALLOC_DEF void ail_alloc_ctx_free_all()
-{
-	ail_alloc_ctx->freeAll(ail_alloc_ctx->data);
-}
-
 
 /////////
 // Std //
 /////////
+static AIL_Allocator ail_alloc_std = {
+	.data       = NULL,
+	.alloc      = &ail_alloc_std_alloc,
+	.zero_alloc = &ail_alloc_std_calloc,
+	.re_alloc   = &ail_alloc_std_realloc,
+	.free_one   = &ail_alloc_std_free,
+	.free_all   = &ail_alloc_std_free_all,
+};
 
 AIL_ALLOC_DEF void *ail_alloc_std_alloc(void *data, size_t size)
 {
-	(void)data;
-	return malloc(size);
+	AIL_UNUSED(data);
+	void *ptr = malloc(size);
+	AIL_ALLOC_LOG_ALLOC("std", ptr, size);
+	return ptr;
+}
+
+AIL_ALLOC_DEF void *ail_alloc_std_calloc(void *data, size_t nelem, size_t elsize)
+{
+	AIL_UNUSED(data);
+	void *ptr = calloc(nelem, elsize);
+	AIL_ALLOC_LOG_CALLOC("std", ptr, nelem, elsize);
+	return ptr;
 }
 
 AIL_ALLOC_DEF void *ail_alloc_std_realloc(void *data, void *ptr, size_t size)
 {
-	(void)data;
-	return realloc(ptr, size);
+	AIL_UNUSED(data);
+	void *out = realloc(ptr, size);
+	AIL_ALLOC_LOG_REALLOC("std", out, ptr, size);
+	return out;
 }
 
 AIL_ALLOC_DEF void ail_alloc_std_free(void *data, void *ptr)
 {
-	(void)data;
+	AIL_UNUSED(data);
+	AIL_ALLOC_LOG_FREE("std", ptr, (size_t)0);
 	free(ptr);
 }
 
 AIL_ALLOC_DEF void ail_alloc_std_free_all(void *data)
 {
-	(void)data;
+	AIL_ALLOC_LOG_FREE_ALL("std", (size_t)0);
+	AIL_UNUSED(data);
 }
 
 
@@ -170,77 +176,87 @@ AIL_ALLOC_DEF void ail_alloc_std_free_all(void *data)
 // Arena //
 ///////////
 
-AIL_ALLOC_DEF AIL_Alloc_Allocator ail_alloc_arena_init(AIL_Alloc_Allocator allocator, size_t initialSize, bool growable)
+AIL_ALLOC_DEF AIL_Allocator ail_alloc_arena_new(u64 cap, AIL_Allocator *backing_allocator)
 {
-	return (AIL_Alloc_Allocator) {
-		.data    = ail_alloc_arena_next_block(allocator, initialSize, growable),
-		.alloc   = ail_alloc_arena_alloc,
-		.realloc = ail_alloc_arena_realloc,
-		.free    = ail_alloc_arena_free,
-		.freeAll = ail_alloc_arena_free_all,
+	AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)backing_allocator->alloc(backing_allocator->data, sizeof(AIL_Alloc_Arena));
+	arena->buf = (u8 *)backing_allocator->alloc(backing_allocator->data, cap);
+	arena->cap = cap;
+	arena->len = 0;
+	AIL_ASSERT(arena->buf != NULL);
+	return (AIL_Allocator) {
+		.data       = arena,
+		.alloc      = &ail_alloc_arena_alloc,
+		.zero_alloc = &ail_alloc_arena_calloc,
+		.re_alloc   = &ail_alloc_arena_realloc,
+		.free_one   = &ail_alloc_arena_free,
+		.free_all   = &ail_alloc_arena_free_all,
 	};
-}
-
-AIL_ALLOC_DEF void *ail_alloc_arena_next_block(AIL_Alloc_Allocator allocator, size_t size, bool growable)
-{
-	void *data = allocator.alloc(allocator.data, sizeof(Alloc_Arena_Header) + size);
-	*((Alloc_Arena_Header *)data) = (Alloc_Arena_Header) {
-		.cap  = size,
-		.idx  = 0,
-		.next = NULL,
-		.allocator = growable ? allocator : (AIL_Alloc_Allocator){0},
-	};
-	return ((char *)(data)) + sizeof(Alloc_Arena_Header);
 }
 
 AIL_ALLOC_DEF void *ail_alloc_arena_alloc(void *data, size_t size)
 {
-	Alloc_Arena_Header *header = AIL_ALLOC_GET_HEADER(Alloc_Arena_Header, data);
-	if (AIL_UNLIKELY(header->idx + size + sizeof(AIL_Alloc_Arena_El_Header) >= header->cap)) {
-		if (header->allocator.alloc) {
-			if (!header->next) {
-				header->next = ail_alloc_arena_next_block(header->allocator, AIL_MAX(header->cap, 2*size), true);
-			}
-			return ail_alloc_arena_alloc(header->next, size);
-		} else {
-			ail_alloc_arena_free_all(data);
-		}
+	AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)data;
+	u64 header_size = align_size(sizeof(AIL_Alloc_Arena_Header));
+	    size        = align_size(size);
+	if (arena->len + size + header_size <= arena->cap) {
+		AIL_Alloc_Arena_Header *header = (AIL_Alloc_Arena_Header *) &arena->buf[arena->len];
+		header->size = size;
+		void *ptr    = &arena->buf[arena->len + header_size];
+		arena->len  += size + header_size;
+		AIL_ALLOC_LOG_ALLOC("arena", ptr, size);
+		AIL_ALLOC_LOG("Current size: %llu", arena->len);
+		return ptr;
+	} else {
+		AIL_ALLOC_LOG_ALLOC("arena", NULL, (size_t)0);
+		AIL_ASSERT(false);
+		return NULL;
 	}
-	void *out = &((char *)data)[header->idx + sizeof(AIL_Alloc_Arena_El_Header)];
-	header->idx += size + sizeof(AIL_Alloc_Arena_El_Header);
-	return out;
+}
+
+AIL_ALLOC_DEF void *ail_alloc_arena_calloc(void *data, size_t nelem, size_t elsize)
+{
+	void *ptr = ail_alloc_arena_alloc(data, nelem * elsize);
+	if (ptr) {
+		u64 size  = AIL_ALLOC_GET_HEADER(ptr, AIL_Alloc_Arena_Header)->size;
+		memset(ptr, (size_t)0, size);
+	}
+	AIL_ALLOC_LOG_CALLOC("arena", ptr, nelem, elsize);
+	return ptr;
 }
 
 AIL_ALLOC_DEF void *ail_alloc_arena_realloc(void *data, void *ptr, size_t size)
 {
-	if (!ptr) return ail_alloc_arena_alloc(data, size);
-	Alloc_Arena_Header    *header = AIL_ALLOC_GET_HEADER(Alloc_Arena_Header, data);
-	AIL_Alloc_Arena_El_Header *elSize = AIL_ALLOC_GET_HEADER(AIL_Alloc_Arena_El_Header, ptr);
-	while (AIL_UNLIKELY(((char *)(data)) + header->cap < ((char *)(ptr)))) header = AIL_ALLOC_GET_HEADER(Alloc_Arena_Header, data);
-	if (header->idx == (size_t)(ptr) + *elSize) {
-		header->idx = (size_t)(ptr) + size;
-		*elSize     = size;
+	AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)data;
+	size_t old_size = AIL_ALLOC_GET_HEADER(ptr, AIL_Alloc_Arena_Header)->size;
+	if (old_size >= size || (u8 *)ptr + old_size == arena->buf + arena->len) {
+		// If size didn't increase, or ptr points at the last allocation, no memory needs to be moved
+		AIL_ALLOC_GET_HEADER(ptr, AIL_Alloc_Arena_Header)->size = size; // Potentially shrink used region
+		AIL_ALLOC_LOG_REALLOC("arena", ptr, ptr, size);
 		return ptr;
 	} else {
-		void *newptr = ail_alloc_arena_alloc(data, size);
-		memcpy(ptr, newptr, *elSize);
-		return newptr;
+		void *new_ptr = ail_alloc_arena_alloc(data, size);
+		if (new_ptr) memcpy(new_ptr, ptr, old_size);
+		AIL_ALLOC_LOG_REALLOC("arena", new_ptr, ptr, size);
+		return new_ptr;
 	}
 }
 
 AIL_ALLOC_DEF void ail_alloc_arena_free(void *data, void *ptr)
 {
-	(void)data;
-	(void)ptr;
+	AIL_UNUSED(data);
+	AIL_UNUSED(ptr);
+	AIL_ALLOC_LOG_FREE("arena", ptr, (size_t)0);
 }
 
 AIL_ALLOC_DEF void ail_alloc_arena_free_all(void *data)
 {
-	Alloc_Arena_Header *header = AIL_ALLOC_GET_HEADER(Alloc_Arena_Header, data);
-	header->idx = 0;
-	if (AIL_UNLIKELY(header->next)) ail_alloc_arena_free_all(header->next);
-	// @Decide: Should we memset previously allocated region to 0?
+	AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)data;
+	AIL_ALLOC_LOG_FREE_ALL("arena", arena->len);
+	AIL_ALLOC_LOG("Current size: %4llu", arena->len);
+	arena->len = 0;
+	AIL_ALLOC_LOG("Current size: %4llu", arena->len);
 }
+
 
 #endif // _AIL_ALLOC_IMPL_GUARD_
 #endif // AIL_ALLOC_IMPL

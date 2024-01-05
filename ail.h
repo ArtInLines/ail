@@ -4,7 +4,7 @@
 /*
 Copyright (c) 2024 Val Richter
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
+Permission is hereby granted, free_one of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -22,9 +22,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
-#ifndef AIL_H_
-#define AIL_H_
 
 #if   !defined(AIL_MALLOC) && !defined(AIL_REALLOC) && !defined(AIL_CALLOC) && !defined(AIL_FREE)
 #include <stdlib.h>
@@ -50,13 +47,78 @@ SOFTWARE.
 #define AIL_DEF_INLINE static inline
 #endif // AIL_DEF_INLINE
 
+#ifdef _MSC_VER
+#define AIL_UNUSED(v)  (void)(v)
+#else
+#define AIL_UNUSED(v)  (void)sizeof(v)
+#endif
+
 // @TODO: Add support for short names via `AIL_SHORT_NAMES` macro
 
 // Implement all functionalities with `#define AIL_ALL_IMPL`
 #ifdef  AIL_ALL_IMPL
 #define AIL_TYPES_IMPL
 #define AIL_DA_IMPL
+#define AIL_ALLOC_IMPL
 #endif // AIL_ALL_IMPL
+
+
+/////////////////////////
+// General Allocator Interface
+// enable with `#define AIL_ALLOCATOR_IMPL`
+// automatically enabled if dynamic arrays are enabled
+/////////////////////////
+#if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
+#ifndef _AIL_ALLOCATOR_GUARD_
+#define _AIL_ALLOCATOR_GUARD_
+
+// If a specific allocator supports additional functions,
+// they should be kept inside the data attribute
+typedef struct AIL_Allocator {
+	void *data; // Metadata required by allocator and provided in all function calls
+	void *(*alloc)(void* data, size_t size);
+	void *(*zero_alloc)(void* data, size_t nelem, size_t elsize);
+	void *(*re_alloc)(void* data, void* ptr, size_t size);
+    void  (*free_one)(void* data, void* ptr);
+    void  (*free_all)(void* data);
+} AIL_Allocator;
+
+void* ail_default_malloc(void *data, size_t size)
+{
+	(void)data;
+	return AIL_MALLOC(size);
+}
+void* ail_default_calloc(void* data, size_t nelem, size_t elsize)
+{
+	(void)data;
+	return AIL_CALLOC(nelem, elsize);
+}
+void* ail_default_realloc(void* data, void* ptr, size_t size)
+{
+	(void)data;
+	return AIL_REALLOC(ptr, size);
+}
+void ail_default_free(void* data, void* ptr)
+{
+	(void)data;
+	AIL_FREE(ptr);
+}
+void ail_default_free_all(void* data)
+{
+	(void)data;
+}
+
+static AIL_Allocator ail_default_allocator = {
+	.data       = NULL,
+	.alloc      = &ail_default_malloc,
+	.zero_alloc = &ail_default_calloc,
+	.re_alloc   = &ail_default_realloc,
+	.free_one   = &ail_default_free,
+	.free_all   = &ail_default_free_all,
+};
+
+#endif // _AIL_ALLOCATOR_GUARD_
+#endif // AIL_ALLOCATOR_IMPL
 
 /////////////////////////
 // Custom Typedefs
@@ -95,11 +157,6 @@ typedef double   f64;
 #define AIL_DBG_PRINT printf
 #endif // AIL_DBG_PRINT
 
-#ifndef AIL_ASSERT
-#include <assert.h>
-#define AIL_ASSERT assert
-#endif // AIL_ASSERT
-
 #define AIL_STRINGIZE2(x) #x
 #define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
 #define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
@@ -116,12 +173,16 @@ typedef double   f64;
 #define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
 #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
 
-#define AIL_DBG_EXIT() do { exit(1); } while(0)
+#define AIL_DBG_EXIT() do { int *X = 0; *X = 0; exit(1); } while(0)
+#define AIL_ASSERT(expr) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n    with expression 'AIL_ASSERT(" #expr ")'"); AIL_DBG_EXIT(); } } while(0)
 #define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
-#define AIL_STATIC_ASSERT_MSG(expr, msg) do { extern int __attribute__((error("assertion failure: '" #msg "' in " __FILE__ ":" AIL_STR_LINE))) compile_time_check(); ((expr)?0:compile_time_check()),(void)0; } while(0)
-#define AIL_STATIC_ASSERT(expr) AIL_STATIC_ASSERT_MSG(expr, #expr);
+// @Bug: Static Assert is currently broken
+// #define AIL_STATIC_ASSERT_MSG(expr, msg) do { extern int __attribute__((error("assertion failure: '" #msg "' in " __FILE__ ":" AIL_STR_LINE))) compile_time_check(); ((expr)?0:compile_time_check()),(void)0; } while(0)
+// #define AIL_STATIC_ASSERT(expr) AIL_STATIC_ASSERT_MSG(expr, #expr);
+
+#define AIL_OFFSETOF(var, field) (((char *) &(var)->field) - ((char *) (var)))
 
 #define AIL_IS_2POWER(x) x && !(x & (x - 1))
 #define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
@@ -156,7 +217,7 @@ typedef double   f64;
 #define AIL_DA_INIT_CAP 256
 #endif
 
-#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; } AIL_DA_##T
+#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
 #define AIL_DA(T) AIL_DA_##T
 
 AIL_DA_INIT(void);
@@ -177,12 +238,14 @@ AIL_DA_INIT(f64);
 
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
 
-#define ail_da_new(T)                 (AIL_DA(T)) { .data = AIL_MALLOC(AIL_DA_INIT_CAP * sizeof(T)), .len = 0, .cap = AIL_DA_INIT_CAP }
-#define ail_da_with_cap(T, c)         (AIL_DA(T)) { .data = AIL_MALLOC((c) * sizeof(T)), .len = 0, .cap = (c) }
-#define ail_da_new_empty(T)           (AIL_DA(T)) { .data = NULL, .len = 0, .cap = 0 }
-#define ail_da_new_zero_init(T, c)    (AIL_DA(T)) { .data = AIL_CALLOC(c, sizeof(T)), .len = 0, .cap = (c) }
-#define ail_da_from_parts(T, d, l, c) (AIL_DA(T)) { .data = (d), .len = (l), .cap = (c) }
-#define ail_da_free(daPtr) do { AIL_FREE((daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
+#define ail_da_from_parts(T, d, l, c, alPtr) (AIL_DA(T)) { .data = (d),                                     .len = (l), .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_with_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->alloc((alPtr)->data, sizeof(T) * (c)),         .len = 0,   .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_zero_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->zero_alloc((alPtr)->data, sizeof(T) * (c)),    .len = 0,   .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_with_cap(T, c)            (AIL_DA(T)) { .data = AIL_MALLOC(sizeof(T) * (c)),             .len = 0,   .cap = (c), .allocator = &ail_default_allocator }
+#define ail_da_new(T)                        (AIL_DA(T)) { .data = AIL_MALLOC(sizeof(T) * AIL_DA_INIT_CAP), .len = 0,   .cap = AIL_DA_INIT_CAP, .allocator = &ail_default_allocator }
+#define ail_da_new_empty(T)                  (AIL_DA(T)) { .data = NULL,                                    .len = 0,   .cap = 0,   .allocator = &ail_default_allocator }
+#define ail_da_new_zero_init(T, c)           (AIL_DA(T)) { .data = AIL_CALLOC(c, sizeof(T)),                .len = 0,   .cap = (c), .allocator = &ail_default_allocator }
+#define ail_da_free(daPtr) do { (daPtr)->allocator->free_one((daPtr)->allocator->data, (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
 
 #define ail_da_printf(da, format, ...) do {                                       \
 		AIL_DA_PRINT("{\n  cap: %d,\n  len: %d,\n  data: [", (da).cap, (da).len); \
@@ -199,10 +262,10 @@ AIL_DA_INIT(f64);
 		}                                                                                  \
 	} while(0)
 
-#define ail_da_resize(daPtr, newCap) do {                        					   \
-		(daPtr)->data = AIL_REALLOC((daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
-		(daPtr)->cap  = (newCap);													   \
-		if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                  \
+#define ail_da_resize(daPtr, newCap) do {                                                                                         \
+		(daPtr)->data = (daPtr)->allocator->re_alloc((daPtr)->allocator->data, (daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
+		(daPtr)->cap  = (newCap);                                                                                                 \
+		if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                                                             \
 	} while(0)
 
 #define ail_da_maybe_grow(daPtr, n) {                                      \
@@ -224,11 +287,11 @@ AIL_DA_INIT(f64);
 #define ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize) do {                                                                 \
 		(daPtr)->cap = (newCap);                                                                                                           \
 		char *_ail_da_gwg_ptr_ = (char *) (daPtr)->data;                                                                                   \
-		(daPtr)->data = AIL_MALLOC((elSize)*(newCap));                                                                                     \
+		(daPtr)->data = (daPtr)->allocator->alloc((daPtr)->allocator->data, (elSize)*(newCap));                                            \
 		AIL_ASSERT((daPtr)->data != NULL);                                                                                                 \
 		AIL_MEMCPY((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
 		AIL_MEMCPY(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
-		AIL_FREE(_ail_da_gwg_ptr_);                                                                                                        \
+		(daPtr)->allocator->free_one((daPtr)->allocator->data, _ail_da_gwg_ptr_);                                                          \
 		(daPtr)->len += (gapLen);                                                                                                          \
 	} while(0)
 
@@ -266,7 +329,3 @@ AIL_DA_INIT(f64);
 
 #endif // _AIL_DA_GUARD_
 #endif // AIL_DA_IMPL
-
-
-
-#endif // AIL_H_

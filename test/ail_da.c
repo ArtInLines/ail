@@ -17,7 +17,7 @@ AIL_DA_INIT(Vec2);
 bool intTest(void)
 {
 	i32 buf[LEN] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-	AIL_DA(i32) da = ail_da_with_cap(i32, LEN);
+	AIL_DA(i32) da = ail_da_new_with_cap(i32, LEN);
 	for (u32 i = 0; i < LEN; i++) ail_da_push(&da, 1);
 	ail_da_insert(&da, 1, EL_TO_INSERT);
 	ail_da_pushn(&da, buf, LEN);
