@@ -19,6 +19,8 @@
 // C functions that work with strings to allow working with String-Views instead.
 // This includes among others also formatting and printing functions.
 //
+// This library was inspired by tsoding's SV library (https://github.com/tsoding/sv)
+//
 // @Note: As this library is not finished, some of the above mentioned functions
 // might not yet be Implemented. This should be fixed soon
 //
