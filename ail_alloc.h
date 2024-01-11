@@ -74,6 +74,21 @@ typedef struct AIL_Alloc_Arena_Header {
 	u64 size;
 } AIL_Alloc_Arena_Header;
 
+typedef struct AIL_Allloc_Pool_Free_Node {
+	struct AIL_Allloc_Pool_Free_Node *next;
+} AIL_Allloc_Pool_Free_Node;
+
+typedef struct AIL_Alloc_Pool {
+	u8 *buf;
+	u64 bucket_amount;
+	u64 bucket_size;
+	AIL_Allloc_Pool_Free_Node *head;
+} AIL_Alloc_Pool;
+
+typedef struct AIL_Alloc_Pool_Header {
+	u64 size;
+} AIL_Alloc_Pool_Header;
+
 AIL_ALLOC_DEF size_t  align_size(size_t size);
 
 AIL_ALLOC_DEF void *ail_alloc_std_alloc(void *data, size_t size);
@@ -88,6 +103,13 @@ AIL_ALLOC_DEF void *ail_alloc_arena_calloc(void *data, size_t nelem, size_t elsi
 AIL_ALLOC_DEF void *ail_alloc_arena_realloc(void *data, void *ptr, size_t size);
 AIL_ALLOC_DEF void ail_alloc_arena_free(void *data, void *ptr);
 AIL_ALLOC_DEF void ail_alloc_arena_free_all(void *data);
+
+AIL_ALLOC_DEF AIL_Allocator ail_alloc_pool_new(u64 bucket_amount, u64 el_size, AIL_Allocator *backing_allocator);
+AIL_ALLOC_DEF void *ail_alloc_pool_alloc(void *data, size_t size);
+AIL_ALLOC_DEF void *ail_alloc_pool_calloc(void *data, size_t nelem, size_t elsize);
+AIL_ALLOC_DEF void *ail_alloc_pool_realloc(void *data, void *ptr, size_t size);
+AIL_ALLOC_DEF void ail_alloc_pool_free(void *data, void *ptr);
+AIL_ALLOC_DEF void ail_alloc_pool_free_all(void *data);
 
 #endif // AIL_ALLOC_H_
 
@@ -204,7 +226,6 @@ AIL_ALLOC_DEF void *ail_alloc_arena_alloc(void *data, size_t size)
 		void *ptr    = &arena->buf[arena->len + header_size];
 		arena->len  += size + header_size;
 		AIL_ALLOC_LOG_ALLOC("arena", ptr, size);
-		AIL_ALLOC_LOG("Current size: %llu", arena->len);
 		return ptr;
 	} else {
 		AIL_ALLOC_LOG_ALLOC("arena", NULL, (size_t)0);
@@ -218,7 +239,7 @@ AIL_ALLOC_DEF void *ail_alloc_arena_calloc(void *data, size_t nelem, size_t elsi
 	void *ptr = ail_alloc_arena_alloc(data, nelem * elsize);
 	if (ptr) {
 		u64 size  = AIL_ALLOC_GET_HEADER(ptr, AIL_Alloc_Arena_Header)->size;
-		memset(ptr, (size_t)0, size);
+		memset(ptr, 0, size);
 	}
 	AIL_ALLOC_LOG_CALLOC("arena", ptr, nelem, elsize);
 	return ptr;
@@ -243,8 +264,8 @@ AIL_ALLOC_DEF void *ail_alloc_arena_realloc(void *data, void *ptr, size_t size)
 
 AIL_ALLOC_DEF void ail_alloc_arena_free(void *data, void *ptr)
 {
-	AIL_UNUSED(data);
-	AIL_UNUSED(ptr);
+	AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)data;
+	AIL_ASSERT(arena->buf <= (u8 *)ptr && (u8 *)ptr < arena->buf + arena->cap); // Bounds checking
 	AIL_ALLOC_LOG_FREE("arena", ptr, (size_t)0);
 }
 
@@ -252,9 +273,89 @@ AIL_ALLOC_DEF void ail_alloc_arena_free_all(void *data)
 {
 	AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)data;
 	AIL_ALLOC_LOG_FREE_ALL("arena", arena->len);
-	AIL_ALLOC_LOG("Current size: %4llu", arena->len);
 	arena->len = 0;
-	AIL_ALLOC_LOG("Current size: %4llu", arena->len);
+}
+
+
+//////////
+// Pool //
+//////////
+
+AIL_ALLOC_DEF AIL_Allocator ail_alloc_pool_new(u64 bucket_amount, u64 el_size, AIL_Allocator *backing_allocator)
+{
+	u64 bucket_size      = align_size(el_size + sizeof(AIL_Allloc_Pool_Free_Node));
+	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)backing_allocator->alloc(backing_allocator->data, sizeof(AIL_Alloc_Pool));
+	pool->buf            = (u8 *)backing_allocator->alloc(backing_allocator->data, bucket_amount * bucket_size);
+	pool->bucket_size    = bucket_size;
+	pool->bucket_amount  = bucket_amount;
+	// pool->head           = NULL; Automatically done when calling free_all
+	AIL_ASSERT(pool->buf != NULL);
+	ail_alloc_pool_free_all(pool); // Set up free-list
+	return (AIL_Allocator) {
+		.data       = pool,
+		.alloc      = &ail_alloc_pool_alloc,
+		.zero_alloc = &ail_alloc_pool_calloc,
+		.re_alloc   = &ail_alloc_pool_realloc,
+		.free_one   = &ail_alloc_pool_free,
+		.free_all   = &ail_alloc_pool_free_all,
+	};
+}
+
+AIL_ALLOC_DEF void *ail_alloc_pool_alloc(void *data, size_t size)
+{
+	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
+	AIL_ASSERT(size <= pool->bucket_size);
+	AIL_Allloc_Pool_Free_Node *node = pool->head;
+	if (AIL_LIKELY(node)) {
+		pool->head = pool->head->next;
+		AIL_ALLOC_LOG_ALLOC("pool", (void *)node, size);
+		return (void *)node;
+	} else {
+		// Pool has no free memory left
+		AIL_ASSERT(false);
+		return NULL;
+	}
+}
+
+AIL_ALLOC_DEF void *ail_alloc_pool_calloc(void *data, size_t nelem, size_t elsize)
+{
+	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
+	void *ptr = ail_alloc_pool_alloc(data, nelem * elsize);
+	if (ptr) memset(ptr, 0, pool->bucket_size);
+	AIL_ALLOC_LOG_CALLOC("pool", ptr, nelem, elsize);
+	return ptr;
+}
+
+AIL_ALLOC_DEF void *ail_alloc_pool_realloc(void *data, void *ptr, size_t size)
+{
+	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
+	AIL_ASSERT(size <= pool->bucket_size);
+	AIL_ALLOC_LOG_REALLOC("pool", ptr, ptr, size);
+	// Since all buckets are the same size, reallocating for more space doesn't make sense becomes a no-op
+	return ptr;
+}
+
+AIL_ALLOC_DEF void ail_alloc_pool_free(void *data, void *ptr)
+{
+	if (AIL_UNLIKELY(ptr == NULL)) return;
+	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
+	AIL_ASSERT(pool->buf <= (u8 *)ptr && &pool->buf[pool->bucket_amount*pool->bucket_size] >= (u8 *)ptr); // Bounds checking
+	AIL_Allloc_Pool_Free_Node *node = (AIL_Allloc_Pool_Free_Node *)ptr;
+	node->next = pool->head;
+	pool->head = node;
+	AIL_ALLOC_LOG_FREE("pool", ptr, pool->bucket_size);
+}
+
+AIL_ALLOC_DEF void ail_alloc_pool_free_all(void *data)
+{
+	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
+	pool->head = NULL;
+	for (u64 i = 0; i < pool->bucket_amount; i++) {
+		AIL_Allloc_Pool_Free_Node *node = (AIL_Allloc_Pool_Free_Node *)&pool->buf[i * pool->bucket_size];
+		node->next = pool->head;
+		pool->head = node;
+	}
+	AIL_ALLOC_LOG_FREE_ALL("pool", pool->bucket_amount * pool->bucket_size);
 }
 
 
