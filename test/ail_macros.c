@@ -14,7 +14,7 @@ bool next2PowerTest(void)
 
 int main(void)
 {
-    if (next2PowerTest()) printf("next2PowerTest successful :)\n");
-    else                  printf("next2PowerTest failed     :(\n");
+    if (next2PowerTest()) printf("\033[32mnext2PowerTest successful :)\033[0m\n");
+    else                  printf("\033[31mnext2PowerTest failed     :(\033[0m\n");
     return 0;
 }

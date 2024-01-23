@@ -33,7 +33,7 @@ bool strTest(void)
     u32  x;
     ail_hm_get_val(&hm, "test", x, found);
     AIL_ASSERT(found);
-    printf("%d == %d?\n", x, expected);
+    // printf("%d == %d?\n", x, expected);
     return x == expected;
 }
 
@@ -64,15 +64,15 @@ bool structTest(void)
     String x;
     ail_hm_get_val(&hm, key, x, found);
     AIL_ASSERT(found);
-    printf("%s == %s?\n", x, val);
+    // printf("%s == %s?\n", x, val);
     return strEq(x, val);
 }
 
 int main(void)
 {
-    if (strTest())    printf("Test with strings succesfull :)\n");
-    else              printf("Test with strings failed     :(\n");
-    if (structTest()) printf("Test with Vec3 succesfull :)\n");
-    else              printf("Test with Vec3 failed     :(\n");
+    if (strTest())    printf("\033[32mTest with strings succesful :)\033[0m\n");
+    else              printf("\033[31mTest with strings failed    :(\033[0m\n");
+    if (structTest()) printf("\033[32mTest with Vec3 succesful    :)\033[0m\n");
+    else              printf("\033[31mTest with Vec3 failed       :(\033[0m\n");
     return 0;
 }

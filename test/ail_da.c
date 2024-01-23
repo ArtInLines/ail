@@ -26,7 +26,7 @@ bool intTest(void)
 	i32 expected = LEN + 55 + 15 + EL_TO_INSERT;
 	i32 sum = 0;
 	for (u32 i = 0; i < da.len; i++) sum += da.data[i];
-	printf("sum: %d == %d?\n", sum, expected);
+	// printf("sum: %d == %d?\n", sum, expected);
 	return sum == expected;
 }
 
@@ -46,15 +46,15 @@ bool structTest(void)
         sum.x += da.data[i].x;
         sum.y += da.data[i].y;
     }
-    printf("sum: (%d, %d) == (%d, %d)?\n", sum.x, sum.y, expected.x, expected.y);
+    // printf("sum: (%d, %d) == (%d, %d)?\n", sum.x, sum.y, expected.x, expected.y);
     return sum.x == expected.x && sum.y == expected.y;
 }
 
 int main(void)
 {
-    if (intTest())    printf("Test with ints succesfull :)\n");
-    else              printf("Test with ints failed     :(\n");
-    if (structTest()) printf("Test with vec2 succesfull :)\n");
-    else              printf("Test with vec2 failed     ;(\n");
+    if (intTest())    printf("\033[32mTest with ints succesfull :)\033[0m\n");
+    else              printf("\033[31mTest with ints failed     :(\033[0m\n");
+    if (structTest()) printf("\033[32mTest with vec2 succesfull :)\033[0m\n");
+    else              printf("\033[31mTest with vec2 failed     ;(\033[0m\n");
     return 0;
 }

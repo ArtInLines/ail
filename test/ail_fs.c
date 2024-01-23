@@ -1,19 +1,24 @@
 // Test ail_fs.h
 
+#include "test_assert.h"
 #define AIL_FS_IMPL
 #include "../ail_fs.h"
 #include <stdio.h>
-#include "assert.h"
 
 int main(void)
 {
 	static const char *buf = "Hello World\n";
-	mkdir("./tmp");
-	bool succ = ail_fs_write_file("./tmp/test.txt", buf, 13);
-	assert(succ);
+	mkdir("./tmp", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	bool succ = ail_fs_write_file("./tmp/test.txt", buf, strlen(buf));
+	ASSERT(succ);
 	u64 size;
 	char *out = ail_fs_read_file("./tmp/test.txt", &size);
-	assert(strcmp(buf, out) == 0);
+	ASSERT(size == strlen(buf) + 1);
+	ASSERT(memcmp(out, buf, size));
+
+	ASSERT(!remove("./tmp/test.txt"));
 	rmdir("./tmp");
+	ASSERT(!ail_fs_dir_exists("./tmp"));
+	printf("\033[32mTest successful :)\033[0m\n");
 	return 0;
 }
