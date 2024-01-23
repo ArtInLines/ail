@@ -230,6 +230,10 @@ AIL_SV_DEF AIL_SV ail_sv_trim(AIL_SV sv);
 AIL_SV_DEF AIL_SV ail_sv_ltrim(AIL_SV sv);
 AIL_SV_DEF AIL_SV ail_sv_rtrim(AIL_SV sv);
 
+// Concatenate two String-Views to a single String
+// @Important: To avoid memory leaks, make sure to free the underlying string
+AIL_SV_DEF AIL_Str ail_sv_concat(AIL_SV a, AIL_SV b);
+
 // Receive a new SV, that has all appearances of `to_replace` replaced with `replace_with`
 // @Note: Since this only works by changing the underlying string, an allocation and copy of the original string is required
 // This operation can thus potentially be relatively expensive.
@@ -718,6 +722,18 @@ AIL_SV_DEF AIL_Str ail_sv_rev_join(AIL_SV *list, u64 n, AIL_SV joiner)
 AIL_SV_DEF AIL_Str ail_sv_rev_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner)
 {
     return ail_sv_rev_join(list.data, list.len, joiner);
+}
+
+AIL_SV_DEF AIL_Str ail_sv_concat(AIL_SV a, AIL_SV b)
+{
+    char *s = AIL_SV_MALLOC(a.len + b.len + 1);
+    memcpy(&s[0],     a.str, a.len);
+    memcpy(&s[a.len], b.str, b.len);
+    s[a.len + b.len] = 0;
+    return (AIL_Str) {
+        .str = s,
+        .len = a.len + b.len
+    };
 }
 
 AIL_SV_DEF AIL_Str ail_sv_replace(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with)
