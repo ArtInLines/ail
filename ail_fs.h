@@ -55,77 +55,248 @@ SOFTWARE.
 #endif // AIL_MALLOC
 #endif // AIL_FS_MALLOC
 
-// #if defined(_WIN32)
-// 	#define mkdir(dir, mode)      _mkdir(dir)
-// 	#define open(name, ...)       _open(name, __VA_ARGS__)
-// 	#define read(fd, buf, count)  _read(fd, buf, count)
-// 	#define close(fd)             _close(fd)
-// 	#define write(fd, buf, count) _write(fd, buf, count)
-// 	#define dup2(fd1, fd2)        _dup2(fd1, fd2)
-// 	#define unlink(file)          _unlink(file)
-// 	#define rmdir(dir)            _rmdir(dir)
-// 	#define getpid()              _getpid()
-// 	#define usleep(t)             Sleep((t)/1000)
-// 	#define sleep(t)              Sleep((t)*1000)
-// #endif
+#ifdef _WIN32
+    #include <windows.h>
+    #include <direct.h>
+	#define mkdir(dir, mode)      _mkdir(dir)
+	#define open(name, ...)       _open(name, __VA_ARGS__)
+	#define read(fd, buf, count)  _read(fd, buf, count)
+	#define close(fd)             _close(fd)
+	#define write(fd, buf, count) _write(fd, buf, count)
+	#define dup2(fd1, fd2)        _dup2(fd1, fd2)
+	#define unlink(file)          _unlink(file)
+	#define rmdir(dir)            _rmdir(dir)
+	#define getpid()              _getpid()
+	#define usleep(t)             Sleep((t)/1000)
+	#define sleep(t)              Sleep((t)*1000)
 
-AIL_FS_DEF char* ail_fs_read_file(const char *fpath, u64 *size);
+    #ifndef READ_TIMEOUT
+    #define READ_TIMEOUT 500 // in milliseconds
+    #endif // READ_TIMEOUT
+    #ifndef WRITE_TIMEOUT
+    #define WRITE_TIMEOUT INFINITE // in milliseconds
+    #endif // WRITE_TIMEOUT
+#endif
+
+///////////////////////////
+// Reading/Writing Files //
+///////////////////////////
+
+// Reads n bytes from file 'fname' into 'buf'
+// @Note: 'fd' be valid File-Handle on Windows (a void pointer cast to a u64) and a file-descriptor on Unix
+// @Note: 'buf' must have space for 'maxN' bytes
+// @Note: 'actualN' will contain the amount of bytes, that were actually read into 'buf'
+AIL_FS_DEF bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN);
+
+// Same as ail_fs_read_n_bytes(), except that it handles opening and closing the file
+AIL_FS_DEF bool ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN);
+
+// Same as ail_fs_read_file(), except that it checks the file's size first and allocates an output buffer of the appropriate size for it
+// Returns NULL on error
+AIL_FS_DEF char* ail_fs_read_entire_file(const char *fpath, u64 *size);
+
+// Write `size` many bytes from `buf` into `fpath`
 AIL_FS_DEF bool  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
+
+//////////////////
+// Miscellanous //
+//////////////////
+
+#ifdef AIL_DA_IMPL
+// @Important: Not yet implemented
+AIL_FS_DEF AIL_DA(str) ail_fs_get_files_in_dir(const char *dirpath);
+#endif
+
+AIL_FS_DEF_INLINE bool ail_fs_dir_exists(const char *dirpath);
 AIL_FS_DEF const char *ail_fs_get_file_ext(const char *filename);
 AIL_FS_DEF bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
 AIL_FS_DEF bool ail_fs_is_file(const char *path);
 
 #endif // AIL_FS_H_
 
+
+
 #ifdef  AIL_FS_IMPL
 #ifndef _AIL_FS_IMPL_GUARD_
 #define _AIL_FS_IMPL_GUARD_
 
-AIL_FS_DEF char* ail_fs_read_file(const char *fpath, u64 *size)
-{
-    // Adapted from https://stackoverflow.com/a/68156485/13764271
-    char* out = NULL;
-    *size = 0;
-    int fd = open(fpath, O_RDONLY, 0777);
-    if (fd == -1) goto end;
-    struct stat sb;
-    if (stat(fpath, &sb) == -1) goto fd_end;
-    if (sb.st_size == 0) goto fd_end;
-    out = AIL_FS_MALLOC(sb.st_size);
-    if (out == NULL) goto fd_end;
-    if (read(fd, out, sb.st_size) == -1) goto fd_end;
-    *size = (u64) sb.st_size;
-fd_end:
-    close(fd);
-end:
-    return out;
-}
+///////////////////////
+// Utility functions //
+///////////////////////
 
-AIL_FS_DEF bool ail_fs_write_file(const char *fpath, const char *buf, u64 size)
-{
-    bool out = false;
-    int fd = open(fpath, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-    if (fd == -1) goto end;
-    u64 written = 0;
-    while (written < size) {
-        int res = write(fd, &buf[written], size - written);
-        if (res == -1) goto fd_end;
-        written += res;
-    }
-    out = true;
-fd_end:
-    close(fd);
-end:
-    return out;
-}
-
-AIL_FS_DEF bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
+bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
 {
 	while (*a && *b && *a++ == *b++) {}
     return *a == *b && !*a;
 }
 
-AIL_FS_DEF const char *ail_fs_get_file_ext(const char *filename)
+///////////////////
+// Read/Write IO //
+///////////////////
+
+bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
+{
+#ifdef _WIN32
+    *actualN = 0;
+    void *file = (void *)fd;
+    OVERLAPPED osReader = {0};
+    osReader.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (osReader.hEvent == NULL) return false;
+
+    // Issue Read operation
+    DWORD nToRead = (DWORD) maxN;
+    DWORD nRead = 0;
+    i8 res = -1;
+    if (!ReadFile(file, buf, nToRead, &nRead, &osReader)) {
+        if(GetLastError() != ERROR_IO_PENDING) res = 0;
+    } else {
+        // Read completed immediately
+        res = 1;
+    }
+    while (res < 0) {
+        DWORD dwRes = WaitForSingleObject(osReader.hEvent, READ_TIMEOUT);
+        switch(dwRes) {
+            case WAIT_OBJECT_0:
+                // Read completed.
+                bool succ = GetOverlappedResult(file, &osReader, &nRead, FALSE);
+                res = succ ? 1 : 0;
+                break;
+            case WAIT_TIMEOUT:
+                // Gotta wait a little longer to finish operation
+                break;
+            default:
+                // Error in the WaitForSingleObject
+                // This indicates a problem with the OVERLAPPED structure's event handle.
+                res = 0;
+                break;
+        }
+    }
+    CloseHandle(osReader.hEvent);
+    *actualN = (u64) nRead;
+    return res > 0;
+#else
+    *actualN = maxN;
+    return read((int)fd, buf, maxN) != -1;
+#endif // _WIN32
+}
+
+bool ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN)
+{
+#ifdef _WIN32
+    void *file = CreateFile(fpath, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    bool res = ail_fs_read_n_bytes((u64)file, buf, maxN, actualN);
+    CloseHandle(file);
+    return res;
+#else
+    int fd = open(fpath, O_RDONLY, 0777);
+    if (fd == -1) return false;
+    bool res = ail_fs_read_n_bytes((u64)fd, buf, maxN, actualN);
+    close(fd);
+    return out;
+#endif // _WIN32
+}
+
+char* ail_fs_read_entire_file(const char *fpath, u64 *size)
+{
+    // Adapted from https://stackoverflow.com/a/68156485/13764271
+    char* buf = NULL;
+    *size = 0;
+    struct stat sb;
+    if (stat(fpath, &sb) != -1) {
+        if (sb.st_size) {
+            buf = AIL_FS_MALLOC(sb.st_size);
+            if (buf) {
+                ail_fs_read_file(fpath, buf, sb.st_size, size);
+            }
+        }
+    }
+    return buf;
+}
+
+bool ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
+{
+#ifdef _WIN32
+    void *file = (void *)fd;
+    OVERLAPPED osWrite = {0};
+    osWrite.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (osWrite.hEvent == NULL) return false;
+
+    // Issue Write operation
+    i8 res = -1;
+    DWORD dwWritten;
+    if (!WriteFile(file, buf, (DWORD)size, &dwWritten, &osWrite)) {
+        if (GetLastError() != ERROR_IO_PENDING) res = 1;
+    } else {
+        // Write completed immediately.
+        res = 0;
+    }
+    while (res < 0) {
+        DWORD dwRes = WaitForSingleObject(osWrite.hEvent, WRITE_TIMEOUT);
+        switch(dwRes) {
+            case WAIT_OBJECT_0:
+                // Write completed
+                bool succ = GetOverlappedResult(file, &osWrite, &dwWritten, FALSE);
+                res = succ ? 1 : 0;
+                break;
+            default:
+                // Error in the WaitForSingleObject
+                // This indicates a problem with the OVERLAPPED structure's event handle.
+                res = 1;
+                break;
+        }
+    }
+    CloseHandle(osWrite.hEvent);
+    return res > 0 && dwWritten == size;
+#else
+    u64 written = 0;
+    while (written < size) {
+        int res = write(fd, &buf[written], size - written);
+        if (res == -1) return false;
+        written += res;
+    }
+    return true;
+#endif
+}
+
+bool ail_fs_write_file(const char *fpath, const char *buf, u64 size)
+{
+#ifdef _WIN32
+    void *file = CreateFile(fpath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    bool res = ail_fs_write_n_bytes((u64)file, buf, size);
+    CloseHandle(file);
+    return res;
+#else
+    int fd = open(fpath, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+    if (fd == -1) return false;
+    bool res = ail_fs_write_n_bytes((u64)fd, buf, size);
+    close(fd);
+    return res;
+#endif // _WIN32
+}
+
+//////////////////
+// Miscellanous //
+//////////////////
+
+#ifdef AIL_DA_IMPL
+AIL_DA(str) ail_fs_get_files_in_dir(const char *dirpath)
+{
+    AIL_UNUSED(dirpath);
+    AIL_DA(str) files = ail_da_new_with_cap(str, 16);
+    AIL_TODO();
+    return files;
+}
+#endif
+
+bool ail_fs_dir_exists(const char *dirpath)
+{
+    struct stat sb;
+    return stat(dirpath, &sb) == 0 && S_ISDIR(sb.st_mode);
+}
+
+const char *ail_fs_get_file_ext(const char *filename)
 {
     u32 idx = 0;
     for (u32 i = 0; filename[i]; i++) {
@@ -134,13 +305,13 @@ AIL_FS_DEF const char *ail_fs_get_file_ext(const char *filename)
     return &filename[idx];
 }
 
-AIL_FS_DEF bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext)
+bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext)
 {
     const char *file_ext = ail_fs_get_file_ext(filename);
     return ail_fs_str_eq(file_ext, ext);
 }
 
-AIL_FS_DEF bool ail_fs_is_file(const char *path)
+bool ail_fs_is_file(const char *path)
 {
     struct stat result = {0};
     stat(path, &result);

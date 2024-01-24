@@ -140,7 +140,7 @@ typedef int32_t  i32;
 typedef int64_t  i64;
 typedef float    f32;
 typedef double   f64;
-
+typedef char*    str;
 #endif // _AIL_TYPES_GUARD_
 #endif // AIL_TYPES_IMPL
 
@@ -234,6 +234,7 @@ AIL_DA_INIT(i32);
 AIL_DA_INIT(i64);
 AIL_DA_INIT(f32);
 AIL_DA_INIT(f64);
+AIL_DA_INIT(str);
 #endif
 
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
