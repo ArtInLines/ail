@@ -64,6 +64,152 @@ SOFTWARE.
 
 
 /////////////////////////
+// Custom Typedefs
+// enable with `#define AIL_TYPES_IMPL`
+/////////////////////////
+#ifdef  AIL_TYPES_IMPL
+#ifndef _AIL_TYPES_GUARD_
+#define _AIL_TYPES_GUARD_
+#include <stdint.h>
+#include <stdbool.h>
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t   i8;
+typedef int16_t  i16;
+typedef int32_t  i32;
+typedef int64_t  i64;
+typedef float    f32;
+typedef double   f64;
+typedef char*    str;
+#endif // _AIL_TYPES_GUARD_
+#endif // AIL_TYPES_IMPL
+
+
+/////////////////////////
+// Some useful predefined Macros
+/////////////////////////
+
+// Full list here: https://sourceforge.net/p/predef/wiki/Home/
+
+// To detect Compilers
+// Clang: __clang__
+// MSVC:  _MSC_VER
+// gcc:   __GNUC__
+// MinGW: __MINGW32__ (defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only)
+// TinyC: __TINYC__
+
+// To detect standard
+// __STDC__                    - C89 or higher Standard
+// __STDC_VERSION__ == 199901L - C99 Standard
+// __STDC_VERSION__ == 201112L - C11 Standard
+// __cplusplus                 - C++ Standard
+
+// To detect OS
+// Win32   - _WIN32 || __WIN32__
+// Win64   - _WIN64
+// POSIX   - __posix
+// UNIX    - __unix
+// Linux   - __linux__
+// GNU     - __GNU__
+// BSD     - BSD
+// Android - __ANDROID__
+// MinGW32 - __MINGW32__
+// MinGW64 - __MINGW64__
+// Cygwin  - __CYGWIN__
+// MacOS   - __APPLE__ && __MACH__
+// IOS     - See example below: (Source: https://stackoverflow.com/a/5920028/13764271)
+// #if __APPLE__
+//     #include <TargetConditionals.h>
+//     #if TARGET_IPHONE_SIMULATOR
+//          // iOS, tvOS, or watchOS Simulator
+//     #elif TARGET_OS_MACCATALYST
+//          // Mac's Catalyst (ports iOS API into Mac, like UIKit).
+//     #elif TARGET_OS_IPHONE
+//         // iOS, tvOS, or watchOS device
+//     #elif TARGET_OS_MAC
+//         // Other kinds of Apple platforms
+//     #else
+//     #   error "Unknown Apple platform"
+//     #endif
+// #endif
+
+// To detect Architecture
+// x86       -64                         - __x86_64 || __x86_64__
+// AMD64     - __amd64__ || _M_AMD64
+// ARM       - __arm__ || _M_ARM
+// ARM64     - __aarch64__
+// Intel x86 - __i386 || _M_IX86 || _X86_
+// MIPS      - __mips || __mips__
+
+
+/////////////////////////
+// Custom Utility Macros
+// always enabled
+/////////////////////////
+#ifndef _AIL_UTIL_GUARD_
+#define _AIL_UTIL_GUARD_
+
+#ifdef __cplusplus
+	#define AIL_TYPEOF(x) decltype(x)
+#elif defined(__GNUC__) || defined(_MINGW)
+	#define AIL_TYPEOF(x) __typeof__(x)
+#else
+// No typeof possible
+#endif
+
+#ifndef AIL_DBG_PRINT
+#include <stdio.h>
+#define AIL_DBG_PRINT printf
+#endif // AIL_DBG_PRINT
+
+#define AIL_STRINGIZE2(x) #x
+#define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
+#define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
+
+#define AIL_MAX(a, b) ((a > b) ? a : b)
+#define AIL_MIN(a, b) ((a < b) ? a : b)
+#define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
+
+#ifdef AIL_TYPEOF
+	#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+#else
+	#define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
+#endif
+
+// AIL_LERP(AIL_LERP(x, min, max), min, max) = x
+#define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
+#define AIL_REV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
+
+#define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
+#define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
+
+#define AIL_DBG_EXIT() do { int *X = 0; *X = 0; exit(1); } while(0)
+#define AIL_ASSERT(expr) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n    with expression 'AIL_ASSERT(" #expr ")'"); AIL_DBG_EXIT(); } } while(0)
+#define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
+// @Bug: Static Assert is currently broken
+// #define AIL_STATIC_ASSERT_MSG(expr, msg) do { extern int __attribute__((error("assertion failure: '" #msg "' in " __FILE__ ":" AIL_STR_LINE))) compile_time_check(); ((expr)?0:compile_time_check()),(void)0; } while(0)
+// #define AIL_STATIC_ASSERT(expr) AIL_STATIC_ASSERT_MSG(expr, #expr);
+
+#define AIL_OFFSETOF(var, field) (((char *) &(var)->field) - ((char *) (var)))
+
+#define AIL_IS_2POWER(x) x && !(x & (x - 1))
+#define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
+        out = x;                                                                                                                              \
+        out--;                                                                                                                                \
+        for (size_t _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
+            out |= out >> _ail_next_2power_shift_;                                                                                            \
+        out++;                                                                                                                                \
+        out += (out==0);                                                                                                                      \
+    } while(0)
+
+#endif // _AIL_UTIL_GUARD_
+
+
+/////////////////////////
 // General Allocator Interface
 // enable with `#define AIL_ALLOCATOR_IMPL`
 // automatically enabled if dynamic arrays are enabled
@@ -120,81 +266,6 @@ static AIL_Allocator ail_default_allocator = {
 #endif // _AIL_ALLOCATOR_GUARD_
 #endif // AIL_ALLOCATOR_IMPL
 
-/////////////////////////
-// Custom Typedefs
-// enable with `#define AIL_TYPES_IMPL`
-/////////////////////////
-#ifdef  AIL_TYPES_IMPL
-#ifndef _AIL_TYPES_GUARD_
-#define _AIL_TYPES_GUARD_
-
-#include <stdint.h>
-#include <stdbool.h>
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int8_t   i8;
-typedef int16_t  i16;
-typedef int32_t  i32;
-typedef int64_t  i64;
-typedef float    f32;
-typedef double   f64;
-typedef char*    str;
-#endif // _AIL_TYPES_GUARD_
-#endif // AIL_TYPES_IMPL
-
-
-/////////////////////////
-// Custom Utility Macros
-// always enabled
-/////////////////////////
-#ifndef _AIL_UTIL_GUARD_
-#define _AIL_UTIL_GUARD_
-
-#ifndef AIL_DBG_PRINT
-#include <stdio.h>
-#define AIL_DBG_PRINT printf
-#endif // AIL_DBG_PRINT
-
-#define AIL_STRINGIZE2(x) #x
-#define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
-#define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
-
-#define AIL_MAX(a, b) ((a > b) ? a : b)
-#define AIL_MIN(a, b) ((a < b) ? a : b)
-#define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
-#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
-
-// AIL_LERP(AIL_LERP(x, min, max), min, max) = x
-#define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
-#define AIL_REV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
-
-#define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
-#define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
-
-#define AIL_DBG_EXIT() do { int *X = 0; *X = 0; exit(1); } while(0)
-#define AIL_ASSERT(expr) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n    with expression 'AIL_ASSERT(" #expr ")'"); AIL_DBG_EXIT(); } } while(0)
-#define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
-#define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
-#define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
-// @Bug: Static Assert is currently broken
-// #define AIL_STATIC_ASSERT_MSG(expr, msg) do { extern int __attribute__((error("assertion failure: '" #msg "' in " __FILE__ ":" AIL_STR_LINE))) compile_time_check(); ((expr)?0:compile_time_check()),(void)0; } while(0)
-// #define AIL_STATIC_ASSERT(expr) AIL_STATIC_ASSERT_MSG(expr, #expr);
-
-#define AIL_OFFSETOF(var, field) (((char *) &(var)->field) - ((char *) (var)))
-
-#define AIL_IS_2POWER(x) x && !(x & (x - 1))
-#define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
-        out = x;                                                                                                                              \
-        out--;                                                                                                                                \
-        for (size_t _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
-            out |= out >> _ail_next_2power_shift_;                                                                                            \
-        out++;                                                                                                                                \
-        out += (out==0);                                                                                                                      \
-    } while(0)
-
-#endif // _AIL_UTIL_GUARD_
 
 /////////////////////////
 // Dynamic Array Implementation
