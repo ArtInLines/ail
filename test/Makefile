@@ -2,7 +2,7 @@ ifndef $(CC)
 CC=gcc
 endif
 
-CFLAGS=-Wall -Wextra -Wpedantic -g
+CFLAGS=-Wall -Wextra -Wpedantic -g -Wno-unused-function
 
 all: da macros sv fs hm hm_perf
 

@@ -1,7 +1,3 @@
-// Test the AIL_DA macros in ail.h
-
-// #define AIL_ALL_IMPL
-// #include "../ail.h"
 #define AIL_HM_IMPL
 #include "../ail_hm.h"
 #include "../ail_fs.h"

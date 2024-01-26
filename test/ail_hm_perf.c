@@ -57,7 +57,7 @@ i32 keyValCompRev(const void *a, const void *b)
 void txtFileTest(const char *fpath)
 {
     u64 fsize;
-    char *text = ail_fs_read_file(fpath, &fsize);
+    char *text = ail_fs_read_entire_file(fpath, &fsize);
     hm = ail_hm_with_cap(String, u32, 64, &djb2, &strEq);
 
     double start = clockGetSecs();
