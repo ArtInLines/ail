@@ -151,6 +151,8 @@ typedef char*    str;
 #ifndef _AIL_UTIL_GUARD_
 #define _AIL_UTIL_GUARD_
 
+#include <stdlib.h> // For exit
+
 #ifdef __cplusplus
 	#define AIL_TYPEOF(x) decltype(x)
 #elif defined(__GNUC__) || defined(_MINGW)
@@ -172,6 +174,7 @@ typedef char*    str;
 #define AIL_MIN(a, b) ((a < b) ? a : b)
 #define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 
+#define AIL_SWAP_PORTABLE(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #ifdef AIL_TYPEOF
 	#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #else
@@ -186,13 +189,19 @@ typedef char*    str;
 #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
 
 #define AIL_DBG_EXIT() do { int *X = 0; *X = 0; exit(1); } while(0)
-#define AIL_ASSERT(expr) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n    with expression 'AIL_ASSERT(" #expr ")'"); AIL_DBG_EXIT(); } } while(0)
+#define AIL_ASSERT_COMMON(expr, msg) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); AIL_DBG_EXIT(); } } while(0)
+#define AIL_ASSERT_MSG(expr, msg) AIL_ASSERT_COMMON(expr, "with message '" msg "'")
+#define AIL_ASSERT(expr) AIL_ASSERT_COMMON(expr, "with expression 'AIL_ASSERT(" #expr ")'")
+
 #define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
-// @Bug: Static Assert is currently broken
-// #define AIL_STATIC_ASSERT_MSG(expr, msg) do { extern int __attribute__((error("assertion failure: '" #msg "' in " __FILE__ ":" AIL_STR_LINE))) compile_time_check(); ((expr)?0:compile_time_check()),(void)0; } while(0)
-// #define AIL_STATIC_ASSERT(expr) AIL_STATIC_ASSERT_MSG(expr, #expr);
+
+// @TODO: Better static assert message
+#define AIL_STATIC_ASSERT3(cond, msg) typedef char static_assertion_##msg[(!!(cond))*2-1]
+#define AIL_STATIC_ASSERT2(cond, line) AIL_STATIC_ASSERT3(cond, static_assertion_at_line_##line)
+#define AIL_STATIC_ASSERT1(cond, line) AIL_STATIC_ASSERT2(cond, line)
+#define AIL_STATIC_ASSERT(cond)        AIL_STATIC_ASSERT1(cond, __LINE__)
 
 #define AIL_OFFSETOF(var, field) (((char *) &(var)->field) - ((char *) (var)))
 
