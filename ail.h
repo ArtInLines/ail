@@ -272,6 +272,12 @@ static AIL_Allocator ail_default_allocator = {
 	.free_all   = &ail_default_free_all,
 };
 
+// Function just exists to suppress of potential "unused ail_default_allocator" warning
+void __ail_default_allocator_unused__(void)
+{
+	(void)ail_default_allocator;
+}
+
 #endif // _AIL_ALLOCATOR_GUARD_
 #endif // AIL_ALLOCATOR_IMPL
 
