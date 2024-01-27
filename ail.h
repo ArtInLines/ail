@@ -23,6 +23,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef AIL_H_
+#define AIL_H_
+
 #if   !defined(AIL_MALLOC) && !defined(AIL_REALLOC) && !defined(AIL_CALLOC) && !defined(AIL_FREE)
 #include <stdlib.h>
 #define AIL_MALLOC(sz)          malloc(sz)
@@ -38,7 +41,7 @@ SOFTWARE.
 #define AIL_MEMCPY(dst, src, n) memcpy(dst, src, n)
 #endif
 
-// AIL_DEF and AIL_DEF_INLINE don't actually effect any of the functions in this file, as only macros are defined here
+// AIL_DEF and AIL_DEF_INLINE only effect the AIL_ALLOC functions
 // They do however serve as defaults for the other ail headers
 #ifndef AIL_DEF
 #define AIL_DEF
@@ -48,9 +51,9 @@ SOFTWARE.
 #endif // AIL_DEF_INLINE
 
 #ifdef _MSC_VER
-#define AIL_UNUSED(v)  (void)(v)
-#else
 #define AIL_UNUSED(v)  (void)sizeof(v)
+#else
+#define AIL_UNUSED(v)  (void)(v)
 #endif
 
 // @TODO: Add support for short names via `AIL_SHORT_NAMES` macro
@@ -58,8 +61,8 @@ SOFTWARE.
 // Implement all functionalities with `#define AIL_ALL_IMPL`
 #ifdef  AIL_ALL_IMPL
 #define AIL_TYPES_IMPL
+#define AIL_ALLOCATOR_IMPL
 #define AIL_DA_IMPL
-#define AIL_ALLOC_IMPL
 #endif // AIL_ALL_IMPL
 
 
@@ -136,21 +139,18 @@ typedef char*    str;
 // #endif
 
 // To detect Architecture
-// x86       -64                         - __x86_64 || __x86_64__
+// x86-64    - __x86_64  || __x86_64__
 // AMD64     - __amd64__ || _M_AMD64
-// ARM       - __arm__ || _M_ARM
+// ARM       - __arm__   || _M_ARM
 // ARM64     - __aarch64__
-// Intel x86 - __i386 || _M_IX86 || _X86_
-// MIPS      - __mips || __mips__
+// Intel x86 - __i386    || _M_IX86 || _X86_
+// MIPS      - __mips    || __mips__
 
 
 /////////////////////////
 // Custom Utility Macros
 // always enabled
 /////////////////////////
-#ifndef _AIL_UTIL_GUARD_
-#define _AIL_UTIL_GUARD_
-
 #include <stdlib.h> // For exit
 
 #ifdef __cplusplus
@@ -165,6 +165,18 @@ typedef char*    str;
 #include <stdio.h>
 #define AIL_DBG_PRINT printf
 #endif // AIL_DBG_PRINT
+
+// @Note: Do not include "enum" in the declaration
+#if defined(__GNUC__)
+	#define AIL_PACK_BEGIN() __attribute__((__packed__))
+	#define AIL_PACK_END()
+#elif defined(_MSC_VER)
+	#define AIL_PACK_BEGIN() __pragma(pack(push, 1))
+	#define AIL_PACK_END()   __pragma(pack(pop))
+#elif defined(__clang__) || defined(__TINYC__)
+	#define AIL_PACK_BEGIN() __attribute__((packed))
+	#define AIL_PACK_END()
+#endif
 
 #define AIL_STRINGIZE2(x) #x
 #define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
@@ -185,8 +197,13 @@ typedef char*    str;
 #define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
 #define AIL_REV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
 
-#define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
-#define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
+#if defined(__GNUC__) || defined(__clang__)
+	#define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
+	#define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
+#else
+	#define AIL_UNLIKELY(expr) (expr)
+	#define AIL_LIKELY(expr)   (expr)
+#endif
 
 #define AIL_DBG_EXIT() do { int *X = 0; *X = 0; exit(1); } while(0)
 #define AIL_ASSERT_COMMON(expr, msg) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); AIL_DBG_EXIT(); } } while(0)
@@ -215,17 +232,12 @@ typedef char*    str;
         out += (out==0);                                                                                                                      \
     } while(0)
 
-#endif // _AIL_UTIL_GUARD_
 
 
 /////////////////////////
 // General Allocator Interface
-// enable with `#define AIL_ALLOCATOR_IMPL`
-// automatically enabled if dynamic arrays are enabled
+// enable implementaton with `#define AIL_ALLOCATOR_IMPL`
 /////////////////////////
-#if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
-#ifndef _AIL_ALLOCATOR_GUARD_
-#define _AIL_ALLOCATOR_GUARD_
 
 // If a specific allocator supports additional functions,
 // they should be kept inside the data attribute
@@ -238,27 +250,31 @@ typedef struct AIL_Allocator {
     void  (*free_all)(void* data);
 } AIL_Allocator;
 
-void* ail_default_malloc(void *data, size_t size)
+#if defined(AIL_ALLOCATOR_IMPL)
+#ifndef _AIL_ALLOCATOR_GUARD_
+#define _AIL_ALLOCATOR_GUARD_
+
+AIL_DEF void* ail_default_malloc(void *data, size_t size)
 {
 	(void)data;
 	return AIL_MALLOC(size);
 }
-void* ail_default_calloc(void* data, size_t nelem, size_t elsize)
+AIL_DEF void* ail_default_calloc(void* data, size_t nelem, size_t elsize)
 {
 	(void)data;
 	return AIL_CALLOC(nelem, elsize);
 }
-void* ail_default_realloc(void* data, void* ptr, size_t size)
+AIL_DEF void* ail_default_realloc(void* data, void* ptr, size_t size)
 {
 	(void)data;
 	return AIL_REALLOC(ptr, size);
 }
-void ail_default_free(void* data, void* ptr)
+AIL_DEF void ail_default_free(void* data, void* ptr)
 {
 	(void)data;
 	AIL_FREE(ptr);
 }
-void ail_default_free_all(void* data)
+AIL_DEF void ail_default_free_all(void* data)
 {
 	(void)data;
 }
@@ -284,16 +300,11 @@ void __ail_default_allocator_unused__(void)
 
 /////////////////////////
 // Dynamic Array Implementation
-// enable with `#define AIL_DA_IMPL`
-// You can also define `AIL_DA_INIT_CAP` to set a different initial capacity for dynamic arrays
+// Define `AIL_DA_INIT_CAP` to set a different initial capacity for dynamic arrays
 // This implementation is heavily inspired by:
 // - nob.h (https://github.com/tsoding/musializer/blob/master/src/nob.h)
 // - stb_ds.h (https://github.com/nothings/stb/blob/master/stb_ds.h)
 /////////////////////////
-#ifdef  AIL_DA_IMPL
-#ifndef _AIL_DA_GUARD_
-#define _AIL_DA_GUARD_
-
 #ifndef AIL_DA_PRINT
 #include <stdio.h>
 #define AIL_DA_PRINT printf
@@ -306,6 +317,9 @@ void __ail_default_allocator_unused__(void)
 #define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
 #define AIL_DA(T) AIL_DA_##T
 
+#ifdef AIL_DA_IMPL
+#ifndef _AIL_DA_GUARD_
+#define _AIL_DA_GUARD_
 AIL_DA_INIT(void);
 AIL_DA_INIT(char);
 
@@ -322,6 +336,8 @@ AIL_DA_INIT(f32);
 AIL_DA_INIT(f64);
 AIL_DA_INIT(str);
 #endif
+#endif // _AIL_DA_GUARD_
+#endif // AIL_DA_IMPL
 
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
 
@@ -414,5 +430,4 @@ AIL_DA_INIT(str);
 
 #define ail_da_rm_swap(daPtr, idx) (daPtr)->data[(idx)] = (daPtr)->data[--(daPtr)->len]
 
-#endif // _AIL_DA_GUARD_
-#endif // AIL_DA_IMPL
+#endif // AIL_H_

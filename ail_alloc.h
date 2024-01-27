@@ -156,6 +156,12 @@ static AIL_Allocator ail_alloc_std = {
 	.free_all   = &ail_alloc_std_free_all,
 };
 
+// This function only exists to suppress the "unused ail_alloc_std" warning
+void __ail_alloc_std_unused__(void)
+{
+	(void)ail_alloc_std;
+}
+
 AIL_ALLOC_DEF void *ail_alloc_std_alloc(void *data, size_t size)
 {
 	AIL_UNUSED(data);

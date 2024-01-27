@@ -113,7 +113,7 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
 #define ail_hm_new(K, V, hash, eq)          ail_hm_with_cap(K, V, AIL_HM_INIT_CAP, hash, eq)
 #define ail_hm_with_cap(K, V, c, hash, eq)  (AIL_HM(K, V)) { AIL_HM_CALLOC(ail_hm_next_u32_2power(c), sizeof(AIL_HM(K, V))), 0, 0, ail_hm_next_u32_2power(c), (hash), (eq) }
 #define ail_hm_da_new_empty(K, V, hash, eq) (AIL_HM(K, V)) { 0, 0, 0, 0, (hash), (eq) }
-#define ail_hm_free(hm)                     AIL_HM_FREE(hm.data)
+#define ail_hm_free(hmPtr)                  do { (hmPtr)->len=0; (hmPtr)->once_filled=0; AIL_HM_FREE((hmPtr)->data); } while(0)
 // Bug: Should be able to just change the probing strategy, but test fails
 #define ail_hm_probe_incr(idx, hash, cap)   idx = ((idx) + 1 + ((hash) % ((cap) - 1))) % (cap) // This only works when capacity is a power of 2
 
