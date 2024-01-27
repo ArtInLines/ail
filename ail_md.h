@@ -91,6 +91,7 @@ SOFTWARE.
 
 AIL_MD_DEF void ail_md_mem_init(void (*lock)(void *mutex), void (*unlock)(void *mutex), void *mutex); // Required for memory debugger to be thread safe
 AIL_MD_DEF void *ail_md_malloc(u64 size, char *file, u32 line); // Replaces malloc and records the c file and line where it was called
+AIL_MD_DEF void *ail_md_calloc(u64 nelem, u64 elsize, char *file, u32 line); // Replaces calloc and records the c file and line where it was called
 AIL_MD_DEF void *ail_md_realloc(void *pointer, u64 size, char *file, u32 line); // Replaces realloc and records the c file and line where it was called
 AIL_MD_DEF void ail_md_free(void *buf, char *file, u32 line); // Replaces free and records the c file and line where it was called
 AIL_MD_DEF bool ail_md_comment(void *buf, char *comment); // add a comment to an allocation that can help identyfy its use.
@@ -310,7 +311,37 @@ void *ail_md_malloc(u64 size, char *file, u32 line)
  		((u8 *)pointer)[i] = AIL_MD_MAGIC_NUM + 1;
 	ail_md_add(pointer, size, file, line);
 
+	if(ail_md_alloc_mutex != NULL)
+		ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);
+	return pointer;
+}
 
+void *ail_md_calloc(u64 nelem, u64 elsize, char *file, u32 line)
+{
+	void *pointer;
+	u32 i;
+	u64 size = nelem * elsize;
+	if(ail_md_alloc_mutex != NULL)
+		ail_md_alloc_mutex_lock(ail_md_alloc_mutex);
+	ail_md_mem();
+	pointer = malloc(size + AIL_MD_OVER_ALLOC);
+
+#ifdef AIL_MD_MEM_PRINT
+	printf("Calloc %llu bytes at pointer %p at %s line %u\n", size, pointer, file, line);
+#endif
+	if(pointer == NULL)
+	{
+		printf("MEM ERROR: Calloc returns NULL when trying to allocate %llu bytes at line %u in file %s\n", size, line, file);
+		if(ail_md_alloc_mutex != NULL)
+			ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);
+		ail_md_print(0);
+		exit(0);
+	}
+	for(i = 0; i < size; i++)
+ 		((u8 *)pointer)[i] = 0;
+	for(i = size; i < size + AIL_MD_OVER_ALLOC; i++)
+		((u8 *)pointer)[i] = AIL_MD_MAGIC_NUM + 1;
+	ail_md_add(pointer, size, file, line);
 
 	if(ail_md_alloc_mutex != NULL)
 		ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);
