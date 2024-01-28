@@ -67,6 +67,9 @@ SOFTWARE.
 	#define unlink(file)          _unlink(file)
 	#define rmdir(dir)            _rmdir(dir)
 
+    #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+    #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+
     #ifndef READ_TIMEOUT
     #define READ_TIMEOUT 500 // in milliseconds
     #endif // READ_TIMEOUT
