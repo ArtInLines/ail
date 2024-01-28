@@ -66,9 +66,6 @@ SOFTWARE.
 	#define dup2(fd1, fd2)        _dup2(fd1, fd2)
 	#define unlink(file)          _unlink(file)
 	#define rmdir(dir)            _rmdir(dir)
-	#define getpid()              _getpid()
-	#define usleep(t)             Sleep((t)/1000)
-	#define sleep(t)              Sleep((t)*1000)
 
     #ifndef READ_TIMEOUT
     #define READ_TIMEOUT 500 // in milliseconds
