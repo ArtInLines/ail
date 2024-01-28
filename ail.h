@@ -97,11 +97,12 @@ typedef char*    str;
 // Full list here: https://sourceforge.net/p/predef/wiki/Home/
 
 // To detect Compilers
-// Clang: __clang__
-// MSVC:  _MSC_VER
-// gcc:   __GNUC__
-// MinGW: __MINGW32__ (defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only)
-// TinyC: __TINYC__
+// Clang:      __clang__
+// MSVC:       _MSC_VER
+// gcc:        __GNUC__
+// MinGW:      __MINGW32__ (defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only)
+// TinyC:      __TINYC__
+// Emscripten: __EMSCRIPTEN__
 
 // To detect standard
 // __STDC__                    - C89 or higher Standard
@@ -121,6 +122,7 @@ typedef char*    str;
 // MinGW32 - __MINGW32__
 // MinGW64 - __MINGW64__
 // Cygwin  - __CYGWIN__
+// SPARC   - __sparc__ || __sparc
 // MacOS   - __APPLE__ && __MACH__
 // IOS     - See example below: (Source: https://stackoverflow.com/a/5920028/13764271)
 // #if __APPLE__
@@ -372,10 +374,10 @@ AIL_DA_INIT(str);
 		if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                                                             \
 	} while(0)
 
-#define ail_da_maybe_grow(daPtr, n) {                                      \
-		if ((daPtr)->len + (n) > (daPtr)->cap)                             \
-		ail_da_resize(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
-	}
+#define ail_da_maybe_grow(daPtr, n) do {                                       \
+		if ((daPtr)->len + (n) > (daPtr)->cap)								   \
+			ail_da_resize(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
+	} while(0)
 
 #define ail_da_push(daPtr, elem) do {           \
 		ail_da_maybe_grow(daPtr, 1);            \

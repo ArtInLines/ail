@@ -1,6 +1,8 @@
+#define AIL_HM_LOAD_FACTOR 80
 #define AIL_HM_IMPL
 #include "../ail_hm.h"
 #include "../ail_fs.h"
+#include "test_assert.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -28,7 +30,7 @@ bool strTest(void)
     bool found;
     u32  x;
     ail_hm_get_val(&hm, "test", x, found);
-    AIL_ASSERT(found);
+    ASSERT(found);
     // printf("%d == %d?\n", x, expected);
     return x == expected;
 }
@@ -59,13 +61,50 @@ bool structTest(void)
     bool   found;
     String x;
     ail_hm_get_val(&hm, key, x, found);
-    AIL_ASSERT(found);
+    ASSERT(found);
     // printf("%s == %s?\n", x, val);
     return strEq(x, val);
 }
 
+AIL_HM_INIT(str, u32);
+bool miniTestEq(str a, str b)
+{
+    return strcmp(a, b) == 0;
+}
+
+u32 miniTestHash(str k)
+{
+    uint32_t hash = 5381;
+    while (*k)
+        hash = ((hash << 5) + hash) + *k++;
+    return hash;
+}
+
+bool miniTest(void)
+{
+#define MINI_MAGIC 8
+    AIL_HM(str, u32) hm = ail_hm_new_with_cap(str, u32, 0, &miniTestHash, &miniTestEq);
+    for (u32 i = 0; i < MINI_MAGIC*16; i++) {
+        str k = malloc(8);
+        sprintf(k, "hi-%d", i%16);
+        u32 *val;
+        ail_hm_get_ptr(&hm, k, val);
+        if (val) (*val)++;
+        else ail_hm_put(&hm, k, 1);
+    }
+    ASSERT(hm.len == 16);
+    for (u32 i = 0; i < hm.cap; i++) {
+        if (hm.data[i].occupied == AIL_HM_CUR_OCCUPIED) {
+            ASSERT(hm.data[i].val == MINI_MAGIC);
+        }
+    }
+    return true;
+}
+
 int main(void)
 {
+    if (miniTest())   printf("\033[32mMini-Test succesful         :)\033[0m\n");
+    else              printf("\033[31mMini-Test failed            :(\033[0m\n");
     if (strTest())    printf("\033[32mTest with strings succesful :)\033[0m\n");
     else              printf("\033[31mTest with strings failed    :(\033[0m\n");
     if (structTest()) printf("\033[32mTest with Vec3 succesful    :)\033[0m\n");

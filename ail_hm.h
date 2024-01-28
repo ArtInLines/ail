@@ -26,9 +26,8 @@ SOFTWARE.
 #ifndef AIL_HM_H_
 #define AIL_HM_H_
 
-#ifndef AIL_TYPES_IMPL
 #define AIL_TYPES_IMPL
-#endif // AIL_TYPES_IMPL
+#define AIL_ALLOCATOR_IMPL
 #include "ail.h"
 
 #ifndef AIL_HM_DEF
@@ -46,19 +45,6 @@ SOFTWARE.
 #endif // AIL_DEF_INLINE
 #endif // AIL_HM_DEF_INLINE
 
-#if !defined(AIL_HM_CALLOC) && !defined(AIL_HM_FREE)
-#if  defined(AIL_CALLOC)    &&  defined(AIL_FREE)
-#define AIL_HM_CALLOC AIL_CALLOC
-#define AIL_HM_FREE   AIL_FREE
-#else
-#include <stdlib.h>
-#define AIL_HM_CALLOC(len, elSize) calloc(len, elSize)
-#define AIL_HM_FREE(ptr)           free(ptr)
-#endif
-#elif !defined(AIL_HM_CALLOC) || !defined(AIL_HM_FREE)
-#error "You must define AIL_HM_CALLOC and AIL_HM_FREE, or neither."
-#endif
-
 #ifndef AIL_HM_MEMCPY
 #ifdef  AIL_MEMCMPY
 #define AIL_HM_MEMCPY AIL_MEMCMPY
@@ -75,7 +61,7 @@ SOFTWARE.
 // @Note: Load factor should be specified per Hashmap maybe?
 // @Note: Load factor is given in percent from 0 to 100
 #ifndef AIL_HM_LOAD_FACTOR
-#define AIL_HM_LOAD_FACTOR 70
+#define AIL_HM_LOAD_FACTOR 80
 #endif // AIL_HM_LOAD_FACTOR
 
 typedef enum {
@@ -108,51 +94,62 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
         u32 cap;                          \
         u32(*hash)(K);                    \
         bool(*eq)(K, K);                  \
+        AIL_Allocator *allocator;         \
     } AIL_HM(K, V)
 
-#define ail_hm_new(K, V, hash, eq)          ail_hm_with_cap(K, V, AIL_HM_INIT_CAP, hash, eq)
-#define ail_hm_with_cap(K, V, c, hash, eq)  (AIL_HM(K, V)) { AIL_HM_CALLOC(ail_hm_next_u32_2power(c), sizeof(AIL_HM(K, V))), 0, 0, ail_hm_next_u32_2power(c), (hash), (eq) }
-#define ail_hm_da_new_empty(K, V, hash, eq) (AIL_HM(K, V)) { 0, 0, 0, 0, (hash), (eq) }
-#define ail_hm_free(hmPtr)                  do { (hmPtr)->len=0; (hmPtr)->once_filled=0; AIL_HM_FREE((hmPtr)->data); } while(0)
-// Bug: Should be able to just change the probing strategy, but test fails
-#define ail_hm_probe_incr(idx, hash, cap)   idx = ((idx) + 1 + ((hash) % ((cap) - 1))) % (cap) // This only works when capacity is a power of 2
+#define ail_hm_from_parts(K, V, data, len, once_filled, cap, hashf, eqf, alPtr) (AIL_HM(K, V)) { (data), (len), (once_filled), (cap), (hashf), (eqf), (alPtr) }
+#define ail_hm_new_with_alloc(K, V, c, hashf, eqf, alPtr) (AIL_HM(K, V)) { .data = (alPtr)->zero_alloc((alPtr)->data, ail_hm_next_u32_2power(c), sizeof(AIL_HM(K, V))), .len = 0, .once_filled = 0, .cap = (c), .hash = (hashf), .eq = (eqf), .allocator = (alPtr) }
+#define ail_hm_new_with_cap(K, V, c, hashf, eqf) (AIL_HM(K, V)) { .data = ail_default_allocator.zero_alloc(ail_default_allocator.data, ail_hm_next_u32_2power(c), sizeof(AIL_HM(K, V))), .len = 0, .cap = (c), .hash = (hashf), .eq = (eqf), .allocator = &ail_default_allocator }
+#define ail_hm_new(K, V, hashf, eqf) ail_hm_new_with_cap(K, V, AIL_HM_INIT_CAP, hashf, eqf)
+#define ail_hm_new_empty(K, V, hashf, eqf) (AIL_HM(K, V)) { .data = NULL, .len = 0, .once_filled = 0, .cap = 0, .hash = (hashf), .eq = (eqf), .allocator = &ail_default_allocator }
+#define ail_hm_free(hmPtr) do { (hmPtr)->allocator->free_one((hmPtr)->allocator->data, (hmPtr)->data); (hmPtr)->data = NULL; (hmPtr)->len = 0; (hmPtr)->cap = 0; } while(0)
+
+// @TODO: Current probing stategy is simple and potentially inefficient. More efficient method (as used by jblow) requires that capacity is a power of 2 though
+#if 0
+#define ail_hm_probe_incr(idx, hash, cap) idx = ((idx) + 1 + ((hash) % ((cap) - 1))) % (cap) // This only works when capacity is a power of 2
+#else
+#define ail_hm_probe_incr(idx, hash, cap) idx = ((idx) + 1) % (cap)
+#endif
 
 // @Decide: Should we round the capacity up to the next power of 2? Alternatively we might get issues with our probing-strategy...
-// @Bug: Rehashing apparently fails...
-#define ail_hm_grow(hmPtr, newCap) do {                                                                                          \
-        u32 _ail_hm_grow_new_cap_    = ail_hm_next_u32_2power(newCap);                                                                  \
-        u32 _ail_hm_grow_occ_offset_ = ((char *)&((hmPtr)->data[0].occupied)) - ((char *)&((hmPtr)->data[0]));                   \
-        void *_ail_hm_grow_new_ptr_  = AIL_HM_CALLOC(_ail_hm_grow_new_cap_, sizeof(*((hmPtr)->data)));                           \
-        for (u32 _ail_hm_grow_i_ = 0; _ail_hm_grow_i_ < (hmPtr)->cap; _ail_hm_grow_i_++) {                                       \
-            if ((hmPtr)->data[_ail_hm_grow_i_].occupied == AIL_HM_CUR_OCCUPIED) {                                                \
-                u32 _ail_hm_grow_hash_ = (hmPtr)->hash((hmPtr)->data[_ail_hm_grow_i_].key);                                      \
-                u32 _ail_hm_grow_j_    = _ail_hm_grow_hash_ % _ail_hm_grow_new_cap_;                                             \
-                char *_ail_hm_grow_tmp_ptr_;                                                                                     \
-                AIL_HM_OCCUPATION _ail_hm_grow_occ_;                                                                             \
-                do {                                                                                                             \
-                    _ail_hm_grow_tmp_ptr_ = &(((char *)_ail_hm_grow_new_ptr_)[_ail_hm_grow_j_ * sizeof(*((hmPtr)->data))]);      \
-                    _ail_hm_grow_occ_     = *((AIL_HM_OCCUPATION *)&(_ail_hm_grow_tmp_ptr_[_ail_hm_grow_occ_offset_]));          \
-                    ail_hm_probe_incr(_ail_hm_grow_j_, _ail_hm_grow_hash_, _ail_hm_grow_new_cap_);                               \
-                } while(_ail_hm_grow_occ_ == AIL_HM_CUR_OCCUPIED);                                                               \
-                AIL_HM_MEMCPY((void *)_ail_hm_grow_tmp_ptr_, (void *)&(hmPtr)->data[_ail_hm_grow_i_], sizeof(*((hmPtr)->data))); \
-            }                                                                                                                    \
-        }                                                                                                                        \
-        AIL_HM_FREE((hmPtr)->data);                                                                                              \
-        (hmPtr)->cap  = _ail_hm_grow_new_cap_;                                                                                   \
-        (hmPtr)->data = _ail_hm_grow_new_ptr_;                                                                                   \
+#define ail_hm_grow(hmPtr, newCap) do {                                                                                                           \
+        u32 _ail_hm_grow_new_cap_    =  (newCap); /* ail_hm_next_u32_2power(newCap); */                                                           \
+        printf("\033[33mGrowing: %d -> %d\033[0m\n", (hmPtr)->cap, (newCap)); \
+        u32 _ail_hm_grow_occ_offset_ = AIL_OFFSETOF(&(hmPtr)->data[0], occupied);                                                                 \
+        void *_ail_hm_grow_new_ptr_  = (hmPtr)->allocator->zero_alloc((hmPtr)->allocator->data, _ail_hm_grow_new_cap_, sizeof(*((hmPtr)->data))); \
+        for (u32 _ail_hm_grow_i_ = 0; _ail_hm_grow_i_ < (hmPtr)->cap; _ail_hm_grow_i_++) {                                                        \
+            if ((hmPtr)->data[_ail_hm_grow_i_].occupied == AIL_HM_CUR_OCCUPIED) {                                                                 \
+                u32 _ail_hm_grow_hash_ = (hmPtr)->hash((hmPtr)->data[_ail_hm_grow_i_].key);                                                       \
+                u32 _ail_hm_grow_j_    = _ail_hm_grow_hash_ % _ail_hm_grow_new_cap_;                                                              \
+                char *_ail_hm_grow_tmp_ptr_ = &(((char *)_ail_hm_grow_new_ptr_)[_ail_hm_grow_j_ * sizeof(*((hmPtr)->data))]);                     \
+                AIL_HM_OCCUPATION _ail_hm_grow_occ_ = *((AIL_HM_OCCUPATION *)&(_ail_hm_grow_tmp_ptr_[_ail_hm_grow_occ_offset_]));                 \
+                while (_ail_hm_grow_occ_ == AIL_HM_CUR_OCCUPIED) {                                                                                \
+                    ail_hm_probe_incr(_ail_hm_grow_j_, _ail_hm_grow_hash_, _ail_hm_grow_new_cap_);                                                \
+                    _ail_hm_grow_tmp_ptr_ = &(((char *)_ail_hm_grow_new_ptr_)[_ail_hm_grow_j_ * sizeof(*((hmPtr)->data))]);                       \
+                    _ail_hm_grow_occ_     = *((AIL_HM_OCCUPATION *)&(_ail_hm_grow_tmp_ptr_[_ail_hm_grow_occ_offset_]));                           \
+                }                                                                                                                                 \
+                AIL_HM_MEMCPY((void *)_ail_hm_grow_tmp_ptr_, (void *)&(hmPtr)->data[_ail_hm_grow_i_], sizeof(*((hmPtr)->data)));                  \
+            }                                                                                                                                     \
+        }                                                                                                                                         \
+        if ((hmPtr)->data) (hmPtr)->allocator->free_one((hmPtr)->allocator->data, (hmPtr)->data);                                                 \
+        (hmPtr)->cap  = _ail_hm_grow_new_cap_;                                                                                                    \
+        (hmPtr)->data = _ail_hm_grow_new_ptr_;                                                                                                    \
     } while(0)
 
-#define ail_hm_maybe_grow(hmPtr, toAdd) do {                                         \
-        if (((hmPtr)->len + (toAdd))*100 >= (hmPtr)->cap*AIL_HM_LOAD_FACTOR)         \
-            ail_hm_grow(hmPtr, ((hmPtr)->len + (toAdd) + 1)*100/AIL_HM_LOAD_FACTOR); \
+#define ail_hm_maybe_grow(hmPtr, toAdd) do {                                               \
+        if (((hmPtr)->len + (toAdd))*100 >= (hmPtr)->cap*AIL_HM_LOAD_FACTOR) {             \
+            ail_hm_grow(hmPtr, 2*((hmPtr)->cap + 1));                                      \
+            /* ail_hm_grow(hmPtr, ((hmPtr)->len + (toAdd) + 1)*100/AIL_HM_LOAD_FACTOR); */ \
+        }                                                                                  \
     } while(0)
 
 #define ail_hm_get_idx(hmPtr, k, outIdx, outFound) do {                                               \
-        outFound               = false;                                                               \
+            (outFound)         = false;                                                               \
+        if ((hmPtr)->cap == 0) break; /* Necessary, bc mod 0 is undefined */                          \
         u32 _ail_hm_get_hash_  = (hmPtr)->hash((k));                                                  \
         u32 _ail_hm_get_idx_   = _ail_hm_get_hash_ % (hmPtr)->cap;                                    \
-        for (u32 _ail_hm_get_count_ = 0; _ail_hm_get_count_ < (hmPtr)->len &&                         \
-            ((hmPtr)->data[_ail_hm_get_idx_].occupied & AIL_HM_OCCUPIED) > 0; _ail_hm_get_count_++) { \
+        for (u32 _ail_hm_get_count_ = 0; _ail_hm_get_count_ < (hmPtr)->len; _ail_hm_get_count_++) {   \
+            if (((hmPtr)->data[_ail_hm_get_idx_].occupied & AIL_HM_OCCUPIED) == 0) break;             \
             if (((hmPtr))->eq(((hmPtr))->data[_ail_hm_get_idx_].key, (k))) {                          \
                 (outIdx)   = _ail_hm_get_idx_;                                                        \
                 (outFound) = true;                                                                    \
@@ -177,7 +174,7 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
     } while(0)
 
 #define ail_hm_put(hmPtr, k, v) do {                                                                                                     \
-        if ((hmPtr)->cap == 0) ail_hm_grow(hmPtr, AIL_HM_INIT_CAP);                                                                      \
+        ail_hm_maybe_grow(hmPtr, 1);                                                                                                     \
         u32 _ail_hm_put_hash_ = (hmPtr)->hash((k));                                                                                      \
         u32 _ail_hm_put_idx_  = _ail_hm_put_hash_ % (hmPtr)->cap;                                                                        \
         u32 _ail_hm_put_once_filled_idx_;                                                                                                \
@@ -200,7 +197,6 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
         (hmPtr)->data[_ail_hm_put_idx_].key = (k);                                                                                       \
         (hmPtr)->data[_ail_hm_put_idx_].val = (v);                                                                                       \
         (hmPtr)->data[_ail_hm_put_idx_].occupied = AIL_HM_CUR_OCCUPIED;                                                                  \
-        ail_hm_maybe_grow(hmPtr, 1);                                                                                                     \
     } while(0)
 
 // @TODO

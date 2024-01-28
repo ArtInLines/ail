@@ -36,8 +36,7 @@ bool ignoreChar(char c)
 
 bool strEq(char *a, char *b)
 {
-    while (*a && *b && *a++ == *b++) {}
-    return *a == 0 && *a == *b;
+    return strcmp(a, b) == 0;
 }
 
 u32 sum(char *a)
@@ -103,14 +102,20 @@ void txtFileTest(const char *fpath)
     u32   expTopTenVals[] = { 23242, 19540, 18297, 15623, 15544, 12532, 10824, 9576, 9081, 7851 };
 
     printf("Textfile: %s (size: %llu)\n", fpath, fsize);
-    printf("  Tokens: %d\n", tokenCount);
-    printf("  Unique Tokens: %d\n", arrlen);
+
+    if (tokenCount == 901326) printf("\033[32m");
+    else printf("\033[31m");
+    printf("  Tokens: %d\033[0m\n", tokenCount);
+
+    if (arrlen == 67506) printf("\033[32m");
+    else printf("\033[31m");
+    printf("  Unique Tokens: %d\033[0m\n", arrlen);
+
     printf("  Top 10 tokens:\n");
     for (u32 i = 0; i < 10 && i < arrlen; i++) {
         if (strcmp(arr[i].key, expTopTenKeys[i]) == 0 && arr[i].val == expTopTenVals[i]) printf("\033[32m");
         else printf("\033[31m");
-        printf("    %2d: %6s (%d)", i, arr[i].key, arr[i].val);
-        printf("\033[0m\n");
+        printf("    %2d: %6s (%d)\033[0m\n", i, arr[i].key, arr[i].val);
     }
     printf("  Total time %.03lfs\n", end - start);
 }
@@ -119,7 +124,8 @@ int main(void)
 {
     txtFileTest("shakespeare.txt");
     // Expected result:
-    // Tokens: 67506 tokens
+    // Tokens: 901326
+    // Unique Tokens: 67506
     // Top 10 tokens:
     //    0:    the (23242)
     //    1:      I (19540)
