@@ -517,7 +517,7 @@ void *ail_md_realloc(void *pointer, u64 size, char *file, u32 line)
 	move = 0;
 	ail_md_remove(pointer, file, line, true, &move);
 #ifdef AIL_MD_MEM_PRINT
-	printf("Relloc %6llu bytes at pointer %p to %llu bytes at pointer %p at %s line %u\n", size, pointer, move, pointer2, file, line);
+	printf("Relloc %6llu bytes at pointer %p to %llu bytes at pointer %p at %s line %u\n", move, pointer, size, pointer2, file, line);
 #endif
 	free(pointer);
 
