@@ -297,7 +297,7 @@ void *ail_md_malloc(u64 size, char *file, u32 line)
 	pointer = malloc(size + AIL_MD_OVER_ALLOC);
 
 #ifdef AIL_MD_MEM_PRINT
-	printf("Malloc %llu bytes at pointer %p at %s line %u\n", size, pointer, file, line);
+	printf("Malloc %6llu bytes at pointer %p at %s line %u\n", size, pointer, file, line);
 #endif
 	if(pointer == NULL)
 	{
@@ -427,7 +427,7 @@ void ail_md_free(void *buf, char *file, u32 line)
 
 
 #ifdef AIL_MD_MEM_PRINT
-	printf("Free %llu bytes at pointer %p at %s line %u\n", size, buf, file, line);
+	printf("Free   %6llu bytes at pointer %p at %s line %u\n", size, buf, file, line);
 #endif
 
 	free(buf);
@@ -517,7 +517,7 @@ void *ail_md_realloc(void *pointer, u64 size, char *file, u32 line)
 	move = 0;
 	ail_md_remove(pointer, file, line, true, &move);
 #ifdef AIL_MD_MEM_PRINT
-	printf("Relloc %llu bytes at pointer %p to %llu bytes at pointer %p at %s line %u\n", size, pointer, move, pointer2, file, line);
+	printf("Relloc %6llu bytes at pointer %p to %llu bytes at pointer %p at %s line %u\n", size, pointer, move, pointer2, file, line);
 #endif
 	free(pointer);
 

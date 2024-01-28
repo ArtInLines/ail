@@ -89,7 +89,7 @@ typedef struct AIL_Alloc_Pool_Header {
 	u64 size;
 } AIL_Alloc_Pool_Header;
 
-AIL_ALLOC_DEF size_t  align_size(size_t size);
+AIL_ALLOC_DEF size_t align_size(size_t size);
 
 AIL_ALLOC_DEF void *ail_alloc_std_alloc(void *data, size_t size);
 AIL_ALLOC_DEF void *ail_alloc_std_calloc(void *data, size_t nelem, size_t elsize);
@@ -124,13 +124,13 @@ AIL_ALLOC_DEF void ail_alloc_pool_free_all(void *data);
 #ifndef AIL_ALLOC_PRINT_MEM
 #define AIL_ALLOC_LOG(...) do { if (0) printf(__VA_ARGS__); } while(0)
 #else
-#define AIL_ALLOC_LOG(...) do { AIL_DBG_PRINT("AIL_Alloc Mem Trace: " __VA_ARGS__); AIL_DBG_PRINT("\n"); } while(0)
+#define AIL_ALLOC_LOG(...) do { AIL_DBG_PRINT("Memory Trace: " __VA_ARGS__); AIL_DBG_PRINT("\n"); } while(0)
 #endif // AIL_ALLOC_PRINT_MEM
-#define AIL_ALLOC_LOG_ALLOC(allocator, ptr, size)           AIL_ALLOC_LOG("Allocate   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
-#define AIL_ALLOC_LOG_CALLOC(allocator, ptr, nelem, elsize) AIL_ALLOC_LOG("0-Allocate %4llu elements of size %4llu at %p in '" allocator "' allocator", (nelem), (elsize), (ptr));
-#define AIL_ALLOC_LOG_REALLOC(allocator, nptr, optr, size)  AIL_ALLOC_LOG("Reallocate from %p to %4llu bytes at %p in '" allocator "' allocator", (optr), (size), (nptr));
-#define AIL_ALLOC_LOG_FREE(allocator, ptr, size)            AIL_ALLOC_LOG("Free       %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
-#define AIL_ALLOC_LOG_FREE_ALL(allocator, size)             AIL_ALLOC_LOG("Free all   %4llu bytes in '" allocator "' allocator", (size));
+#define AIL_ALLOC_LOG_ALLOC(allocator, ptr, size)           AIL_ALLOC_LOG("Malloc  %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
+#define AIL_ALLOC_LOG_CALLOC(allocator, ptr, nelem, elsize) AIL_ALLOC_LOG("Calloc  %4llu elements of size %4llu at %p in '" allocator "' allocator", (nelem), (elsize), (ptr));
+#define AIL_ALLOC_LOG_REALLOC(allocator, nptr, optr, size)  AIL_ALLOC_LOG("Relloc  %4llu bytes from %p to %p in '" allocator "' allocator", (size), (optr), (nptr));
+#define AIL_ALLOC_LOG_FREE(allocator, ptr, size)            AIL_ALLOC_LOG("Free    %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
+#define AIL_ALLOC_LOG_FREE_ALL(allocator, size)             AIL_ALLOC_LOG("FreeAll %4llu bytes in '" allocator "' allocator", (size));
 
 AIL_ALLOC_DEF size_t align_size(size_t size)
 {
