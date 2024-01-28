@@ -8,6 +8,10 @@
 #include <time.h>
 #include <ctype.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 typedef char* String;
 AIL_HM_INIT(String, u32);
 
@@ -15,10 +19,14 @@ static AIL_HM(String, u32) hm;
 
 double clockGetSecs(void)
 {
+#ifdef _WIN32
+    return (double)timeGetTime() / 1000;
+#else
     struct timespec ts = {0};
     int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
     ASSERT(ret == 0);
     return (double)ts.tv_sec + ts.tv_nsec*1e-9;
+#endif
 }
 
 bool ignoreChar(char c)
@@ -58,7 +66,7 @@ void txtFileTest(const char *fpath)
 {
     u64 fsize;
     char *text = ail_fs_read_entire_file(fpath, &fsize);
-    hm = ail_hm_with_cap(String, u32, 64, &djb2, &strEq);
+    hm = ail_hm_new_with_cap(String, u32, 64, &djb2, &strEq);
 
     double start = clockGetSecs();
 
@@ -91,19 +99,24 @@ void txtFileTest(const char *fpath)
 
     double end = clockGetSecs();
 
+    char *expTopTenKeys[] = { "the",  "I",  "and", "to",   "of", "a",   "my", "in", "you", "is" };
+    u32   expTopTenVals[] = { 23242, 19540, 18297, 15623, 15544, 12532, 10824, 9576, 9081, 7851 };
+
     printf("Textfile: %s (size: %llu)\n", fpath, fsize);
     printf("  Tokens: %d\n", tokenCount);
     printf("  Unique Tokens: %d\n", arrlen);
     printf("  Top 10 tokens:\n");
     for (u32 i = 0; i < 10 && i < arrlen; i++) {
-        printf("    %2d: %6s (%d)\n", i, arr[i].key, arr[i].val);
+        if (strcmp(arr[i].key, expTopTenKeys[i]) == 0 && arr[i].val == expTopTenVals[i]) printf("\033[32m");
+        else printf("\033[31m");
+        printf("    %2d: %6s (%d)", i, arr[i].key, arr[i].val);
+        printf("\033[0m\n");
     }
     printf("  Total time %.03lfs\n", end - start);
 }
 
 int main(void)
 {
-    // @Bug: Wrong results for shakespeare.txt ('in' should be among the top 10)
     txtFileTest("shakespeare.txt");
     // Expected result:
     // Tokens: 67506 tokens
