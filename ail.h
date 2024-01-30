@@ -184,8 +184,8 @@ typedef char*    str;
 #define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
 #define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
 
-#define AIL_MAX(a, b) ((a > b) ? a : b)
-#define AIL_MIN(a, b) ((a < b) ? a : b)
+#define AIL_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define AIL_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 
 #define AIL_SWAP_PORTABLE(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
