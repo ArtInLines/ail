@@ -55,6 +55,16 @@ SOFTWARE.
 #endif // AIL_MALLOC
 #endif // AIL_FS_MALLOC
 
+#ifndef AIL_FS_READ_TIMEOUT
+#define AIL_FS_READ_TIMEOUT 500 // in milliseconds
+#endif // AIL_FS_READ_TIMEOUT
+#ifndef AIL_FS_WRITE_TIMEOUT
+#define AIL_FS_WRITE_TIMEOUT 500 // in milliseconds
+#endif // AIL_FS_WRITE_TIMEOUT
+#ifndef AIL_FS_MAX_ATTEMPTS
+#define AIL_FS_MAX_ATTEMPTS 8
+#endif // AIL_FS_MAX_ATTEMPTS
+
 #ifdef _WIN32
     #include <windows.h>
     #include <direct.h>
@@ -69,18 +79,15 @@ SOFTWARE.
 
     #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
     #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
-
-    #ifndef READ_TIMEOUT
-    #define READ_TIMEOUT 500 // in milliseconds
-    #endif // READ_TIMEOUT
-    #ifndef WRITE_TIMEOUT
-    #define WRITE_TIMEOUT INFINITE // in milliseconds
-    #endif // WRITE_TIMEOUT
 #endif
 
 ///////////////////////////
 // Reading/Writing Files //
 ///////////////////////////
+
+AIL_FS_DEF bool ail_fs_open_file(const char *fpath, u64 *file, bool writeable);
+
+AIL_FS_DEF void ail_fs_close_file(u64 file);
 
 // Reads n bytes from file 'fname' into 'buf'
 // @Note: 'fd' be valid File-Handle on Windows (a void pointer cast to a u64) and a file-descriptor on Unix
@@ -134,6 +141,34 @@ bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
 // Read/Write IO //
 ///////////////////
 
+bool ail_fs_open_file(const char *fpath, u64 *file, bool writeable)
+{
+#ifdef _WIN32
+    u32 access = GENERIC_READ;
+    if (writeable) access |= GENERIC_WRITE;
+    void *handle = CreateFile(fpath, access, FILE_SHARE_READ, 0, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
+    if (handle == INVALID_HANDLE_VALUE) return false;
+    *file = (u64)handle;
+    return true;
+#else
+    u32 access = O_RDONLY;
+    if (writeable) access = O_RDWR;
+    int fd = open(fpath, access, 0777);
+    if (fd == -1) return false;
+    *file = fd;
+    return true;
+#endif // _WIN32
+}
+
+void ail_fs_close_file(u64 file)
+{
+#ifdef _WIN32
+    CloseHandle((void *)file);
+#else
+    close(file);
+#endif // _WIN32
+}
+
 bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
 {
 #ifdef _WIN32
@@ -153,8 +188,9 @@ bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
         // Read completed immediately
         res = 1;
     }
-    while (res < 0) {
-        DWORD dwRes = WaitForSingleObject(osReader.hEvent, READ_TIMEOUT);
+    // We wait at most for AIL_FS_MAX_ATTEMPTS*AIL_FS_READ_TIMEOUT and return -1 otherwise
+    for (u8 i = 0; i < AIL_FS_MAX_ATTEMPTS && res < 0; i++) {
+        DWORD dwRes = WaitForSingleObject(osReader.hEvent, AIL_FS_READ_TIMEOUT);
         switch(dwRes) {
             case WAIT_OBJECT_0:
                 // Read completed.
@@ -182,19 +218,11 @@ bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
 
 bool ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN)
 {
-#ifdef _WIN32
-    void *file = CreateFile(fpath, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
-    if (file == INVALID_HANDLE_VALUE) return false;
-    bool res = ail_fs_read_n_bytes((u64)file, buf, maxN, actualN);
-    CloseHandle(file);
+    u64 file;
+    bool res = ail_fs_open_file(fpath, &file, false);
+    if (res) res = ail_fs_read_n_bytes((u64)file, buf, maxN, actualN);
+    ail_fs_close_file(file);
     return res;
-#else
-    int fd = open(fpath, O_RDONLY, 0777);
-    if (fd == -1) return false;
-    bool res = ail_fs_read_n_bytes((u64)fd, buf, maxN, actualN);
-    close(fd);
-    return out;
-#endif // _WIN32
 }
 
 char* ail_fs_read_entire_file(const char *fpath, u64 *size)
@@ -229,15 +257,18 @@ bool ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
         if (GetLastError() != ERROR_IO_PENDING) res = 1;
     } else {
         // Write completed immediately.
-        res = 0;
+        res = 1;
     }
-    while (res < 0) {
-        DWORD dwRes = WaitForSingleObject(osWrite.hEvent, WRITE_TIMEOUT);
+    for (u32 i = 0; i < AIL_FS_MAX_ATTEMPTS && res < 0; i++) {
+        DWORD dwRes = WaitForSingleObject(osWrite.hEvent, AIL_FS_WRITE_TIMEOUT);
         switch(dwRes) {
             case WAIT_OBJECT_0:
                 // Write completed
                 bool succ = GetOverlappedResult(file, &osWrite, &dwWritten, FALSE);
                 res = succ ? 1 : 0;
+                break;
+            case WAIT_TIMEOUT:
+                // Gotta wait a little longer to finish operation
                 break;
             default:
                 // Error in the WaitForSingleObject
@@ -261,19 +292,11 @@ bool ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
 
 bool ail_fs_write_file(const char *fpath, const char *buf, u64 size)
 {
-#ifdef _WIN32
-    void *file = CreateFile(fpath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
-    if (file == INVALID_HANDLE_VALUE) return false;
-    bool res = ail_fs_write_n_bytes((u64)file, buf, size);
-    CloseHandle(file);
+    u64 file;
+    bool res = ail_fs_open_file(fpath, &file, true);
+    if (res) res = ail_fs_write_n_bytes((u64)file, buf, size);
+    ail_fs_close_file(file);
     return res;
-#else
-    int fd = open(fpath, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-    if (fd == -1) return false;
-    bool res = ail_fs_write_n_bytes((u64)fd, buf, size);
-    close(fd);
-    return res;
-#endif // _WIN32
 }
 
 //////////////////
