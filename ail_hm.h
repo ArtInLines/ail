@@ -114,7 +114,6 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
 // @Decide: Should we round the capacity up to the next power of 2? Alternatively we might get issues with our probing-strategy...
 #define ail_hm_grow(hmPtr, newCap) do {                                                                                                           \
         u32 _ail_hm_grow_new_cap_    =  (newCap); /* ail_hm_next_u32_2power(newCap); */                                                           \
-        printf("\033[33mGrowing: %d -> %d\033[0m\n", (hmPtr)->cap, (newCap)); \
         u32 _ail_hm_grow_occ_offset_ = AIL_OFFSETOF(&(hmPtr)->data[0], occupied);                                                                 \
         void *_ail_hm_grow_new_ptr_  = (hmPtr)->allocator->zero_alloc((hmPtr)->allocator->data, _ail_hm_grow_new_cap_, sizeof(*((hmPtr)->data))); \
         for (u32 _ail_hm_grow_i_ = 0; _ail_hm_grow_i_ < (hmPtr)->cap; _ail_hm_grow_i_++) {                                                        \
