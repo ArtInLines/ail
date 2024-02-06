@@ -97,14 +97,15 @@ typedef struct AIL_Allloc_Pool_Free_Node {
 } AIL_Allloc_Pool_Free_Node;
 
 typedef struct AIL_Alloc_Pool_Region {
+	u8 *buf;
+	AIL_Allloc_Pool_Free_Node *head;
 	struct AIL_Alloc_Pool_Region *next;
 } AIL_Alloc_Pool_Region;
 
 typedef struct AIL_Alloc_Pool {
-	u8 *buf;
 	u64 bucket_amount;
 	u64 bucket_size;
-	AIL_Allloc_Pool_Free_Node *head;
+	AIL_Alloc_Pool_Region start;
 	AIL_Allocator *backing_allocator;
 } AIL_Alloc_Pool;
 
@@ -205,7 +206,9 @@ AIL_ALLOC_DEF void *ail_alloc_pool_alloc(void *data, size_t size);
 AIL_ALLOC_DEF void *ail_alloc_pool_calloc(void *data, size_t nelem, size_t elsize);
 AIL_ALLOC_DEF void *ail_alloc_pool_realloc(void *data, void *ptr, size_t size);
 AIL_ALLOC_DEF void ail_alloc_pool_free(void *data, void *ptr);
+AIL_ALLOC_DEF void ail_alloc_pool_free_region(AIL_Alloc_Pool_Region *region, u64 bucket_amount, u64 bucket_size);
 AIL_ALLOC_DEF void ail_alloc_pool_free_all(void *data);
+AIL_ALLOC_DEF void ail_alloc_pool_free_all_keep_regions(void *data);
 
 
 //////////////
@@ -606,12 +609,14 @@ void *ail_alloc_arena_alloc(void *data, size_t size)
 	AIL_Alloc_Arena_Region *region = &arena->start;
 	while ((too_big = (region->idx + size + header_size > region->size)) && region->next) region = region->next;
 	if (AIL_UNLIKELY(too_big)) {
-		region->next = arena->backing_allocator->alloc(arena->backing_allocator->data, region->size + sizeof(AIL_Alloc_Arena));
+		u64 region_size = AIL_MAX(region->size, size);
+		region->next = arena->backing_allocator->alloc(arena->backing_allocator->data, region_size + sizeof(AIL_Alloc_Arena));
 		if (!region->next) {
 			AIL_ALLOC_LOG_ALLOC("arena", NULL, size);
 			return NULL;
 		}
 		region = region->next;
+		region->size = region_size;
 	}
 	u8 *mem = (u8 *)(&region[1]);
 	AIL_Alloc_Arena_Header *header = (AIL_Alloc_Arena_Header *) &mem[region->idx];
@@ -726,15 +731,16 @@ void ail_alloc_arena_free_all_keep_regions(void *data)
 
 AIL_Allocator ail_alloc_pool_new(u64 bucket_amount, u64 el_size, AIL_Allocator *backing_allocator)
 {
-	u64 bucket_size      = ail_alloc_align_size(el_size + sizeof(AIL_Allloc_Pool_Free_Node));
-	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)backing_allocator->alloc(backing_allocator->data, sizeof(AIL_Alloc_Pool));
-	pool->buf            = (u8 *)backing_allocator->alloc(backing_allocator->data, bucket_amount * bucket_size);
-	pool->bucket_size    = bucket_size;
-	pool->bucket_amount  = bucket_amount;
-	// pool->head           = NULL; Automatically done when calling free_all
+	u64 aligned_header_size = ail_alloc_align_size(sizeof(AIL_Alloc_Pool));
+	u64 bucket_size         = ail_alloc_align_size(el_size + sizeof(AIL_Allloc_Pool_Free_Node));
+	AIL_Alloc_Pool *pool    = (AIL_Alloc_Pool *)backing_allocator->alloc(backing_allocator->data, aligned_header_size + bucket_amount*bucket_size);
+	pool->start.buf         = &((u8 *)pool)[aligned_header_size];
+	pool->start.next        = NULL;
+	pool->bucket_size       = bucket_size;
+	pool->bucket_amount     = bucket_amount;
 	pool->backing_allocator = backing_allocator;
-	AIL_ASSERT(pool->buf != NULL);
-	ail_alloc_pool_free_all(pool); // Set up free-list
+	AIL_ASSERT(pool->start.buf != NULL);
+	ail_alloc_pool_free_region(&pool->start, bucket_amount, bucket_size); // Set up free-list
 	return (AIL_Allocator) {
 		.data       = pool,
 		.alloc      = &ail_alloc_pool_alloc,
@@ -748,18 +754,30 @@ AIL_Allocator ail_alloc_pool_new(u64 bucket_amount, u64 el_size, AIL_Allocator *
 void *ail_alloc_pool_alloc(void *data, size_t size)
 {
 	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
-	AIL_ASSERT(size <= pool->bucket_size);
-	AIL_Allloc_Pool_Free_Node *node = pool->head;
-	if (AIL_LIKELY(node)) {
-		pool->head = pool->head->next;
-		AIL_ALLOC_LOG_ALLOC("pool", (void *)node, size);
-		return (void *)node;
-	} else {
-		// Pool has no free memory left
-		AIL_TODO(); // @TODO: Extend Pool using the backing allocator
-		AIL_ASSERT(false);
-		return NULL;
+	AIL_Alloc_Pool_Region *region = &pool->start;
+	AIL_Alloc_Pool_Region *prev   = NULL;
+	while (region) {
+		if (AIL_LIKELY(region->head)) {
+			void *out = region->head;
+			region->head = region->head->next;
+			AIL_ALLOC_LOG_ALLOC("pool", out, size);
+			return out;
+		}
+		prev   = region;
+		region = region->next;
 	}
+	// No memory left -> need to allocate new region via backing allocator
+	u64 aligned_header_size = ail_alloc_align_size(sizeof(AIL_Alloc_Pool_Region));
+	AIL_Alloc_Pool_Region *next = (AIL_Alloc_Pool_Region *)pool->backing_allocator->alloc(pool->backing_allocator->data, aligned_header_size + pool->bucket_amount*pool->bucket_size);
+	next->buf    = &((u8 *)next)[aligned_header_size];
+	next->next   = NULL;
+	ail_alloc_pool_free_region(next, pool->bucket_amount, pool->bucket_size);
+	void *out    = next->head;
+	next->head   = next->head->next;
+	AIL_ASSERT(prev != NULL);
+	prev->next = next;
+	AIL_ALLOC_LOG_ALLOC("pool", out, size);
+	return out;
 }
 
 void *ail_alloc_pool_calloc(void *data, size_t nelem, size_t elsize)
@@ -784,21 +802,51 @@ void ail_alloc_pool_free(void *data, void *ptr)
 {
 	if (AIL_UNLIKELY(ptr == NULL)) return;
 	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
-	AIL_ASSERT(pool->buf <= (u8 *)ptr && &pool->buf[pool->bucket_amount*pool->bucket_size] >= (u8 *)ptr); // Bounds checking
+	AIL_Alloc_Pool_Region *region = &pool->start;
+	while (region->buf > (u8 *)ptr || region->buf + pool->bucket_amount*pool->bucket_size < (u8 *)ptr) {
+		AIL_ASSERT(region->next); // Out-of-Bounds
+		region = region->next;
+	}
 	AIL_Allloc_Pool_Free_Node *node = (AIL_Allloc_Pool_Free_Node *)ptr;
-	node->next = pool->head;
-	pool->head = node;
+	node->next   = region->head;
+	region->head = node;
 	AIL_ALLOC_LOG_FREE("pool", ptr, pool->bucket_size);
+}
+
+void ail_alloc_pool_free_region(AIL_Alloc_Pool_Region *region, u64 bucket_amount, u64 bucket_size)
+{
+	region->head = NULL;
+	for (u64 i = 0; i < bucket_amount; i++) {
+		AIL_Allloc_Pool_Free_Node *node = (AIL_Allloc_Pool_Free_Node *)(region->buf + i*bucket_size);
+		node->next   = region->head;
+		region->head = node;
+	}
 }
 
 void ail_alloc_pool_free_all(void *data)
 {
 	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
-	pool->head = NULL;
-	for (u64 i = 0; i < pool->bucket_amount; i++) {
-		AIL_Allloc_Pool_Free_Node *node = (AIL_Allloc_Pool_Free_Node *)&pool->buf[i * pool->bucket_size];
-		node->next = pool->head;
-		pool->head = node;
+	// Remove regions after the start region
+	AIL_Alloc_Pool_Region *region = pool->start.next;
+	AIL_Alloc_Pool_Region *next;
+	while (region) {
+		next = region->next;
+		pool->backing_allocator->free_one(pool->backing_allocator->data, region);
+		region = next;
+	}
+	// Reset free-list for initial region
+	ail_alloc_pool_free_region(&pool->start, pool->bucket_amount, pool->bucket_size);
+	AIL_ALLOC_LOG_FREE_ALL("pool", pool->bucket_amount * pool->bucket_size);
+}
+
+void ail_alloc_pool_free_all_keep_regions(void *data)
+{
+	// Reset free-list for each region
+	AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
+	AIL_Alloc_Pool_Region *region = &pool->start;
+	while (region) {
+		ail_alloc_pool_free_region(region, pool->bucket_amount, pool->bucket_size);
+		region = region->next;
 	}
 	AIL_ALLOC_LOG_FREE_ALL("pool", pool->bucket_amount * pool->bucket_size);
 }
@@ -862,6 +910,7 @@ void *ail_alloc_freelist_alloc(void *data, size_t size)
 		node = node->next;
 	}
 	if (AIL_UNLIKELY(node == NULL)) {
+		AIL_TODO();
 		// @TODO: Allocate next region from backing allocator
 	}
 
@@ -923,20 +972,20 @@ void ail_alloc_freelist_free(void *data, void *ptr)
 	AIL_Alloc_Freelist_Free_Node *prev = NULL;
 	AIL_Alloc_Freelist_Free_Node *node = fl->head;
 	while (node) {
-		if (ptr < (u8 *)node) {
+		if ((u8 *)ptr < (u8 *)node) {
 			AIL_Alloc_Freelist_Free_Node *new_node = (AIL_Alloc_Freelist_Free_Node *)ptr;
 			new_node->next = node;
 			new_node->size = block_size;
 			if (AIL_LIKELY(prev)) prev->next = new_node;
 			else                  fl->head   = new_node;
-			if ((u8 *)new_node + new_node->size == node) {
+			if ((u8 *)new_node + new_node->size == (u8 *)node) {
 				new_node->size += node->size;
 				new_node->next  = node->next;
 			}
 			break;
-		} else if ((u8 *)node + node->size == ptr) {
+		} else if ((u8 *)node + node->size == (u8 *)ptr) {
 			node->size += block_size;
-			if ((u8 *)node + node->size == node->next) {
+			if ((u8 *)node + node->size == (u8 *)node->next) {
 				node->size += node->next->size;
 				node->next  = node->next->next;
 			}
