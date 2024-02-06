@@ -66,6 +66,8 @@ SOFTWARE.
 
 #define AIL_ALLOC_GET_HEADER(ptr, headerType) ((headerType *)(ptr) - 1)
 
+// @TODO: Growable allocators should check whether regions can be coalesced (i.e. current region + size == next region)
+
 typedef struct AIL_Alloc_Size_Header {
 	u64 size;
 } AIL_Alloc_Size_Header;
@@ -87,7 +89,7 @@ typedef struct AIL_Alloc_Arena_Region {
 
 typedef struct AIL_Alloc_Arena {
 	AIL_Allocator *backing_allocator;
-	AIL_Alloc_Arena_Region start;     // Code assumes that Region starts right before the rest of the data
+	AIL_Alloc_Arena_Region start;  // @Note: Code assumes that Region starts right before the rest of the data
 } AIL_Alloc_Arena;
 
 typedef AIL_Alloc_Size_Header AIL_Alloc_Arena_Header;
@@ -111,6 +113,30 @@ typedef struct AIL_Alloc_Pool {
 
 typedef struct AIL_Alloc_Size_Header AIL_Alloc_Pool_Header;
 
+typedef struct AIL_Alloc_Freelist_Free_Node {
+	u64 size;
+	struct AIL_Alloc_Freelist_Free_Node *next;
+} AIL_Alloc_Freelist_Free_Node;
+
+typedef struct AIL_Alloc_Freelist_Header {
+	u64 size;
+	u64 pad;
+} AIL_Alloc_Freelist_Header;
+
+typedef struct AIL_Alloc_Freelist_Region {
+	u8 *mem;
+	u64 size;
+	u64 used;
+	AIL_Alloc_Freelist_Free_Node *head;
+	struct AIL_Alloc_Freelist_Region *next;
+} AIL_Alloc_Freelist_Region;
+
+typedef struct AIL_Alloc_Freelist {
+	AIL_Allocator *backing_allocator;
+	AIL_Alloc_Freelist_Region start;
+} AIL_Alloc_Freelist;
+
+
 //////////////
 // Utility Functions
 //////////////
@@ -121,6 +147,10 @@ AIL_ALLOC_DEF size_t ail_alloc_align_size(size_t size);
 AIL_ALLOC_DEF size_t ail_alloc_align_forward(size_t n, size_t alignment);
 // @Note: Alignment must be greater than 0 and a power of 2
 AIL_ALLOC_DEF size_t ail_alloc_align_backward(size_t n, size_t alignment);
+// Returns padding from aligning to AIL_ALLOC_ALIGNMENT
+AIL_ALLOC_DEF size_t ail_alloc_size_aligned_pad(size_t size);
+AIL_ALLOC_DEF size_t ail_alloc_size_aligned_backward_pad(size_t size, size_t alignment);
+AIL_ALLOC_DEF size_t ail_alloc_size_aligned_forward_pad(size_t size, size_t alignment);
 
 
 //////////////
@@ -222,7 +252,9 @@ AIL_ALLOC_DEF void *ail_alloc_freelist_alloc(void *data, size_t size);
 AIL_ALLOC_DEF void *ail_alloc_freelist_calloc(void *data, size_t nelem, size_t elsize);
 AIL_ALLOC_DEF void *ail_alloc_freelist_realloc(void *data, void *ptr, size_t size);
 AIL_ALLOC_DEF void ail_alloc_freelist_free(void *data, void *ptr);
+AIL_ALLOC_DEF void ail_alloc_freelist_free_region(AIL_Alloc_Freelist_Region *region);
 AIL_ALLOC_DEF void ail_alloc_freelist_free_all(void *data);
+AIL_ALLOC_DEF void ail_alloc_freelist_free_all_keep_regions(void *data);
 
 
 #endif // AIL_ALLOC_H_
@@ -276,6 +308,21 @@ size_t ail_alloc_align_backward(size_t n, size_t alignment)
 {
 	AIL_ASSERT(alignment > 0 && AIL_IS_2POWER(alignment));
 	return n & ~(alignment - 1);
+}
+
+size_t ail_alloc_size_aligned_pad(size_t size)
+{
+	return ail_alloc_align_size(size) - size;
+}
+
+size_t ail_alloc_size_aligned_forward_pad(size_t size, size_t alignment)
+{
+	return ail_alloc_align_forward(size, alignment) - size;
+}
+
+size_t ail_alloc_size_aligned_backward_pad(size_t size, size_t alignment)
+{
+	return ail_alloc_align_backward(size, alignment) - size;
 }
 
 /////////
@@ -856,33 +903,14 @@ void ail_alloc_pool_free_all_keep_regions(void *data)
 // Free-List //
 ///////////////
 
-
-typedef struct AIL_Alloc_Freelist_Free_Node {
-	u64 size;
-	struct AIL_Alloc_Freelist_Free_Node *next;
-} AIL_Alloc_Freelist_Free_Node;
-
-typedef struct AIL_Alloc_Freelist_Header {
-	u64 size;
-	u64 pad;
-} AIL_Alloc_Freelist_Header;
-
-typedef struct AIL_Alloc_Freelist {
-	u8 *mem;
-	u64 size;
-	u64 used;
-	AIL_Allocator *backing_allocator;
-	AIL_Alloc_Freelist_Free_Node *head;
-} AIL_Alloc_Freelist;
-
 AIL_Allocator ail_alloc_freelist_new(u64 cap, AIL_Allocator *backing_allocator)
 {
 	u8 *mem = backing_allocator->alloc(backing_allocator->data, cap);
 	AIL_Alloc_Freelist *fl = (AIL_Alloc_Freelist *)mem;
-	fl->mem  = (u8 *)&fl[1];
-	fl->size = cap - sizeof(AIL_Alloc_Freelist);
+	fl->start.mem  = (u8 *)&fl[1];
+	fl->start.size = cap - sizeof(AIL_Alloc_Freelist);
 	fl->backing_allocator = backing_allocator;
-	ail_alloc_freelist_free_all(fl); // Sets all other parameters of fl
+	ail_alloc_freelist_free_region(&fl->start); // Sets all other parameters of fl
 
 	return (AIL_Allocator) {
 		.data       = fl,
@@ -897,21 +925,35 @@ AIL_Allocator ail_alloc_freelist_new(u64 cap, AIL_Allocator *backing_allocator)
 void *ail_alloc_freelist_alloc(void *data, size_t size)
 {
 	AIL_Alloc_Freelist *fl = data;
-	AIL_Alloc_Freelist_Free_Node *prev = NULL;
-	AIL_Alloc_Freelist_Free_Node *node = fl->head;
+	AIL_Alloc_Freelist_Region *prev_region = NULL;
+	AIL_Alloc_Freelist_Region *region      = &fl->start;
+	AIL_Alloc_Freelist_Free_Node *prev     = NULL;
+	AIL_Alloc_Freelist_Free_Node *node     = region->head;
 
 	AIL_Alloc_Freelist_Header header = {
-		.pad  = ail_alloc_align_size(sizeof(AIL_Alloc_Freelist_Header) + size),
+		.pad  = ail_alloc_size_aligned_pad(sizeof(AIL_Alloc_Freelist_Header) + size),
 		.size = size,
 	};
 	u64 req_size = sizeof(AIL_Alloc_Freelist_Header) + size + header.pad;
-	while (node && req_size > node->size) {
-		prev = node;
-		node = node->next;
+	while (region) {
+		while (node && req_size > node->size) {
+			prev = node;
+			node = node->next;
+		}
+		if (node) break;
+		prev_region = region;
+		region      = region->next;
 	}
 	if (AIL_UNLIKELY(node == NULL)) {
-		AIL_TODO();
-		// @TODO: Allocate next region from backing allocator
+		u64 cap    = ail_alloc_align_size(AIL_MAX(fl->start.size + sizeof(AIL_Alloc_Freelist_Region), size));
+		AIL_Alloc_Freelist_Region *next = fl->backing_allocator->alloc(fl->backing_allocator->data, cap);
+		next->mem  = (u8 *)&next[1];
+		next->size = cap - sizeof(AIL_Alloc_Freelist_Region);
+		ail_alloc_freelist_free_region(next);
+		if (prev_region) prev_region->next = next;
+		else             fl->start.next    = next;
+		region = next;
+		node   = region->head;
 	}
 
 	AIL_Alloc_Freelist_Free_Node *next;
@@ -922,9 +964,11 @@ void *ail_alloc_freelist_alloc(void *data, size_t size)
 	} else {
 		next = node->next;
 	}
-	prev->next = next;
+	if (prev) prev->next  = next;
+	else     region->head = next;
 
-	fl->used += req_size;
+	region->used += req_size;
+	// printf("Used: %lld out of %lld\n", fl->used, fl->size);
 	*(AIL_Alloc_Freelist_Header *)node = header;
 	void *ptr = (u8 *)node + sizeof(AIL_Alloc_Freelist_Header);
 	AIL_ALLOC_LOG_ALLOC("freelist", ptr, size);
@@ -942,70 +986,105 @@ void *ail_alloc_freelist_calloc(void *data, size_t nelem, size_t elsize)
 
 void *ail_alloc_freelist_realloc(void *data, void *ptr, size_t size)
 {
-	AIL_Alloc_Freelist *fl = data;
-	AIL_UNUSED(fl);
+	if (!ptr) {
+		void *out = ail_alloc_freelist_alloc(data, size);
+		AIL_ALLOC_LOG_REALLOC("freelist", out, ptr, size);
+		return out;
+	}
 	AIL_Alloc_Freelist_Header *header = AIL_ALLOC_GET_HEADER(ptr, AIL_Alloc_Freelist_Header);
 	if (size <= header->size) {
 		AIL_ALLOC_LOG_REALLOC("freelist", ptr, ptr, size);
 		return ptr;
 	}
-	ail_alloc_freelist_free(data, ptr);
 	void *nptr = ail_alloc_freelist_alloc(data, size);
-	// The old data cannot be overwritten by a single alloc (assuming that sizeof(AIL_Alloc_Freelist_Header) >= sizeof(AIL_Alloc_Freelist_Free_Node))
-	// it should thus be safe to allocate the new region after freeing the old region
-	AIL_STATIC_ASSERT(sizeof(AIL_Alloc_Freelist_Header) >= sizeof(AIL_Alloc_Freelist_Free_Node));
-	memcpy(nptr, ptr, size); // @Bug: memcpy might not work correctly, if the old and new region overlap
+	AIL_ASSERT(nptr != NULL);
+	memcpy(nptr, ptr, size);
+	ail_alloc_freelist_free(data, ptr);
 	AIL_ALLOC_LOG_REALLOC("freelist", nptr, ptr, size);
 	return nptr;
 }
 
 void ail_alloc_freelist_free(void *data, void *ptr)
 {
-	// @TODO: Bounds checking?
+	// @TODO: Full Bounds checking?
 	if (!ptr) return;
 	AIL_Alloc_Freelist *fl = data;
 	AIL_Alloc_Freelist_Header *header = AIL_ALLOC_GET_HEADER(ptr, AIL_Alloc_Freelist_Header);
 	u64 block_size = header->size + header->pad + sizeof(AIL_Alloc_Freelist_Header);
-	fl->used -= block_size;
 
-	// @TODO: Implementation not done and potentially wrong
-	AIL_Alloc_Freelist_Free_Node *prev = NULL;
-	AIL_Alloc_Freelist_Free_Node *node = fl->head;
-	while (node) {
-		if ((u8 *)ptr < (u8 *)node) {
-			AIL_Alloc_Freelist_Free_Node *new_node = (AIL_Alloc_Freelist_Free_Node *)ptr;
-			new_node->next = node;
-			new_node->size = block_size;
-			if (AIL_LIKELY(prev)) prev->next = new_node;
-			else                  fl->head   = new_node;
-			if ((u8 *)new_node + new_node->size == (u8 *)node) {
-				new_node->size += node->size;
-				new_node->next  = node->next;
+	AIL_Alloc_Freelist_Region *region = &fl->start;
+	while (region) {
+		AIL_Alloc_Freelist_Free_Node *prev = NULL;
+		AIL_Alloc_Freelist_Free_Node *node = region->head;
+		while (node) {
+			if ((u8 *)ptr < (u8 *)node) {
+				AIL_Alloc_Freelist_Free_Node *new_node = (AIL_Alloc_Freelist_Free_Node *)ptr;
+				new_node->next = node;
+				new_node->size = block_size;
+				if (AIL_LIKELY(prev)) prev->next = new_node;
+				else                  region->head   = new_node;
+				if ((u8 *)new_node + new_node->size == (u8 *)node) {
+					new_node->size += node->size;
+					new_node->next  = node->next;
+				}
+				region->used -= block_size;
+				return;
+			} else if ((u8 *)node + node->size == (u8 *)ptr) {
+				node->size += block_size;
+				if ((u8 *)node + node->size == (u8 *)node->next) {
+					node->size += node->next->size;
+					node->next  = node->next->next;
+				}
+				region->used -= block_size;
+				return;
 			}
-			break;
-		} else if ((u8 *)node + node->size == (u8 *)ptr) {
-			node->size += block_size;
-			if ((u8 *)node + node->size == (u8 *)node->next) {
-				node->size += node->next->size;
-				node->next  = node->next->next;
-			}
-			break;
+			node = node->next;
 		}
-		node = node->next;
+		if ((u8 *)ptr < region->mem + region->size) {
+			AIL_Alloc_Freelist_Free_Node *new_node = (AIL_Alloc_Freelist_Free_Node *)ptr;
+			new_node->next = NULL;
+			new_node->size = block_size;
+			if (prev) prev->next   = new_node;
+			else      region->head = new_node;
+			region->used -= block_size;
+			return;
+		}
+		region = region->next;
 	}
+	AIL_UNREACHABLE(); // Out-of-Bounds
+}
+
+void ail_alloc_freelist_free_region(AIL_Alloc_Freelist_Region *region)
+{
+	AIL_Alloc_Freelist_Free_Node *head = (AIL_Alloc_Freelist_Free_Node *)region->mem;
+	head->size   = region->size;
+	head->next   = NULL;
+	region->head = head;
+	region->used = 0;
 }
 
 void ail_alloc_freelist_free_all(void *data)
 {
-	// @TODO: Deal with having several regions allocated from backing allocator
 	AIL_Alloc_Freelist *fl = data;
-	AIL_Alloc_Freelist_Free_Node *head = (AIL_Alloc_Freelist_Free_Node *)fl->mem;
-	head->size = fl->size;
-	head->next = NULL;
-	fl->head   = head;
-	fl->used   = 0;
+	AIL_Alloc_Freelist_Region *region = fl->start.next;
+	AIL_Alloc_Freelist_Region *next;
+	while (region) {
+		next = region->next;
+		fl->backing_allocator->free_one(fl->backing_allocator->data, region);
+		region = next;
+	}
+	ail_alloc_freelist_free_region(&fl->start);
 }
 
+void ail_alloc_freelist_free_all_keep_regions(void *data)
+{
+	AIL_Alloc_Freelist *fl = data;
+	AIL_Alloc_Freelist_Region *region = &fl->start;
+	while (region) {
+		ail_alloc_freelist_free_region(region);
+		region = region->next;
+	}
+}
 
 
 #endif // _AIL_ALLOC_IMPL_GUARD_

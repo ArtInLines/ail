@@ -138,11 +138,11 @@ void test(AIL_Allocator allocator, const char *name, bool lists_allocable, bool 
 			else                                  			           printf("\033[031mExtendable zero-allocations fail for %s allocator :(\033[0m\n", name);
 		}
 	} else {
-		if (test_alloc(&allocator, AIL_ALLOC_PAGE_SIZE/4))   printf("\033[032mSimple allocations      work for %s allocator :)\033[0m\n", name);
+		if (test_alloc(&allocator, AIL_ALLOC_PAGE_SIZE/6))   printf("\033[032mSimple allocations      work for %s allocator :)\033[0m\n", name);
 		else                                                 printf("\033[031mSimple allocations      fail for %s allocator :(\033[0m\n", name);
-		if (test_calloc(&allocator, AIL_ALLOC_PAGE_SIZE/4))  printf("\033[032mSimple zero-allocations work for %s allocator :)\033[0m\n", name);
+		if (test_calloc(&allocator, AIL_ALLOC_PAGE_SIZE/6))  printf("\033[032mSimple zero-allocations work for %s allocator :)\033[0m\n", name);
 		else                                  			     printf("\033[031mSimple zero-allocations fail for %s allocator :(\033[0m\n", name);
-		if (test_realloc(&allocator, AIL_ALLOC_PAGE_SIZE/4)) printf("\033[032mSimple re-allocations   work for %s allocator :)\033[0m\n", name);
+		if (test_realloc(&allocator, AIL_ALLOC_PAGE_SIZE/6)) printf("\033[032mSimple re-allocations   work for %s allocator :)\033[0m\n", name);
 		else                                                 printf("\033[031mSimple re-allocations   fail for %s allocator :(\033[0m\n", name);
 		if (extendable) {
 			if (test_alloc(&allocator, 2*AIL_ALLOC_PAGE_SIZE))   printf("\033[032mExtendable allocations      work for %s allocator :)\033[0m\n", name);
@@ -175,9 +175,10 @@ int main(void)
 		AIL_Allocator pool = ail_alloc_pool_new(AIL_ALLOC_PAGE_SIZE/sizeof(u64), sizeof(u64), &ail_alloc_pager);
 		test(pool, "pool", false, true);
 	}
-	// { // Test Freelist Allocator
-	// 	AIL_Allocator freelist = ail_alloc_freelist_new(AIL_ALLOC_PAGE_SIZE, &ail_alloc_pager);
-	// 	test(freelist, "freelist", true, true);
-	// }
+	{ // Test Freelist Allocator
+		AIL_Allocator freelist = ail_alloc_freelist_new(AIL_ALLOC_PAGE_SIZE, &ail_alloc_pager);
+		test(freelist, "freelist", true, true);
+	}
+	printf("\033[032mTested all allocators\033[0m\n");
 	return 0;
 }
