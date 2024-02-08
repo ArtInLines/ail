@@ -322,7 +322,7 @@ size_t ail_alloc_size_aligned_forward_pad(size_t size, size_t alignment)
 
 size_t ail_alloc_size_aligned_backward_pad(size_t size, size_t alignment)
 {
-	return ail_alloc_align_backward(size, alignment) - size;
+	return size - ail_alloc_align_backward(size, alignment);
 }
 
 /////////
@@ -456,7 +456,7 @@ void *ail_alloc_page_realloc(void *data, void *ptr, size_t size)
 		if (aligned_sz_diff >= AIL_ALLOC_PAGE_SIZE) {
 			ail_alloc_internal_free_pages((void *)ail_alloc_align_forward((size_t)((char *)ptr + size), AIL_ALLOC_PAGE_SIZE), aligned_sz_diff);
 		}
-		header->size = size;
+		// header->size = size;
 		return ptr;
 	} else {
 		// @TODO: VirtualAlloc can take the previous pointer to potentially just increase the size
