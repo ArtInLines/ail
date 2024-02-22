@@ -266,7 +266,7 @@ AIL_ALLOC_DEF void ail_alloc_freelist_free_all_keep_regions(void *data);
 
 // @TODO: Implement Page Allocations for OSes other than WINDOWS and UNIX
 #if defined(_WIN32)
-#include <Windows.h> // For VirtualAlloc
+#include <memoryapi.h> // For VirtualAlloc
 #else
 #include <sys/mman.h>
 #endif
