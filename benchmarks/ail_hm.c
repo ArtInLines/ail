@@ -1,6 +1,5 @@
 #define AIL_FS_IMPL
 #define AIL_HM_IMPL
-#include "test_assert.h"
 #include "../ail_hm.h"
 #include "../ail_fs.h"
 #include <stdlib.h>
@@ -24,7 +23,7 @@ double clockGetSecs(void)
 #else
     struct timespec ts = {0};
     int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
-    ASSERT(ret == 0);
+    AIL_ASSERT(ret == 0);
     return (double)ts.tv_sec + ts.tv_nsec*1e-9;
 #endif
 }
