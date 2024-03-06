@@ -188,7 +188,8 @@ typedef char*    str;
 #define AIL_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 
-#define AIL_SWAP_PORTABLE(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+#define AIL_SWAP_PORTABLE2(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+#define AIL_SWAP_PORTABLE(T, x, y) AIL_SWAP_PORTABLE2(T, x, y);
 #ifdef AIL_TYPEOF
 	#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #else

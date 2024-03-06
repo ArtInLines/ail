@@ -180,7 +180,10 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
         u32 _ail_hm_put_found_once_filled_idx_ = false;                                                                                  \
         for (u32 _ail_hm_put_count_ = 0; _ail_hm_put_count_ < (hmPtr)->len &&                                                            \
             ((hmPtr)->data[_ail_hm_put_idx_].occupied & AIL_HM_OCCUPIED) > 0; _ail_hm_put_count_++) {                                    \
-            if ((hmPtr)->eq((hmPtr)->data[_ail_hm_put_idx_].key, (k))) goto _ail_hm_put_set_val_;                                        \
+            if ((hmPtr)->eq((hmPtr)->data[_ail_hm_put_idx_].key, (k))) {                                                                 \
+                _ail_hm_put_found_once_filled_idx_ = false;                                                                              \
+                break;                                                                                                                   \
+            }                                                                                                                            \
             if (AIL_UNLIKELY(!_ail_hm_put_found_once_filled_idx_ && (hmPtr)->data[_ail_hm_put_idx_].occupied == AIL_HM_ONCE_OCCUPIED)) { \
                 _ail_hm_put_once_filled_idx_       = _ail_hm_put_idx_;                                                                   \
                 _ail_hm_put_found_once_filled_idx_ = true;                                                                               \
@@ -188,7 +191,6 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
             ail_hm_probe_incr(_ail_hm_put_idx_, _ail_hm_put_hash_, ((hmPtr))->cap);                                                      \
         }                                                                                                                                \
         if (_ail_hm_put_found_once_filled_idx_) _ail_hm_put_idx_ = _ail_hm_put_once_filled_idx_;                                         \
-    _ail_hm_put_set_val_:                                                                                                                \
         if ((hmPtr)->data[_ail_hm_put_idx_].occupied != AIL_HM_CUR_OCCUPIED) {                                                           \
             (hmPtr)->len++;                                                                                                              \
             if ((hmPtr)->data[_ail_hm_put_idx_].occupied != AIL_HM_ONCE_OCCUPIED) (hmPtr)->once_filled++;                                \
