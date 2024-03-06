@@ -22,11 +22,10 @@ CFLAGS += -ggdb
 endif
 endif
 
-all: hm_perf
+all: hm
 
-hm_perf: ail_hm_perf.c
-ifeq ($(COMP),cl)
-	$(COMP) $(CFLAGS) ail_hm_perf.c Winmm.lib
-else
-	$(COMP) $(CFLAGS) -o ail_hm_perf ail_hm_perf.c -lwinmm
-endif
+alloc: ail_alloc.c
+	$(COMP) -o ail_alloc ail_alloc.c $(CFLAGS)
+
+hm: ail_hm.c
+	$(COMP) -o ail_hm ail_hm.c $(CFLAGS)
