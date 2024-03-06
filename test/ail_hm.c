@@ -27,6 +27,7 @@ bool strTest(void)
     AIL_HM(String, u32) hm = ail_hm_new(String, u32, &sum, &strEq);
     u32 expected = 4;
     ail_hm_put(&hm, "test", expected);
+    ail_hm_put(&hm, "t2", 2*expected);
     bool found;
     u32  x;
     ail_hm_get_val(&hm, "test", x, found);
