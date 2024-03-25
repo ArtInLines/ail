@@ -22,7 +22,7 @@ CFLAGS += -ggdb
 endif
 endif
 
-all: da macros sv fs hm alloc
+all: da macros sv fs hm alloc buf
 
 da: ail_da.c
 	$(COMP) $(CFLAGS) -o ail_da ail_da.c
@@ -41,3 +41,6 @@ hm: ail_hm.c
 
 alloc: ail_alloc.c
 	$(COMP) $(CFLAGS) -o ail_alloc ail_alloc.c
+
+buf: ail_buf.c
+	$(COMP) $(CFLAGS) -o ail_buf ail_buf.c
