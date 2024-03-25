@@ -132,7 +132,7 @@ AIL_BUF_DEF void ail_buf_writecstr(AIL_Buffer *buf, char *str);
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_file(const char *filename)
 {
 	u64 len;
-	u8 *data = (u8 *)ail_fs_read_file(filename, &len);
+	u8 *data = (u8 *)ail_fs_read_entire_file(filename, &len);
 	return (AIL_Buffer) {
 		.data = data,
 		.idx  = 0,
@@ -157,23 +157,22 @@ AIL_BUF_DEF_INLINE bool ail_buf_to_file(AIL_Buffer *buf, const char *filename)
 
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_new(u64 cap)
 {
-	AIL_Buffer buf = {
-		.data = AIL_BUF_MALLOC(cap),
-		.len  = 0,
-		.cap  = cap,
-		.idx  = 0
-	};
+	AIL_Buffer buf;
+	buf.data = AIL_BUF_MALLOC(cap);
+	buf.len  = 0;
+	buf.cap  = cap;
+	buf.idx  = 0;
 	return buf;
 }
 
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_data(u8 *data, u64 len, u64 idx)
 {
-	return (AIL_Buffer) {
-		.data = data,
-		.idx  = idx,
-		.len  = len,
-		.cap  = len,
-	};
+	AIL_Buffer buf;
+	buf.data = data;
+	buf.idx  = idx;
+	buf.len  = len;
+	buf.cap  = len;
+	return buf;
 }
 
 AIL_BUF_DEF_INLINE void ail_buf_free(AIL_Buffer buf)
@@ -342,7 +341,7 @@ AIL_BUF_DEF char *ail_buf_readcstr(AIL_Buffer *buf)
 
 AIL_BUF_DEF void ail_buf_write1(AIL_Buffer *buf, u8  val)
 {
-	ail_buf_ensure_size(buf, 2);
+	ail_buf_ensure_size(buf, 1);
 	buf->data[buf->idx++] = val;
 	if (AIL_LIKELY(buf->idx > buf->len)) buf->len = buf->idx;
 }
