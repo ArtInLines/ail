@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-bool test_ail_sv_inits()
+bool test_ail_sv_inits(void)
 {
     char  *a = "abcdefg";
     AIL_SV b = ail_sv_from_cstr(a);
@@ -22,7 +22,7 @@ bool test_ail_sv_inits()
     return true;
 }
 
-bool test_ail_sv_num_conversions()
+bool test_ail_sv_num_conversions(void)
 {
     // @TODO: Test from/to float conversion too
     u32 len;
@@ -82,7 +82,7 @@ bool test_ail_sv_num_conversions()
     return true;
 }
 
-bool test_ail_sv_cmps()
+bool test_ail_sv_cmps(void)
 {
     char  *s = "abc defg";
     char  c1 = 'a';
@@ -108,7 +108,7 @@ bool test_ail_sv_cmps()
     return true;
 }
 
-bool test_ail_sv_split()
+bool test_ail_sv_split(void)
 {
     // @TODO: Also test the following
     // - ail_sv_split_next_char
@@ -135,7 +135,7 @@ bool test_ail_sv_split()
     return true;
 }
 
-bool test_ail_sv_others()
+bool test_ail_sv_others(void)
 {
     // @TODO: Also test the following
     AIL_SV empty  = {0};

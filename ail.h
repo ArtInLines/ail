@@ -97,14 +97,14 @@ typedef char*    str;
 // Full list here: https://sourceforge.net/p/predef/wiki/Home/
 
 // To detect Compilers
-// Clang:      __clang__
-// MSVC:       _MSC_VER
-// gcc:        __GNUC__
-// MinGW:      __MINGW32__ (defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only)
-// TinyC:      __TINYC__
-// Emscripten: __EMSCRIPTEN__
+// Clang | Zig:       __clang__
+// MSVC:              _MSC_VER
+// GCC | Clang | Zig: __GNUC__
+// MinGW:             __MINGW32__ (defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only)
+// TinyC:             __TINYC__
+// Emscripten:        __EMSCRIPTEN__
 
-// To detect standard
+// To detect C standard
 // __STDC__                    - C89 or higher Standard
 // __STDC_VERSION__ == 199901L - C99 Standard
 // __STDC_VERSION__ == 201112L - C11 Standard
@@ -184,6 +184,16 @@ typedef char*    str;
 #define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
 #define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
 
+// stolen from here (https://gcher.com/posts/2015-02-13-c-tricks/) and was originally stolen from linux kernel apparently
+#define AIL_IS_DEF3(_, v, ...) v
+#define AIL_IS_DEF2(comma) AIL_IS_DEF3(comma 1, 0)
+#define AIL_IS_DEF1(value) AIL_IS_DEF2(MACROTEST_##value)
+#define MACROTEST_1 ,
+#define AIL_IS_DEF(macro) AIL_IS_DEF1(macro)
+
+#define AIL_ARRLEN(arr) (sizeof(arr) / sizeof(*(arr)))
+
+// @Note: Not safe to use with expressions, that have side-effects (like AIL_MAX(x++, y++))
 #define AIL_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define AIL_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
@@ -191,7 +201,7 @@ typedef char*    str;
 #define AIL_SWAP_PORTABLE2(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #define AIL_SWAP_PORTABLE(T, x, y) AIL_SWAP_PORTABLE2(T, x, y);
 #ifdef AIL_TYPEOF
-	#define AIL_SWAP(x, y) do { __typeof__(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+	#define AIL_SWAP(x, y) do { AIL_TYPEOF(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #else
 	#define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
 #endif
@@ -218,7 +228,7 @@ typedef char*    str;
 #define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
 
 // @TODO: Better static assert message
-#define AIL_STATIC_ASSERT3(cond, msg) typedef char static_assertion_##msg[(!!(cond))*2-1]
+#define AIL_STATIC_ASSERT3(cond, msg) typedef char static_assertion_##msg[((!!(cond))*2)-1]
 #define AIL_STATIC_ASSERT2(cond, line) AIL_STATIC_ASSERT3(cond, static_assertion_at_line_##line)
 #define AIL_STATIC_ASSERT1(cond, line) AIL_STATIC_ASSERT2(cond, line)
 #define AIL_STATIC_ASSERT(cond)        AIL_STATIC_ASSERT1(cond, __LINE__)

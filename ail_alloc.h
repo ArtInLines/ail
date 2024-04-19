@@ -266,7 +266,8 @@ AIL_ALLOC_DEF void ail_alloc_freelist_free_all_keep_regions(void *data);
 
 // @TODO: Implement Page Allocations for OSes other than WINDOWS and UNIX
 #if defined(_WIN32)
-#include <memoryapi.h> // For VirtualAlloc
+#include <Windows.h>
+// #include <memoryapi.h> // For VirtualAlloc
 #else
 #include <sys/mman.h>
 #endif
@@ -1010,7 +1011,7 @@ void *ail_alloc_freelist_calloc(void *data, size_t nelem, size_t elsize)
 	u64 size = nelem * elsize;
 	u8 *ptr  = ail_alloc_freelist_alloc(data, size);
 	memset(ptr, 0, size);
-	AIL_ALLOC_LOG_CALLOC("freelist", ptr, nelem, elsize);
+	AIL_ALLOC_LOG_CALLOC("freelist", (void *)ptr, nelem, elsize);
 	return ptr;
 }
 

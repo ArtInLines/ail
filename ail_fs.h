@@ -192,11 +192,11 @@ bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
     for (u8 i = 0; i < AIL_FS_MAX_ATTEMPTS && res < 0; i++) {
         DWORD dwRes = WaitForSingleObject(osReader.hEvent, AIL_FS_READ_TIMEOUT);
         switch(dwRes) {
-            case WAIT_OBJECT_0:
+            case WAIT_OBJECT_0: {
                 // Read completed.
                 bool succ = GetOverlappedResult(file, &osReader, &nRead, FALSE);
                 res = succ ? 1 : 0;
-                break;
+            } break;
             case WAIT_TIMEOUT:
                 // Gotta wait a little longer to finish operation
                 break;
@@ -262,11 +262,11 @@ bool ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
     for (u32 i = 0; i < AIL_FS_MAX_ATTEMPTS && res < 0; i++) {
         DWORD dwRes = WaitForSingleObject(osWrite.hEvent, AIL_FS_WRITE_TIMEOUT);
         switch(dwRes) {
-            case WAIT_OBJECT_0:
+            case WAIT_OBJECT_0: {
                 // Write completed
                 bool succ = GetOverlappedResult(file, &osWrite, &dwWritten, FALSE);
                 res = succ ? 1 : 0;
-                break;
+            } break;
             case WAIT_TIMEOUT:
                 // Gotta wait a little longer to finish operation
                 break;
