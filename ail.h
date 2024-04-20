@@ -97,9 +97,9 @@ typedef char*    str;
 // Full list here: https://sourceforge.net/p/predef/wiki/Home/
 
 // To detect Compilers
-// Clang | Zig:       __clang__
+// Clang + Zig:       __clang__
 // MSVC:              _MSC_VER
-// GCC | Clang | Zig: __GNUC__
+// GCC (+Clang+Zig):  __GNUC__
 // MinGW:             __MINGW32__ (defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only)
 // TinyC:             __TINYC__
 // Emscripten:        __EMSCRIPTEN__
