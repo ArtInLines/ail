@@ -173,12 +173,12 @@ AIL_GUI_DEF AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self);
 #define _GUI_IMPL_GUARD_
 
 AIL_Allocator ail_gui_allocator = {
-	.data       = NULL,
-	.alloc      = &ail_default_malloc,
-	.zero_alloc = &ail_default_calloc,
-	.re_alloc   = &ail_default_realloc,
-	.free_one   = &ail_default_free,
-	.free_all   = &ail_default_free_all,
+    .data       = NULL,
+    .alloc      = &ail_default_malloc,
+    .zero_alloc = &ail_default_calloc,
+    .re_alloc   = &ail_default_realloc,
+    .free_one   = &ail_default_free,
+    .free_all   = &ail_default_free_all,
 };
 
 // Static Variables

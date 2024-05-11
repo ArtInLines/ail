@@ -529,12 +529,12 @@ AIL_SV_DEF AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, bool ignore_
         while (i < sv->len && sv->str[i] == split_by) i++;
     }
     size_t j = i;
-	while (j < sv->len && sv->str[j] != split_by) j++;
+    while (j < sv->len && sv->str[j] != split_by) j++;
     *sv = ail_sv_offset(*sv, j);
-	return (AIL_SV) {
-		.str = &sv->str[i],
-		.len = j - i,
-	};
+    return (AIL_SV) {
+        .str = &sv->str[i],
+        .len = j - i,
+    };
 }
 
 AIL_SV_DEF AIL_SV ail_sv_split_next(AIL_SV *sv, AIL_SV split_by, bool ignore_empty)
@@ -546,14 +546,14 @@ AIL_SV_DEF AIL_SV ail_sv_split_next(AIL_SV *sv, AIL_SV split_by, bool ignore_emp
         }
     }
     size_t j = i;
-	while (j < sv->len - split_by.len && !ail_sv_starts_with(ail_sv_offset(*sv, j), split_by)) {
+    while (j < sv->len - split_by.len && !ail_sv_starts_with(ail_sv_offset(*sv, j), split_by)) {
         j++;
     }
     *sv = ail_sv_offset(*sv, j);
-	return (AIL_SV) {
-		.str = &sv->str[i],
-		.len = j - i,
-	};
+    return (AIL_SV) {
+        .str = &sv->str[i],
+        .len = j - i,
+    };
 }
 
 AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_char(AIL_SV sv, char split_by, bool ignore_empty)

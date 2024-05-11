@@ -68,14 +68,14 @@ SOFTWARE.
 #ifdef _WIN32
     #include <windows.h>
     #include <direct.h>
-	#define mkdir(dir, mode)      _mkdir(dir)
-	#define open(name, ...)       _open(name, __VA_ARGS__)
-	#define read(fd, buf, count)  _read(fd, buf, count)
-	#define close(fd)             _close(fd)
-	#define write(fd, buf, count) _write(fd, buf, count)
-	#define dup2(fd1, fd2)        _dup2(fd1, fd2)
-	#define unlink(file)          _unlink(file)
-	#define rmdir(dir)            _rmdir(dir)
+    #define mkdir(dir, mode)      _mkdir(dir)
+    #define open(name, ...)       _open(name, __VA_ARGS__)
+    #define read(fd, buf, count)  _read(fd, buf, count)
+    #define close(fd)             _close(fd)
+    #define write(fd, buf, count) _write(fd, buf, count)
+    #define dup2(fd1, fd2)        _dup2(fd1, fd2)
+    #define unlink(file)          _unlink(file)
+    #define rmdir(dir)            _rmdir(dir)
 
     #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
     #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
@@ -133,7 +133,7 @@ AIL_FS_DEF bool ail_fs_is_file(const char *path);
 
 bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
 {
-	while (*a && *b && *a++ == *b++) {}
+    while (*a && *b && *a++ == *b++) {}
     return *a == *b && !*a;
 }
 
