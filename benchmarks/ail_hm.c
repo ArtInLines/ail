@@ -1,7 +1,10 @@
 #define AIL_FS_IMPL
 #define AIL_HM_IMPL
+#define AIL_BENCH_IMPL
+#define AIL_BENCH_PROFILE
 #include "../ail_hm.h"
 #include "../ail_fs.h"
+#include "../ail_bench.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -15,18 +18,6 @@ typedef char* String;
 AIL_HM_INIT(String, u32);
 
 static AIL_HM(String, u32) hm;
-
-double clockGetSecs(void)
-{
-#ifdef _WIN32
-    return (double)timeGetTime() / 1000;
-#else
-    struct timespec ts = {0};
-    int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
-    AIL_ASSERT(ret == 0);
-    return (double)ts.tv_sec + ts.tv_nsec*1e-9;
-#endif
-}
 
 bool ignoreChar(char c)
 {
@@ -63,11 +54,13 @@ i32 keyValCompRev(const void *a, const void *b)
 void txtFileTest(const char *fpath)
 {
     u64 fsize;
+    AIL_BENCH_PROFILE_START(ReadFile);
     char *text = ail_fs_read_entire_file(fpath, &fsize);
+    AIL_BENCH_PROFILE_END(ReadFile);
+
     hm = ail_hm_new_with_cap(String, u32, 64, &djb2, &strEq);
 
-    double start = clockGetSecs();
-
+    AIL_BENCH_PROFILE_START(FillHashMap);
     u32 tokenCount = 0;
     u32 i = 0;
     while (i < fsize) {
@@ -83,7 +76,9 @@ void txtFileTest(const char *fpath)
         if (val) (*val)++;
         else ail_hm_put(&hm, s, 1);
     }
+    AIL_BENCH_PROFILE_END(FillHashMap);
 
+    AIL_BENCH_PROFILE_START(SortTokens);
     u32 arrlen = hm.len;
     AIL_HM_KEY_VAL(String, u32) *arr = malloc(sizeof(AIL_HM_KEY_VAL(String, u32)) * arrlen);
     for (u32 i = 0, j = 0; i < hm.cap; i++) {
@@ -94,8 +89,7 @@ void txtFileTest(const char *fpath)
         }
     }
     qsort(arr, arrlen, sizeof(AIL_HM_KEY_VAL(String, u32)), keyValCompRev);
-
-    double end = clockGetSecs();
+    AIL_BENCH_PROFILE_END(SortTokens);
 
     char *expTopTenKeys[] = { "the",  "I",  "and", "to",   "of", "a",   "my", "in", "you", "is" };
     u32   expTopTenVals[] = { 23242, 19540, 18297, 15623, 15544, 12532, 10824, 9576, 9081, 7851 };
@@ -116,12 +110,13 @@ void txtFileTest(const char *fpath)
         else printf("\033[31m");
         printf("    %2d: %6s (%d)\033[0m\n", i, arr[i].key, arr[i].val);
     }
-    printf("  Total time %.03lfs\n", end - start);
 }
 
 int main(void)
 {
+    ail_bench_begin_profile();
     txtFileTest("shakespeare.txt");
+    ail_bench_end_and_print_profile(false);
     // Expected result:
     // Tokens: 901326
     // Unique Tokens: 67506
