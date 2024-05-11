@@ -78,6 +78,7 @@ SOFTWARE.
 typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
+typedef uint32_t b32;
 typedef uint64_t u64;
 typedef int8_t   i8;
 typedef int16_t  i16;
@@ -108,7 +109,16 @@ typedef char*    str;
 // __STDC__                    - C89 or higher Standard
 // __STDC_VERSION__ == 199901L - C99 Standard
 // __STDC_VERSION__ == 201112L - C11 Standard
+// __STDC_VERSION__ == 201710L - C17 Standard
+// __STDC_VERSION__ == 202311L - C23 Standard
 // __cplusplus                 - C++ Standard
+// __cplusplus == 1            - pre C++98 Standard
+// __cplusplus == 199711L      - C++98 Standard
+// __cplusplus == 201103L      - C++11 Standard
+// __cplusplus == 201402L      - C++14 Standard
+// __cplusplus == 201703L      - C++17 Standard
+// __cplusplus == 202002L      - C++20 Standard
+// __cplusplus == 202302L      - C++23 Standard
 
 // To detect OS
 // Win32   - _WIN32 || __WIN32__
@@ -156,9 +166,9 @@ typedef char*    str;
 #include <stdlib.h> // For exit
 
 #ifdef __cplusplus
-	#define AIL_TYPEOF(x) decltype(x)
+    #define AIL_TYPEOF(x) decltype(x)
 #elif defined(__GNUC__) || defined(_MINGW)
-	#define AIL_TYPEOF(x) __typeof__(x)
+    #define AIL_TYPEOF(x) __typeof__(x)
 #else
 // No typeof possible
 #endif
@@ -170,26 +180,29 @@ typedef char*    str;
 
 // @Note: Do not include "enum" in the declaration
 #if defined(__GNUC__)
-	#define AIL_PACK_BEGIN() __attribute__((__packed__))
-	#define AIL_PACK_END()
+    #define AIL_PACK_BEGIN() __attribute__((__packed__))
+    #define AIL_PACK_END()
 #elif defined(_MSC_VER)
-	#define AIL_PACK_BEGIN() __pragma(pack(push, 1))
-	#define AIL_PACK_END()   __pragma(pack(pop))
+    #define AIL_PACK_BEGIN() __pragma(pack(push, 1))
+    #define AIL_PACK_END()   __pragma(pack(pop))
 #elif defined(__clang__) || defined(__TINYC__)
-	#define AIL_PACK_BEGIN() __attribute__((packed))
-	#define AIL_PACK_END()
+    #define AIL_PACK_BEGIN() __attribute__((packed))
+    #define AIL_PACK_END()
 #endif
 
-#define AIL_STRINGIZE2(x) #x
-#define AIL_STRINGIZE(x) AIL_STRINGIZE2(x)
+#define _AIL_STRINGIZE2(x) #x
+#define AIL_STRINGIZE(x) _AIL_STRINGIZE2(x)
 #define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
 
+#define _AIL_CONCAT2(A, B) A##B
+#define AIL_CONCAT(A, B) _AIL_CONCAT2(A, B)
+
 // stolen from here (https://gcher.com/posts/2015-02-13-c-tricks/) and was originally stolen from linux kernel apparently
-#define AIL_IS_DEF3(_, v, ...) v
-#define AIL_IS_DEF2(comma) AIL_IS_DEF3(comma 1, 0)
-#define AIL_IS_DEF1(value) AIL_IS_DEF2(MACROTEST_##value)
+#define _AIL_IS_DEF3(_, v, ...) v
+#define _AIL_IS_DEF2(comma) _AIL_IS_DEF3(comma 1, 0)
+#define _AIL_IS_DEF1(value) _AIL_IS_DEF2(MACROTEST_##value)
 #define MACROTEST_1 ,
-#define AIL_IS_DEF(macro) AIL_IS_DEF1(macro)
+#define AIL_IS_DEF(macro) _AIL_IS_DEF1(macro)
 
 #define AIL_ARRLEN(arr) (sizeof(arr) / sizeof(*(arr)))
 
@@ -201,37 +214,45 @@ typedef char*    str;
 #define AIL_SWAP_PORTABLE2(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #define AIL_SWAP_PORTABLE(T, x, y) AIL_SWAP_PORTABLE2(T, x, y);
 #ifdef AIL_TYPEOF
-	#define AIL_SWAP(x, y) do { AIL_TYPEOF(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+    #define AIL_SWAP(x, y) do { AIL_TYPEOF(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #else
-	#define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
+    #define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
 #endif
 
-// AIL_LERP(AIL_LERP(x, min, max), min, max) = x
+// AIL_LERP(AIL_REV_LERP(x, min, max), min, max) = x
 #define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
 #define AIL_REV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
 
 #if defined(__GNUC__) || defined(__clang__)
-	#define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
-	#define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
+    #define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
+    #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
 #else
-	#define AIL_UNLIKELY(expr) (expr)
-	#define AIL_LIKELY(expr)   (expr)
+    #define AIL_UNLIKELY(expr) (expr)
+    #define AIL_LIKELY(expr)   (expr)
 #endif
 
-#define AIL_DBG_EXIT() do { int *X = 0; *X = 0; exit(1); } while(0)
+#define AIL_DBG_EXIT()               do { int *X = 0; *X = 0; exit(1); } while(0)
 #define AIL_ASSERT_COMMON(expr, msg) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); AIL_DBG_EXIT(); } } while(0)
-#define AIL_ASSERT_MSG(expr, msg) AIL_ASSERT_COMMON(expr, "with message '" msg "'")
-#define AIL_ASSERT(expr) AIL_ASSERT_COMMON(expr, "with expression 'AIL_ASSERT(" #expr ")'")
+#define AIL_ASSERT_MSG(expr, msg)    AIL_ASSERT_COMMON(expr, "with message '" msg "'")
+#define AIL_ASSERT(expr)             AIL_ASSERT_COMMON(expr, "with expression 'AIL_ASSERT(" #expr ")'")
 
-#define AIL_PANIC(...) do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
-#define AIL_TODO() do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_PANIC(...)    do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_TODO()        do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
 #define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
 
 // @TODO: Better static assert message
-#define AIL_STATIC_ASSERT3(cond, msg) typedef char static_assertion_##msg[((!!(cond))*2)-1]
-#define AIL_STATIC_ASSERT2(cond, line) AIL_STATIC_ASSERT3(cond, static_assertion_at_line_##line)
-#define AIL_STATIC_ASSERT1(cond, line) AIL_STATIC_ASSERT2(cond, line)
-#define AIL_STATIC_ASSERT(cond)        AIL_STATIC_ASSERT1(cond, __LINE__)
+#ifdef __cpp_static_assert
+    #define AIL_STATIC_ASSERT(cond, msg) static_assert(!!(cond), msg)
+#elif __STDC_VERSION__ >= 202311L
+    #define AIL_STATIC_ASSERT(cond, msg) static_assert(!!(cond), msg)
+#elif __STDC_VERSION__ >= 201112L
+    #include <assert.h>
+    #define AIL_STATIC_ASSERT(cond, msg) _Static_assert(!!(cond), msg)
+#else
+    #define _AIL_STATIC_ASSERT2(cond, msg, line) do { char ail_static_assertion_at_line##line[((!!(cond))*(AIL_ARRLEN(msg)+2))-1] = msg; AIL_UNUSED(ail_static_assertion_at_line##line); } while(0)
+    #define _AIL_STATIC_ASSERT1(cond, msg, line) _AIL_STATIC_ASSERT2(cond, msg, line)
+    #define AIL_STATIC_ASSERT(cond, msg)         _AIL_STATIC_ASSERT1(cond, msg, __LINE__)
+#endif
 
 #define AIL_OFFSETOF(var, field) (((char *) &(var)->field) - ((char *) (var)))
 
@@ -256,10 +277,10 @@ typedef char*    str;
 // If a specific allocator supports additional functions,
 // they should be kept inside the data attribute
 typedef struct AIL_Allocator {
-	void *data; // Metadata required by allocator and provided in all function calls
-	void *(*alloc)(void* data, size_t size);
-	void *(*zero_alloc)(void* data, size_t nelem, size_t elsize);
-	void *(*re_alloc)(void* data, void* ptr, size_t size);
+    void *data; // Metadata required by allocator and provided in all function calls
+    void *(*alloc)(void* data, size_t size);
+    void *(*zero_alloc)(void* data, size_t nelem, size_t elsize);
+    void *(*re_alloc)(void* data, void* ptr, size_t size);
     void  (*free_one)(void* data, void* ptr);
     void  (*free_all)(void* data);
 } AIL_Allocator;
@@ -270,42 +291,42 @@ typedef struct AIL_Allocator {
 
 AIL_DEF void* ail_default_malloc(void *data, size_t size)
 {
-	(void)data;
-	return AIL_MALLOC(size);
+    (void)data;
+    return AIL_MALLOC(size);
 }
 AIL_DEF void* ail_default_calloc(void* data, size_t nelem, size_t elsize)
 {
-	(void)data;
-	return AIL_CALLOC(nelem, elsize);
+    (void)data;
+    return AIL_CALLOC(nelem, elsize);
 }
 AIL_DEF void* ail_default_realloc(void* data, void* ptr, size_t size)
 {
-	(void)data;
-	return AIL_REALLOC(ptr, size);
+    (void)data;
+    return AIL_REALLOC(ptr, size);
 }
 AIL_DEF void ail_default_free(void* data, void* ptr)
 {
-	(void)data;
-	AIL_FREE(ptr);
+    (void)data;
+    AIL_FREE(ptr);
 }
 AIL_DEF void ail_default_free_all(void* data)
 {
-	(void)data;
+    (void)data;
 }
 
 static AIL_Allocator ail_default_allocator = {
-	.data       = NULL,
-	.alloc      = &ail_default_malloc,
-	.zero_alloc = &ail_default_calloc,
-	.re_alloc   = &ail_default_realloc,
-	.free_one   = &ail_default_free,
-	.free_all   = &ail_default_free_all,
+    .data       = NULL,
+    .alloc      = &ail_default_malloc,
+    .zero_alloc = &ail_default_calloc,
+    .re_alloc   = &ail_default_realloc,
+    .free_one   = &ail_default_free,
+    .free_all   = &ail_default_free_all,
 };
 
 // Function just exists to suppress of potential "unused ail_default_allocator" warning
 void __ail_default_allocator_unused__(void)
 {
-	(void)ail_default_allocator;
+    (void)ail_default_allocator;
 }
 
 #endif // _AIL_ALLOCATOR_GUARD_
@@ -365,73 +386,73 @@ AIL_DA_INIT(str);
 #define ail_da_free(daPtr) do { (daPtr)->allocator->free_one((daPtr)->allocator->data, (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
 
 #define ail_da_printf(da, format, ...) do {                                       \
-		AIL_DA_PRINT("{\n  cap: %d,\n  len: %d,\n  data: [", (da).cap, (da).len); \
-		for (u32 i = 0; i < (da).len; i++) {                                      \
-			AIL_DA_PRINT("\n    " format ",", __VA_ARGS__);                       \
-		}                                                                         \
-		if ((da).len > 0) AIL_DA_PRINT("\n");                                     \
-		AIL_DA_PRINT("  ]\n}\n");                                                 \
-	} while(0)
+        AIL_DA_PRINT("{\n  cap: %d,\n  len: %d,\n  data: [", (da).cap, (da).len); \
+        for (u32 i = 0; i < (da).len; i++) {                                      \
+            AIL_DA_PRINT("\n    " format ",", __VA_ARGS__);                       \
+        }                                                                         \
+        if ((da).len > 0) AIL_DA_PRINT("\n");                                     \
+        AIL_DA_PRINT("  ]\n}\n");                                                 \
+    } while(0)
 
 #define ail_da_setn(daPtr, idx, elems, n) do {                                             \
-		for (unsigned int _ail_da_setn_i_ = 0; _ail_da_setn_i_ < (n); _ail_da_setn_i_++) { \
-			(daPtr)->data[(idx) + _ail_da_setn_i_] = (elems)[_ail_da_setn_i_];             \
-		}                                                                                  \
-	} while(0)
+        for (unsigned int _ail_da_setn_i_ = 0; _ail_da_setn_i_ < (n); _ail_da_setn_i_++) { \
+            (daPtr)->data[(idx) + _ail_da_setn_i_] = (elems)[_ail_da_setn_i_];             \
+        }                                                                                  \
+    } while(0)
 
 #define ail_da_resize(daPtr, newCap) do {                                                                                         \
-		(daPtr)->data = (daPtr)->allocator->re_alloc((daPtr)->allocator->data, (daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
-		(daPtr)->cap  = (newCap);                                                                                                 \
-		if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                                                             \
-	} while(0)
+        (daPtr)->data = (daPtr)->allocator->re_alloc((daPtr)->allocator->data, (daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
+        (daPtr)->cap  = (newCap);                                                                                                 \
+        if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                                                             \
+    } while(0)
 
 #define ail_da_maybe_grow(daPtr, n) do {                                       \
-		if ((daPtr)->len + (n) > (daPtr)->cap)								   \
-			ail_da_resize(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
-	} while(0)
+        if ((daPtr)->len + (n) > (daPtr)->cap)								   \
+            ail_da_resize(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
+    } while(0)
 
 #define ail_da_push(daPtr, elem) do {           \
-		ail_da_maybe_grow(daPtr, 1);            \
-		(daPtr)->data[(daPtr)->len++] = (elem); \
-	} while(0)
+        ail_da_maybe_grow(daPtr, 1);            \
+        (daPtr)->data[(daPtr)->len++] = (elem); \
+    } while(0)
 
 #define ail_da_pushn(daPtr, elems, n) do {                                               \
-		ail_da_maybe_grow(daPtr, n);                                                     \
-		AIL_MEMCPY((daPtr)->data + (daPtr)->len, (elems), sizeof(*((daPtr)->data))*(n)); \
-		(daPtr)->len += (n);                                                             \
-	} while(0)
+        ail_da_maybe_grow(daPtr, n);                                                     \
+        AIL_MEMCPY((daPtr)->data + (daPtr)->len, (elems), sizeof(*((daPtr)->data))*(n)); \
+        (daPtr)->len += (n);                                                             \
+    } while(0)
 
 #define ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize) do {                                                                 \
-		(daPtr)->cap = (newCap);                                                                                                           \
-		char *_ail_da_gwg_ptr_ = (char *) (daPtr)->data;                                                                                   \
-		(daPtr)->data = (daPtr)->allocator->alloc((daPtr)->allocator->data, (elSize)*(newCap));                                            \
-		AIL_ASSERT((daPtr)->data != NULL);                                                                                                 \
-		AIL_MEMCPY((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
-		AIL_MEMCPY(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
-		(daPtr)->allocator->free_one((daPtr)->allocator->data, _ail_da_gwg_ptr_);                                                          \
-		(daPtr)->len += (gapLen);                                                                                                          \
-	} while(0)
+        (daPtr)->cap = (newCap);                                                                                                           \
+        char *_ail_da_gwg_ptr_ = (char *) (daPtr)->data;                                                                                   \
+        (daPtr)->data = (daPtr)->allocator->alloc((daPtr)->allocator->data, (elSize)*(newCap));                                            \
+        AIL_ASSERT((daPtr)->data != NULL);                                                                                                 \
+        AIL_MEMCPY((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
+        AIL_MEMCPY(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
+        (daPtr)->allocator->free_one((daPtr)->allocator->data, _ail_da_gwg_ptr_);                                                          \
+        (daPtr)->len += (gapLen);                                                                                                          \
+    } while(0)
 
 #define ail_da_maybe_grow_with_gap(daPtr, idx, n) do {                                                                        \
-		if ((daPtr)->len + (n) > (daPtr)->cap) {                                                                              \
-			ail_da_grow_with_gap((daPtr), (idx), (n), AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), sizeof(*((daPtr)->data))); \
-		} else {                                                                                                              \
-			for (unsigned int _ail_da_i_ = 1; _ail_da_i_ <= ((daPtr)->len - (idx)); _ail_da_i_++) {                           \
-				(daPtr)->data[((daPtr)->len + (n)) - _ail_da_i_] =  (daPtr)->data[(daPtr)->len - _ail_da_i_];                 \
-			}                                                                                                                 \
-			(daPtr)->len += (n);                                                                                              \
-		}                                                                                                                     \
-	} while(0)
+        if ((daPtr)->len + (n) > (daPtr)->cap) {                                                                              \
+            ail_da_grow_with_gap((daPtr), (idx), (n), AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), sizeof(*((daPtr)->data))); \
+        } else {                                                                                                              \
+            for (unsigned int _ail_da_i_ = 1; _ail_da_i_ <= ((daPtr)->len - (idx)); _ail_da_i_++) {                           \
+                (daPtr)->data[((daPtr)->len + (n)) - _ail_da_i_] =  (daPtr)->data[(daPtr)->len - _ail_da_i_];                 \
+            }                                                                                                                 \
+            (daPtr)->len += (n);                                                                                              \
+        }                                                                                                                     \
+    } while(0)
 
 #define ail_da_insert(daPtr, idx, elem) do {       \
-		ail_da_maybe_grow_with_gap(daPtr, idx, 1); \
-		(daPtr)->data[(idx)] = (elem);             \
-	} while(0)
+        ail_da_maybe_grow_with_gap(daPtr, idx, 1); \
+        (daPtr)->data[(idx)] = (elem);             \
+    } while(0)
 
 #define ail_da_insertn(daPtr, idx, elems, n) do {  \
-		ail_da_maybe_grow_with_gap(daPtr, idx, n); \
-		ail_da_setn(daPtr, idx, elems, n);         \
-	} while(0)
+        ail_da_maybe_grow_with_gap(daPtr, idx, n); \
+        ail_da_setn(daPtr, idx, elems, n);         \
+    } while(0)
 
 // @TODO: Add ail_da_shrink & ail_da_maybe_shrink (they should only ever be explicitly called by the user)
 
