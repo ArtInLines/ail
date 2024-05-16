@@ -44,7 +44,7 @@ SOFTWARE.
 // AIL_DEF and AIL_DEF_INLINE only effect the AIL_ALLOC functions
 // They do however serve as defaults for the other ail headers
 #ifndef AIL_DEF
-#define AIL_DEF
+#define AIL_DEF static
 #endif // AIL_DEF
 #ifndef AIL_DEF_INLINE
 #define AIL_DEF_INLINE static inline
@@ -324,7 +324,7 @@ static AIL_Allocator ail_default_allocator = {
 };
 
 // Function just exists to suppress of potential "unused ail_default_allocator" warning
-void __ail_default_allocator_unused__(void)
+AIL_DEF void __ail_default_allocator_unused__(void)
 {
     (void)ail_default_allocator;
 }
