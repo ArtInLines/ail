@@ -15,6 +15,7 @@
 - portable thread library
 - portable subprocess library
 - linear algebra library
+- dynamic reloading library (maybe?) (see: https://github.com/jdah/ld55/blob/main/cjam/reloadhost/reloadhost.h)
 - improve AIL_HM
 - fix errors in allocators
 - change allocator interface to use a single function with an enum determining the action (alloc/free/etc.) -> requires less space (same as Odin's implementation of allocators)
