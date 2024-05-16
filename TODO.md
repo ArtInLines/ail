@@ -1,0 +1,23 @@
+- Simple C-based Build System
+  - Provide ability to run commands like bash/batch scripts
+  - Allow parallelization of builds
+  - Provide thin abstraction layer over different C compilers
+  - Inspired by tsoding's nob: https://github.com/tsoding/musializer/blob/master/src/nob.h
+- Sized Array template like AIL_DA
+- Dynamic Array that doesn't invalidate indexes template
+  - needs some name - doesn't seem to have one (except for jdah's 'blklist')
+  - can be implemented with pointer invalidation or without (i.e. normal resizing or with linked-list regions)
+  - needs to store free indexes (either via a freelist or bitmaps)
+  - Implemented with freelists before in Odin (called PersonManger here): https://github.com/ArtInLines/famtree/blob/master/model.odin
+  - jdah implemented it with bitmaps here: https://github.com/jdah/ld55/blob/main/cjam/util/blklist.h
+- interned strings cache library
+- portable simd library
+- portable thread library
+- portable subprocess library
+- linear algebra library
+- improve AIL_HM
+- fix errors in allocators
+- change allocator interface to use a single function with an enum determining the action (alloc/free/etc.) -> requires less space (same as Odin's implementation of allocators)
+- bc of IMPL_GUARDS, requiring to define IMPL for every library is kinda dumb -> change this
+- Formatting/Printing for ail_sv.h
+- Visualization of allocations in ail_alloc.h for debugging memory bugs
