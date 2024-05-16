@@ -36,7 +36,7 @@ endif
 
 C ?= $(COMP)
 
-all: da macros sv fs hm alloc buf
+all: da macros sv fs hm alloc buf ring
 
 da: ail_da.c
 	$(C) $(CFLAGS) -o ail_da ail_da.c
@@ -58,3 +58,6 @@ alloc: ail_alloc.c
 
 buf: ail_buf.c
 	$(C) $(CFLAGS) -o ail_buf ail_buf.c
+
+ring: ail_ring.c
+	$(C) $(CFLAGS) -o ail_ring ail_ring.c
