@@ -14,7 +14,7 @@ I'm writing these libraries primarily for myself. I will thus add features that 
 
 ## Libraries
 
-| library                      | description                                                                                          |
+| Library                      | Description                                                                                          |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [ail.h](./ail.h)             | Common definitions used by all other libraries. This file should always be included                  |
 | [ail_hm.h](./ail_hm.h)       | Generic Hashmap implementation, where keys and values can be of any type                             |
