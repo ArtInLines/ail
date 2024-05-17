@@ -3,7 +3,7 @@
   - Allow parallelization of builds
   - Provide thin abstraction layer over different C compilers
   - Inspired by tsoding's nob: https://github.com/tsoding/musializer/blob/master/src/nob.h
-- Sized Array template like AIL_DA
+- Sized-Heap-Array template like AIL_DA
 - Dynamic Array that doesn't invalidate indexes template
   - needs some name - doesn't seem to have one (except for jdah's 'blklist')
   - can be implemented with pointer invalidation or without (i.e. normal resizing or with linked-list regions)
@@ -19,6 +19,5 @@
 - improve AIL_HM
 - fix errors in allocators
 - change allocator interface to use a single function with an enum determining the action (alloc/free/etc.) -> requires less space (same as Odin's implementation of allocators)
-- bc of IMPL_GUARDS, requiring to define IMPL for every library is kinda dumb -> change this
 - Formatting/Printing for ail_sv.h
 - Visualization of allocations in ail_alloc.h for debugging memory bugs

@@ -299,53 +299,61 @@ typedef char*    str;
 // automatically enabled when, AIL_DA is also enabled
 /////////////////////////
 
-// If a specific allocator supports additional functions,
-// they should be kept inside the data attribute
+#ifdef AIL_TYPES_IMPL
+#define _AIL_ALLOCATOR_SIZE_TYPE u64
+#else
+#define _AIL_ALLOCATOR_SIZE_TYPE size_t
+#endif
+
+#define AIL_CALL_ALLOC(allocator, size) (allocator).alloc((allocator).data, AIL_MEM_ALLOC, (size), NULL, 0)
+
+#define _AIL_CALL_CALLOC3(allocator, nelem, size_el) (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL, 0)
+#define _AIL_CALL_CALLOC2(allocator, size)           (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (size),            NULL, 0)
+#define AIL_CALL_CALLOC(...) AIL_VFUNC(_AIL_CALL_CALLOC, __VA_ARGS__)
+
+#define AIL_CALL_REALLOC(allocator, old_ptr, size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (size), (old_ptr), 0)
+
+#define _AIL_CALL_FREE3(allocator, old_ptr, old_size) (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr), (old_size))
+#define _AIL_CALL_FREE2(allocator, old_ptr)           (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr), 0)
+#define AIL_CALL_FREE(...) AIL_VFUNC(_AIL_CALL_FREE, __VA_ARGS__)
+
+#define AIL_CALL_FREE_ALL(allocator)               (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL, 0)
+
+// The action that should be executed when calling the allocator proc
+typedef enum AIL_Allocator_Mode {
+    AIL_MEM_ALLOC,
+    AIL_MEM_CALLOC,
+    AIL_MEM_REALLOC,
+    AIL_MEM_FREE,
+    AIL_MEM_FREE_ALL,
+} AIL_Allocator_Mode;
+
 typedef struct AIL_Allocator {
     void *data; // Metadata required by allocator and provided in all function calls
-    void *(*alloc)(void* data, size_t size);
-    void *(*zero_alloc)(void* data, size_t nelem, size_t elsize);
-    void *(*re_alloc)(void* data, void* ptr, size_t size);
-    void  (*free_one)(void* data, void* ptr);
-    void  (*free_all)(void* data);
+    void *(*alloc)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size);
 } AIL_Allocator;
 
 #if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
 #ifndef _AIL_ALLOCATOR_GUARD_
 #define _AIL_ALLOCATOR_GUARD_
 
-AIL_DEF void* ail_default_malloc(void *data, size_t size)
+AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size)
 {
-    (void)data;
-    return AIL_MALLOC(size);
-}
-AIL_DEF void* ail_default_calloc(void* data, size_t nelem, size_t elsize)
-{
-    (void)data;
-    return AIL_CALLOC(nelem, elsize);
-}
-AIL_DEF void* ail_default_realloc(void* data, void* ptr, size_t size)
-{
-    (void)data;
-    return AIL_REALLOC(ptr, size);
-}
-AIL_DEF void ail_default_free(void* data, void* ptr)
-{
-    (void)data;
-    AIL_FREE(ptr);
-}
-AIL_DEF void ail_default_free_all(void* data)
-{
-    (void)data;
+    AIL_UNUSED(data); AIL_UNUSED(size); AIL_UNUSED(old_ptr); AIL_UNUSED(old_size);
+    switch (mode) {
+        case AIL_MEM_ALLOC:    return AIL_MALLOC(size);
+        case AIL_MEM_CALLOC:   return AIL_CALLOC(size, 1);
+        case AIL_MEM_REALLOC:  return AIL_REALLOC(old_ptr, size);
+        case AIL_MEM_FREE:     AIL_FREE(old_ptr); return NULL;
+        case AIL_MEM_FREE_ALL: return NULL;
+    }
+    AIL_UNREACHABLE();
+    return NULL;
 }
 
 static AIL_Allocator ail_default_allocator = {
-    .data       = NULL,
-    .alloc      = &ail_default_malloc,
-    .zero_alloc = &ail_default_calloc,
-    .re_alloc   = &ail_default_realloc,
-    .free_one   = &ail_default_free,
-    .free_all   = &ail_default_free_all,
+    .data  = NULL,
+    .alloc = &ail_default_alloc,
 };
 
 // Function just exists to suppress of potential "unused ail_default_allocator" warning
@@ -402,13 +410,13 @@ AIL_DA_INIT(str);
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
 
 #define ail_da_from_parts(T, d, l, c, alPtr) (AIL_DA(T)) { .data = (d), .len = (l), .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_with_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->alloc((alPtr)->data, sizeof(T) * (c)), .len = 0, .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_zero_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->zero_alloc((alPtr)->data, sizeof(T) * (c)), .len = 0, .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_with_cap(T, c)            (AIL_DA(T)) { .data = ail_default_allocator.alloc(ail_default_allocator.data, sizeof(T) * (c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
-#define ail_da_new(T)                        (AIL_DA(T)) { .data = ail_default_allocator.alloc(ail_default_allocator.data, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = &ail_default_allocator }
+#define ail_da_new_with_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->alloc((alPtr)->data, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_zero_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->zero_alloc((alPtr)->data, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_with_cap(T, c)            (AIL_DA(T)) { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
+#define ail_da_new(T)                        (AIL_DA(T)) { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = &ail_default_allocator }
 #define ail_da_new_empty(T)                  (AIL_DA(T)) { .data = NULL, .len = 0, .cap = 0, .allocator = &ail_default_allocator }
-#define ail_da_new_zero_init(T, c)           (AIL_DA(T)) { .data = ail_default_allocator.zero_alloc(ail_default_allocator.data, (c), sizeof(T)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
-#define ail_da_free(daPtr) do { (daPtr)->allocator->free_one((daPtr)->allocator->data, (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
+#define ail_da_new_zero_init(T, c)           (AIL_DA(T)) { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
+#define ail_da_free(daPtr) do { AIL_CALL_FREE((*(daPtr)->allocator), (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
 
 #define ail_da_printf(da, format, ...) do {                                       \
         AIL_DA_PRINT("{\n  cap: %d,\n  len: %d,\n  data: [", (da).cap, (da).len); \
@@ -425,10 +433,10 @@ AIL_DA_INIT(str);
         }                                                                                  \
     } while(0)
 
-#define ail_da_resize(daPtr, newCap) do {                                                                                         \
-        (daPtr)->data = (daPtr)->allocator->re_alloc((daPtr)->allocator->data, (daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
-        (daPtr)->cap  = (newCap);                                                                                                 \
-        if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                                                             \
+#define ail_da_resize(daPtr, newCap) do {                                                                          \
+        (daPtr)->data = AIL_CALL_REALLOC((*(daPtr)->allocator), (daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
+        (daPtr)->cap  = (newCap);                                                                                  \
+        if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                                              \
     } while(0)
 
 #define ail_da_maybe_grow(daPtr, n) do {                                       \
@@ -450,11 +458,11 @@ AIL_DA_INIT(str);
 #define ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize) do {                                                                 \
         (daPtr)->cap = (newCap);                                                                                                           \
         char *_ail_da_gwg_ptr_ = (char *) (daPtr)->data;                                                                                   \
-        (daPtr)->data = (daPtr)->allocator->alloc((daPtr)->allocator->data, (elSize)*(newCap));                                            \
+        (daPtr)->data = AIL_CALL_ALLOC((*(daPtr)->allocator), (elSize)*(newCap));                                                          \
         AIL_ASSERT((daPtr)->data != NULL);                                                                                                 \
         AIL_MEMCPY((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
         AIL_MEMCPY(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
-        (daPtr)->allocator->free_one((daPtr)->allocator->data, _ail_da_gwg_ptr_);                                                          \
+        AIL_CALL_FREE((*(daPtr)->allocator), _ail_da_gwg_ptr_);                                                                            \
         (daPtr)->len += (gapLen);                                                                                                          \
     } while(0)
 
