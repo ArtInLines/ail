@@ -34,7 +34,7 @@ bool test_alloc_single(AIL_Allocator *allocator, u64 bytes)
 	u64 n = bytes/sizeof(u64);
 	u64 **ptrs = malloc(n * sizeof(void*));
 	for (u64 i = 0; i < n; i++) {
-		ptrs[i] = allocator->alloc(allocator->data, sizeof(u64));
+		ptrs[i] = AIL_CALL_ALLOC(*allocator, sizeof(u64));
 		ASSERT(ptrs[i] != NULL);
 		*ptrs[i] = i;
 	}
@@ -49,7 +49,7 @@ bool test_alloc(AIL_Allocator *allocator, u64 bytes)
 	// Test allocations for single elements
 	if (!test_alloc_single(allocator, bytes/2)) return false;
 	// Test allocations for lists of elements
-	u64 *vals = allocator->alloc(allocator->data, n * sizeof(u64));
+	u64 *vals = AIL_CALL_ALLOC(*allocator, n * sizeof(u64));
 	ASSERT(vals != NULL);
 	for (u64 i = 0; i < n; i++) {
 		vals[i] = i;
@@ -65,7 +65,7 @@ bool test_calloc_single(AIL_Allocator *allocator, u64 bytes)
 	u64 n = bytes/sizeof(u64);
 	u64 **ptrs = malloc(n * sizeof(void*));
 	for (u64 i = 0; i < n; i++) {
-		ptrs[i] = allocator->zero_alloc(allocator->data, 1, sizeof(u64));
+		ptrs[i] = AIL_CALL_CALLOC(*allocator, 1, sizeof(u64));
 		ASSERT(ptrs[i] != NULL);
 		ASSERT(*ptrs[i] == 0);
 		*ptrs[i] = i;
@@ -80,7 +80,7 @@ bool test_calloc(AIL_Allocator *allocator, u64 bytes)
 	u64 n = bytes/2/sizeof(u64);
 	if (!test_calloc_single(allocator, bytes/2)) return false;
 	// Test allocations for lists of elements
-	u64 *vals = allocator->zero_alloc(allocator->data, n, sizeof(u64));
+	u64 *vals = AIL_CALL_CALLOC(*allocator, n, sizeof(u64));
 	ASSERT(vals != NULL);
 	for (u64 i = 0; i < n; i++) {
 		ASSERT(vals[i] == 0);
@@ -96,7 +96,7 @@ bool test_realloc(AIL_Allocator *allocator, u64 bytes)
 	u64 total = bytes/sizeof(u64);
 	// Test reallocating NULL
 	u64 n = total/4;
-	u64 *vals = allocator->re_alloc(allocator->data, NULL, n*sizeof(u64));
+	u64 *vals = AIL_CALL_REALLOC(*allocator, NULL, n*sizeof(u64));
 	ASSERT(vals != NULL);
 	for (u64 i = 0; i < n; i++) {
 		vals[i] = i;
@@ -109,13 +109,13 @@ bool test_realloc(AIL_Allocator *allocator, u64 bytes)
 	u64 smol_size = init_size/2;
 	u64 big_size  = n - init_size - smol_size;
 	AIL_STATIC_ASSERT(big_size > init_size);
-	u64 *initial = allocator->alloc(allocator->data, init_size*sizeof(u64));
+	u64 *initial = AIL_CALL_ALLOC(*allocator, init_size*sizeof(u64));
 	ASSERT(initial != NULL);
 	for (u64 i = 0; i < init_size; i++) initial[i] = i;
-	u64 *smaller = allocator->re_alloc(allocator->data, initial, smol_size*sizeof(u64));
+	u64 *smaller = AIL_CALL_REALLOC(*allocator, initial, smol_size*sizeof(u64));
 	ASSERT(smaller != NULL);
 	ASSERT(test_sum(smaller, smol_size));
-	u64 *bigger = allocator->re_alloc(allocator->data, smaller, big_size*sizeof(u64));
+	u64 *bigger = AIL_CALL_REALLOC(*allocator, smaller, big_size*sizeof(u64));
 	ASSERT(bigger != NULL);
 	ASSERT(test_sum(bigger, smol_size));
 	for (u64 i = 0; i < big_size; i++) bigger[i] = i;
@@ -227,68 +227,68 @@ bool test_pager(void)
 	u64 first_size2  = 64;
 	u64 second_size2 = AIL_ALLOC_PAGE_SIZE/2;
 	u64 second_size  = 2*AIL_ALLOC_PAGE_SIZE/3;
-	void *first  = ail_alloc_page_alloc(ail_alloc_pager.data, first_size);
+	void *first  = AIL_CALL_ALLOC(ail_alloc_pager, first_size);
 	AIL_Alloc_Page_Header *fh = AIL_ALLOC_GET_HEADER(first, AIL_Alloc_Page_Header);
 	ASSERT(fh->size >= first_size);
-	void *second = ail_alloc_page_alloc(ail_alloc_pager.data, second_size);
+	void *second = AIL_CALL_ALLOC(ail_alloc_pager, second_size);
 	AIL_Alloc_Page_Header *sh = AIL_ALLOC_GET_HEADER(second, AIL_Alloc_Page_Header);
 	ASSERT(sh->size >= second_size);
 
-	void *first2 = ail_alloc_page_realloc(ail_alloc_pager.data, first, first_size2);
+	void *first2 = AIL_CALL_REALLOC(ail_alloc_pager, first, first_size2);
 	ASSERT(first2 == first);
 	ASSERT(fh->size >= first_size2);
-	first = ail_alloc_page_realloc(ail_alloc_pager.data, first2, first_size);
+	first = AIL_CALL_REALLOC(ail_alloc_pager, first2, first_size);
 	ASSERT(first == first2);
 	ASSERT(fh->size >= first_size);
 
-	void *second2 = ail_alloc_page_realloc(ail_alloc_pager.data, second, second_size2);
+	void *second2 = AIL_CALL_REALLOC(ail_alloc_pager, second, second_size2);
 	ASSERT(second == second2);
 	ASSERT(sh->size >= second_size2);
-	second = ail_alloc_page_realloc(ail_alloc_pager.data, second2, second_size);
+	second = AIL_CALL_REALLOC(ail_alloc_pager, second2, second_size);
 	ASSERT(second == second2);
 	ASSERT(sh->size >= second_size);
 
 	u64 zero_size = 512;
-	u8 *zero = ail_alloc_page_alloc(ail_alloc_pager.data, zero_size);
+	u8 *zero = AIL_CALL_ALLOC(ail_alloc_pager, zero_size);
 	for (u64 i = 0; i < zero_size; i++) ASSERT(zero[i] == 0);
 
-	ail_alloc_page_free(ail_alloc_pager.data, first);
-	ail_alloc_page_free(ail_alloc_pager.data, second);
-	ail_alloc_page_free(ail_alloc_pager.data, zero);
+	AIL_CALL_FREE(ail_alloc_pager, first);
+	AIL_CALL_FREE(ail_alloc_pager, second);
+	AIL_CALL_FREE(ail_alloc_pager, zero);
 	return true;
 }
 
 bool test_buffer(void)
 {
 	u64 n = AIL_ALLOC_PAGE_SIZE - sizeof(AIL_Alloc_Page_Header);
-	u8 *buffer = ail_alloc_page_alloc(ail_alloc_pager.data, n);
+	u8 *buffer = AIL_CALL_ALLOC(ail_alloc_pager, n);
 	AIL_Allocator b = ail_alloc_buffer_new(n, buffer);
 	ASSERT(((AIL_Alloc_Buffer *)b.data)->size == n - sizeof(AIL_Alloc_Buffer));
 
 	// Malloc
-	u8 *p = b.alloc(b.data, n/4);
+	u8 *p = AIL_CALL_ALLOC(b, n/4);
 	for (u64 i = 0; i < n/4; i++) p[i] = (u8)i;
 	ASSERT(((AIL_Alloc_Buffer *)b.data)->idx  == n/4);
 	for (u64 i = 0; i < n/4; i++) ASSERT(p[i] == (u8)i);
 	// Free is no-op
-	b.free_one(b.data, p);
-	u8 *tmp = b.alloc(b.data, n/10);
+	AIL_CALL_FREE(b, p);
+	u8 *tmp = AIL_CALL_ALLOC(b, n/10);
 	ASSERT(tmp > p);
 	for (u64 i = 0; i < n/4; i++) ASSERT(p[i] == (u8)i);
 	// Realloc
-	u8 *q = b.re_alloc(b.data, p, n/6);
+	u8 *q = AIL_CALL_REALLOC(b, p, n/6);
 	ASSERT(q > p);
 	for (u64 i = 0; i < n/6; i++) ASSERT(q[i] == (u8)i);
 	// Calloc
-	u8 *r = b.zero_alloc(b.data, n/6, 1);
+	u8 *r = AIL_CALL_CALLOC(b, n/6, 1);
 	for (u64 i = 0; i < n/6; i++) ASSERT(r[i] == 0);
 	// Free all
-	b.free_all(b.data);
+	AIL_CALL_FREE_ALL(b);
 	ASSERT(((AIL_Alloc_Buffer *)b.data)->idx  == 0);
-	u8 *s = b.alloc(b.data, n/4);
+	u8 *s = AIL_CALL_ALLOC(b, n/4);
 	ASSERT(p == s);
 
-	ail_alloc_page_free(ail_alloc_pager.data, buffer);
+	AIL_CALL_FREE(ail_alloc_pager, buffer);
 	return true;
 }
 

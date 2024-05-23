@@ -9,7 +9,7 @@
 static inline void fixed_size_allocs(AIL_Allocator *a, u64 el_size, u64 n)
 {
     for (u64 i = 0; i < n; i++) {
-        void *el = a->alloc(a->data, el_size);
+        void *el = AIL_CALL_ALLOC(*a, el_size);
         AIL_UNUSED(el);
     }
 }
@@ -17,8 +17,8 @@ static inline void fixed_size_allocs(AIL_Allocator *a, u64 el_size, u64 n)
 static inline void fixed_size_allocs_imm_frees(AIL_Allocator *a, u64 el_size, u64 n)
 {
     for (u64 i = 0; i < n; i++) {
-        void *el = a->alloc(a->data, el_size);
-        a->free_one(a->data, el);
+        void *el = AIL_CALL_ALLOC(*a, el_size);
+        AIL_CALL_FREE(*a, el);
     }
 }
 
@@ -28,40 +28,40 @@ static inline void fixed_size_allocs_arb_frees(AIL_Allocator *a, u64 el_size, u6
     for (u64 i = 0; i < n/1024 + ((n%1024) > 0); i++) {
         u64 max_j = AIL_MIN(1024, n - i*1024);
         for (u64 j = 0; j < 1024 && i*1024 + j < n; j++) {
-            ptrs[j] = a->alloc(a->data, el_size);
+            ptrs[j] = AIL_CALL_ALLOC(*a, el_size);
         }
         // Randomly ordered Frees:
-        for (u64 j = 500;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 0;    j < 10    && j < max_j; j++)    a->free_one(a->data, ptrs[j]);
-        for (u64 j = 153;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 10;   j < 100   && j < max_j; j += 2) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 502;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 11;   j < 100   && j < max_j; j += 2) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 501;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 505;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 150;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 504;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 154;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 1023; j >= 1000 && j < max_j; j--)    a->free_one(a->data, ptrs[j]);
-        for (u64 j = 507;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 156;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 158;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 503;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 151;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 506;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 149;  j >= 100  && j < max_j; j--)    a->free_one(a->data, ptrs[j]);
-        for (u64 j = 155;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 508;  j < 1000  && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 152;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
-        for (u64 j = 157;  j < 500   && j < max_j; j += 9) a->free_one(a->data, ptrs[j]);
+        for (u64 j = 500;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 0;    j < 10    && j < max_j; j++)    AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 153;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 10;   j < 100   && j < max_j; j += 2) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 502;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 11;   j < 100   && j < max_j; j += 2) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 501;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 505;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 150;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 504;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 154;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 1023; j >= 1000 && j < max_j; j--)    AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 507;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 156;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 158;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 503;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 151;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 506;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 149;  j >= 100  && j < max_j; j--)    AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 155;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 508;  j < 1000  && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 152;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
+        for (u64 j = 157;  j < 500   && j < max_j; j += 9) AIL_CALL_FREE(*a, ptrs[j]);
     }
 }
 
 static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u64 n)
 {
-    void *el = a->alloc(a->data, el_size);
+    void *el = AIL_CALL_ALLOC(*a, el_size);
     for (u64 i = 1; i < n; i++) {
-        el = a->re_alloc(a->data, el, i*el_size);
+        el = AIL_CALL_REALLOC(*a, el, i*el_size);
         *(u8 *)el = (u8)i;
     }
     AIL_UNUSED(el);
@@ -80,36 +80,36 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
 #define STD(alloc_name, n, ...) ITER(alloc_name, n, __VA_ARGS__)
 
 #define BUFFER(alloc_name, n, ...) do {                                 \
-        u8 *back_buffer = ail_alloc_page_alloc(ail_alloc_pager.data, mem_max);     \
+        u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max);     \
         AIL_Allocator buffer = ail_alloc_buffer_new(mem_max, back_buffer);         \
-        ITER(alloc_name, n, __VA_ARGS__; buffer.free_all(buffer.data)); \
-        ail_alloc_page_free(ail_alloc_pager.data, back_buffer);                    \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(buffer)); \
+        AIL_CALL_FREE(ail_alloc_pager, back_buffer);                    \
     } while(0)
 
 #define RING(alloc_name, n, ...) do {                               \
-        u8 *back_buffer = ail_alloc_page_alloc(ail_alloc_pager.data, mem_max); \
+        u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max); \
         AIL_Allocator ring = ail_alloc_ring_new(mem_max, back_buffer);         \
-        ITER(alloc_name, n, __VA_ARGS__; ring.free_all(ring.data)); \
-        ail_alloc_page_free(ail_alloc_pager.data, back_buffer);                \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(ring)); \
+        AIL_CALL_FREE(ail_alloc_pager, back_buffer);                \
     } while(0)
 
 #define ARENA(alloc_name, n, ...) do {                                \
         AIL_Allocator arena = ail_alloc_arena_new(start_cap, &ail_alloc_pager);  \
-        ITER(alloc_name, n, __VA_ARGS__; arena.free_all(arena.data)); \
-        ail_alloc_pager.free_one(ail_alloc_pager.data, arena.data);              \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(arena)); \
+        AIL_CALL_FREE(ail_alloc_pager, arena.data);              \
     } while(0)
 
 // @Note: requires variable el_size to be set
 #define POOL(alloc_name, n, ...) do {                                               \
         AIL_Allocator pool = ail_alloc_pool_new(start_cap/el_size, el_size, &ail_alloc_pager); \
-        ITER(alloc_name, n, __VA_ARGS__; pool.free_all(pool.data));                 \
-        ail_alloc_pager.free_one(ail_alloc_pager.data, pool.data);                             \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(pool));                 \
+        AIL_CALL_FREE(ail_alloc_pager, pool.data);                             \
     } while(0)
 
 #define FREELIST(alloc_name, n, ...) do {                            \
         AIL_Allocator fl = ail_alloc_freelist_new(start_cap, &ail_alloc_pager); \
-        ITER(alloc_name, n, __VA_ARGS__; fl.free_all(fl.data));      \
-        ail_alloc_pager.free_one(ail_alloc_pager.data, fl.data);                \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(fl));      \
+        AIL_CALL_FREE(ail_alloc_pager, fl.data);                \
     } while(0)
 
 #define ALLOCATORS                         \

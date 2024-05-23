@@ -173,12 +173,8 @@ AIL_GUI_DEF AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self);
 #define _GUI_IMPL_GUARD_
 
 AIL_Allocator ail_gui_allocator = {
-    .data       = NULL,
-    .alloc      = &ail_default_malloc,
-    .zero_alloc = &ail_default_calloc,
-    .re_alloc   = &ail_default_realloc,
-    .free_one   = &ail_default_free,
-    .free_all   = &ail_default_free_all,
+    .data  = NULL,
+    .alloc = &ail_default_alloc,
 };
 
 // Static Variables
@@ -518,7 +514,7 @@ AIL_GUI_DEF Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle b
     DrawRectangle(bounds.x, bounds.y, bounds.width, bounds.height, style.bg);
 
     if (!text.text) return NULL;
-    Vector2 *res = ail_gui_allocator.alloc(ail_gui_allocator.data, text.text_len * sizeof(Vector3));
+    Vector2 *res = AIL_CALL_ALLOC(ail_gui_allocator, text.text_len * sizeof(Vector3));
     float scaleFactor = style.font_size/style.font.baseSize; // Character quad scaling factor
     Vector2 pos = { .x = text.lineXs.data[0], .y = text.y }; // Position to draw current codepoint at
     u32 lastOffset = 0;
@@ -852,7 +848,7 @@ AIL_GUI_DEF AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
     }
 
     ail_gui_free_drawable_text(&prepText);
-    ail_gui_allocator.free_one(ail_gui_allocator.data, coords);
+    AIL_CALL_FREE(ail_gui_allocator.data, coords);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_IBEAM);
     res.state = state;
     return res;

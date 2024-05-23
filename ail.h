@@ -272,7 +272,7 @@ typedef char*    str;
     #include <assert.h>
     #define _AIL_STATIC_ASSERT2(cond, msg) _Static_assert(!!(cond), msg)
 #else
-    #define _AIL_STATIC_ASSERT_MSG2(cond, msg, line) do { char ail_static_assertion_at_line##line[((!!(cond))*(AIL_ARRLEN(msg)+2))-1] = msg; AIL_UNUSED(ail_static_assertion_at_line##line); } while(0)
+    #define _AIL_STATIC_ASSERT_MSG2(cond, msg, line) do { char __ail_static_assertion_at_line##line[((!!(cond))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIZE(msg); AIL_UNUSED(__ail_static_assertion_at_line##line); AIL_UNUSED(__ail_static_assertion_at_line##line_message); } while(0)
     #define _AIL_STATIC_ASSERT_MSG1(cond, msg, line) _AIL_STATIC_ASSERT_MSG2(cond, msg, line)
     #define _AIL_STATIC_ASSERT2(cond, msg)           _AIL_STATIC_ASSERT_MSG1(cond, msg, __LINE__)
 #endif
@@ -317,7 +317,7 @@ typedef char*    str;
 #define _AIL_CALL_FREE2(allocator, old_ptr)           (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr), 0)
 #define AIL_CALL_FREE(...) AIL_VFUNC(_AIL_CALL_FREE, __VA_ARGS__)
 
-#define AIL_CALL_FREE_ALL(allocator)               (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL, 0)
+#define AIL_CALL_FREE_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL, 0)
 
 // The action that should be executed when calling the allocator proc
 typedef enum AIL_Allocator_Mode {
@@ -328,9 +328,12 @@ typedef enum AIL_Allocator_Mode {
     AIL_MEM_FREE_ALL,
 } AIL_Allocator_Mode;
 
+typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size);
+typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size);
+
 typedef struct AIL_Allocator {
     void *data; // Metadata required by allocator and provided in all function calls
-    void *(*alloc)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size);
+    AIL_Allocator_Func_Ptr alloc;
 } AIL_Allocator;
 
 #if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
@@ -339,7 +342,8 @@ typedef struct AIL_Allocator {
 
 AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size)
 {
-    AIL_UNUSED(data); AIL_UNUSED(size); AIL_UNUSED(old_ptr); AIL_UNUSED(old_size);
+    AIL_UNUSED(data);
+    AIL_UNUSED(old_size);
     switch (mode) {
         case AIL_MEM_ALLOC:    return AIL_MALLOC(size);
         case AIL_MEM_CALLOC:   return AIL_CALLOC(size, 1);
