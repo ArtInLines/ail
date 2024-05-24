@@ -1,31 +1,76 @@
-# Define OS=WIN if compiling for windows
-# Define MODE=RELEASE if compiling in release mode
+# Define MODE=DBG if compiling in debug mode, otherwise release mode is assumed
+# Define `COMP` to set the compiler to use
+# Defaults to gcc
+# Allowed options are:
+# - gcc
+# - cl
+# - clang
+# - tcc
+# - zig
+# - icx-cc
 
-MODE ?= DEBUG
+COMP ?= gcc
 
-ifeq ($(OS),WIN)
-COMP   ?= cl
-CFLAGS ?= Winmm.lib /W1 /std:c++14
-ifeq ($(MODE),RELEASE)
-CFLAGS += /o2
-else
+ifeq ($(COMP),cl)
+CFLAGS ?= /W1 /std:c++14
+ifeq ($(MODE),DBG)
 CFLAGS += /Zi
+else
+CFLAGS += /O2
+endif
+
+else ifeq ($(COMP),gcc)
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs
+ifeq ($(MODE),DBG)
+CFLAGS += -ggdb
+else
+CFLAGS += -O2
+endif
+
+else ifeq ($(COMP),clang)
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs
+ifeq ($(MODE),DBG)
+CFLAGS += -ggdb
+else
+CFLAGS += -O2
+endif
+
+else ifeq ($(COMP),tcc)
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs
+ifeq ($(MODE),DBG)
+CFLAGS += -ggdb
+else
+CFLAGS += -O2
+endif
+
+else ifeq ($(COMP),zig)
+C      := zig cc
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs
+ifeq ($(MODE),DBG)
+CFLAGS += -ggdb
+else
+CFLAGS += -O2
+endif
+
+else ifeq ($(COMP),icx-cc)
+
+CFLAS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Rno-debug-disables-optimization
+ifeq ($(MODE),DBG)
+CFLAGS += -ggdb
+else
+CFLAGS += -O2
 endif
 
 else
-COMP   ?= gcc
-CFLAGS ?= -lwinmm -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs
-ifeq ($(MODE), RELEASE)
-CFLAGS += -O2
-else
-CFLAGS += -ggdb
+$(error Unknown option for COMP. Please use gcc, cl, clang, tcc or zig instead.)
 endif
-endif
+
+C ?= $(COMP)
 
 all: alloc hm
 
 alloc: ail_alloc.c
-	$(COMP) -o ail_alloc ail_alloc.c $(CFLAGS)
+	$(C) -o ail_alloc ail_alloc.c $(CFLAGS)
 
 hm: ail_hm.c
-	$(COMP) -o ail_hm ail_hm.c $(CFLAGS)
+	$(C) -o ail_hm ail_hm.c $(CFLAGS)
