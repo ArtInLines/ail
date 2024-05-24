@@ -173,12 +173,12 @@ u8 ail_ring_peek_at(AIL_RingBuffer rb, u64 offset)
 
 u16 ail_ring_peek2msb(AIL_RingBuffer rb)
 {
-	return ((u16)ail_ring_peek_at(rb, 0) << 8) | ((u16)ail_ring_peek_at(rb, 1));
+    return ((u16)ail_ring_peek_at(rb, 0) << 8) | ((u16)ail_ring_peek_at(rb, 1));
 }
 
 u16 ail_ring_peek2lsb(AIL_RingBuffer rb)
 {
-	return ((u16)ail_ring_peek_at(rb, 1) << 8) | ((u16)ail_ring_peek_at(rb, 0));
+    return ((u16)ail_ring_peek_at(rb, 1) << 8) | ((u16)ail_ring_peek_at(rb, 0));
 }
 
 u32 ail_ring_peek4msb(AIL_RingBuffer rb)
@@ -208,7 +208,7 @@ void ail_ring_peekn(AIL_RingBuffer rb, u64 n, u8 *buf)
     // @TODO: Use AIL_RING_MEMCPY instead maybe?
     for (u64 i = 0, j = rb.start; i < n; i++, j = (j+1)%rb.buffer_size) {
         buf[i] = rb.data[j];
-		// @Safety @Performance
+        // @Safety @Performance
         // @Note: The more safe version would set the value to 0 if it's out of bounds
         // buf[i] = rb.data[j]*(j < rb.end || (rb.end < rb.start && rb.start <= j));
     }

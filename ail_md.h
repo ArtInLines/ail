@@ -217,8 +217,7 @@ bool ail_md_mem()
                 output = true;
             }
         }
-        // if(output)
-        // 	exit(0);
+        // if (output) exit(0);
     }
     if(ail_md_alloc_mutex != NULL)
         ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);

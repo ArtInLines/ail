@@ -192,7 +192,7 @@ int main(void)
     if (test_ail_sv_cmps()) printf("\033[032mAIL SV comparisons work :)\033[0m\n");
     else                    printf("\033[031mAIL SV comparisons fail :(\033[0m\n");
     if (test_ail_sv_num_conversions()) printf("\033[032mAIL SV number conversions work :)\033[0m\n");
-    else 							   printf("\033[031mAIL SV number conversions fail :(\033[0m\n");
+    else                               printf("\033[031mAIL SV number conversions fail :(\033[0m\n");
     if (test_ail_sv_split()) printf("\033[032mAIL SV split funcs work :)\033[0m\n");
     else                     printf("\033[031mAIL SV split funcs fail :(\033[0m\n");
     if (test_ail_sv_others()) printf("\033[032mAIL SV other funcs work :)\033[0m\n");

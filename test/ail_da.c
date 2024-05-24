@@ -16,18 +16,18 @@ AIL_DA_INIT(Vec2);
 
 bool intTest(void)
 {
-	i32 buf[LEN] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-	AIL_DA(i32) da = ail_da_new_with_cap(i32, LEN);
-	for (u32 i = 0; i < LEN; i++) ail_da_push(&da, 1);
-	ail_da_insert(&da, 1, EL_TO_INSERT);
-	ail_da_pushn(&da, buf, LEN);
-	ail_da_insertn(&da, 12, buf, 5);
+    i32 buf[LEN] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    AIL_DA(i32) da = ail_da_new_with_cap(i32, LEN);
+    for (u32 i = 0; i < LEN; i++) ail_da_push(&da, 1);
+    ail_da_insert(&da, 1, EL_TO_INSERT);
+    ail_da_pushn(&da, buf, LEN);
+    ail_da_insertn(&da, 12, buf, 5);
 
-	i32 expected = LEN + 55 + 15 + EL_TO_INSERT;
-	i32 sum = 0;
-	for (u32 i = 0; i < da.len; i++) sum += da.data[i];
-	// printf("sum: %d == %d?\n", sum, expected);
-	return sum == expected;
+    i32 expected = LEN + 55 + 15 + EL_TO_INSERT;
+    i32 sum = 0;
+    for (u32 i = 0; i < da.len; i++) sum += da.data[i];
+    // printf("sum: %d == %d?\n", sum, expected);
+    return sum == expected;
 }
 
 bool structTest(void)
