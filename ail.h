@@ -190,28 +190,7 @@ typedef char*    str;
     #define AIL_PACK_END()
 #endif
 
-// To allow overloading macros based on number of arguments (taken from here: https://stackoverflow.com/a/26408195/13764271)
-#define __AIL_RSEQ_N() \
-     63,62,61,60,                   \
-     59,58,57,56,55,54,53,52,51,50, \
-     49,48,47,46,45,44,43,42,41,40, \
-     39,38,37,36,35,34,33,32,31,30, \
-     29,28,27,26,25,24,23,22,21,20, \
-     19,18,17,16,15,14,13,12,11,10, \
-     9,8,7,6,5,4,3,2,1,0
-#define __AIL_ARG_N( \
-      _1, _2, _3, _4, _5, _6, _7, _8, _9,_10, \
-     _11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
-     _21,_22,_23,_24,_25,_26,_27,_28,_29,_30, \
-     _31,_32,_33,_34,_35,_36,_37,_38,_39,_40, \
-     _41,_42,_43,_44,_45,_46,_47,_48,_49,_50, \
-     _51,_52,_53,_54,_55,_56,_57,_58,_59,_60, \
-     _61,_62,_63,N,...) N
-#define __AIL_NARG_I_(...) __AIL_ARG_N(__VA_ARGS__)
-#define __AIL_NARG__(...)  __AIL_NARG_I_(__VA_ARGS__,__AIL_RSEQ_N())
-#define _AIL_VFUNC_(name, n) name##n
-#define _AIL_VFUNC(name, n) _AIL_VFUNC_(name, n)
-#define AIL_VFUNC(func, ...) _AIL_VFUNC(func, __AIL_NARG__(__VA_ARGS__)) (__VA_ARGS__)
+#define AIL_ARRLEN(arr) (sizeof(arr) / sizeof(*(arr)))
 
 #define _AIL_STRINGIZE2(x) #x
 #define AIL_STRINGIZE(x) _AIL_STRINGIZE2(x)
@@ -220,14 +199,35 @@ typedef char*    str;
 #define _AIL_CONCAT2(A, B) A##B
 #define AIL_CONCAT(A, B) _AIL_CONCAT2(A, B)
 
+#define AIL_EXPAND(x) x
+
 // stolen from here (https://gcher.com/posts/2015-02-13-c-tricks/) and was originally stolen from linux kernel apparently
 #define _AIL_IS_DEF3(_, v, ...) v
 #define _AIL_IS_DEF2(comma) _AIL_IS_DEF3(comma 1, 0)
-#define _AIL_IS_DEF1(value) _AIL_IS_DEF2(MACROTEST_##value)
-#define MACROTEST_1 ,
+#define _AIL_IS_DEF1(value) _AIL_IS_DEF2(_AIL_MACROTEST_##value)
+#define _AIL_MACROTEST_1 ,
 #define AIL_IS_DEF(macro) _AIL_IS_DEF1(macro)
 
-#define AIL_ARRLEN(arr) (sizeof(arr) / sizeof(*(arr)))
+// AIL_VFUNC: To allow overloading macros based on number of arguments (taken from here: https://stackoverflow.com/a/26408195/13764271)
+#define __AIL_RSEQ_N() \
+    63,62,61,60,                   \
+    59,58,57,56,55,54,53,52,51,50, \
+    49,48,47,46,45,44,43,42,41,40, \
+    39,38,37,36,35,34,33,32,31,30, \
+    29,28,27,26,25,24,23,22,21,20, \
+    19,18,17,16,15,14,13,12,11,10, \
+    9,8,7,6,5,4,3,2,1,0
+#define __AIL_ARG_N( \
+    _1, _2, _3, _4, _5, _6, _7, _8, _9,_10, \
+    _11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
+    _21,_22,_23,_24,_25,_26,_27,_28,_29,_30, \
+    _31,_32,_33,_34,_35,_36,_37,_38,_39,_40, \
+    _41,_42,_43,_44,_45,_46,_47,_48,_49,_50, \
+    _51,_52,_53,_54,_55,_56,_57,_58,_59,_60, \
+    _61,_62,_63,N,...) N
+#define __AIL_NARG_I_(...) AIL_EXPAND(__AIL_ARG_N(__VA_ARGS__))
+#define __AIL_NARG__(...)  __AIL_NARG_I_(__VA_ARGS__,__AIL_RSEQ_N())
+#define AIL_VFUNC(func, ...) AIL_EXPAND(AIL_CONCAT(func, __AIL_NARG__(__VA_ARGS__))(__VA_ARGS__))
 
 // @Note: Not safe to use with expressions, that have side-effects (like AIL_MAX(x++, y++))
 #define AIL_MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -444,7 +444,7 @@ AIL_DA_INIT(str);
     } while(0)
 
 #define ail_da_maybe_grow(daPtr, n) do {                                       \
-        if ((daPtr)->len + (n) > (daPtr)->cap)								   \
+        if ((daPtr)->len + (n) > (daPtr)->cap)                                   \
             ail_da_resize(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
     } while(0)
 
