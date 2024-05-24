@@ -165,7 +165,7 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
 int main(void)
 {
     u64 start_cap = AIL_ALLOC_PAGE_SIZE;
-    u64 mem_max   = AIL_ALLOC_PAGE_SIZE*64;
+    u64 mem_max   = AIL_ALLOC_PAGE_SIZE*256;
     u64 n         = 1000;
     printf("Every test is iterated %lld times...\n", n);
     // { // Fixed Size Allocs with randomly ordered frees
