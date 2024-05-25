@@ -79,37 +79,37 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
 
 #define STD(alloc_name, n, ...) ITER(alloc_name, n, __VA_ARGS__)
 
-#define BUFFER(alloc_name, n, ...) do {                                 \
-        u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max);     \
-        AIL_Allocator buffer = ail_alloc_buffer_new(mem_max, back_buffer);         \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(buffer)); \
-        AIL_CALL_FREE(ail_alloc_pager, back_buffer);                    \
+#define BUFFER(alloc_name, n, ...) do {                                    \
+        u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max);        \
+        AIL_Allocator buffer = ail_alloc_buffer_new(mem_max, back_buffer); \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(buffer));       \
+        AIL_CALL_FREE(ail_alloc_pager, back_buffer);                       \
     } while(0)
 
-#define RING(alloc_name, n, ...) do {                               \
-        u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max); \
-        AIL_Allocator ring = ail_alloc_ring_new(mem_max, back_buffer);         \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(ring)); \
-        AIL_CALL_FREE(ail_alloc_pager, back_buffer);                \
+#define RING(alloc_name, n, ...) do {                                  \
+        u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max);    \
+        AIL_Allocator ring = ail_alloc_ring_new(mem_max, back_buffer); \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(ring));     \
+        AIL_CALL_FREE(ail_alloc_pager, back_buffer);                   \
     } while(0)
 
-#define ARENA(alloc_name, n, ...) do {                                \
-        AIL_Allocator arena = ail_alloc_arena_new(start_cap, &ail_alloc_pager);  \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(arena)); \
-        AIL_CALL_FREE(ail_alloc_pager, arena.data);              \
+#define ARENA(alloc_name, n, ...) do {                                          \
+        AIL_Allocator arena = ail_alloc_arena_new(start_cap, &ail_alloc_pager); \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(arena));             \
+        AIL_CALL_FREE(ail_alloc_pager, arena.data);                             \
     } while(0)
 
 // @Note: requires variable el_size to be set
-#define POOL(alloc_name, n, ...) do {                                               \
+#define POOL(alloc_name, n, ...) do {                                                          \
         AIL_Allocator pool = ail_alloc_pool_new(start_cap/el_size, el_size, &ail_alloc_pager); \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(pool));                 \
-        AIL_CALL_FREE(ail_alloc_pager, pool.data);                             \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(pool));                             \
+        AIL_CALL_FREE(ail_alloc_pager, pool.data);                                             \
     } while(0)
 
-#define FREELIST(alloc_name, n, ...) do {                            \
+#define FREELIST(alloc_name, n, ...) do {                                       \
         AIL_Allocator fl = ail_alloc_freelist_new(start_cap, &ail_alloc_pager); \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(fl));      \
-        AIL_CALL_FREE(ail_alloc_pager, fl.data);                \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(fl));                \
+        AIL_CALL_FREE(ail_alloc_pager, fl.data);                                \
     } while(0)
 
 #define ALLOCATORS                         \
@@ -164,22 +164,22 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
 
 int main(void)
 {
-    u64 start_cap = AIL_ALLOC_PAGE_SIZE;
-    u64 mem_max   = AIL_ALLOC_PAGE_SIZE*256;
+    u64 start_cap = AIL_ALLOC_PAGE_SIZE - sizeof(AIL_Alloc_Page_Header);
+    u64 mem_max   = (AIL_ALLOC_PAGE_SIZE - sizeof(AIL_Alloc_Page_Header))*64;
     u64 n         = 1000;
     printf("Every test is iterated %lld times...\n", n);
-    // { // Fixed Size Allocs with randomly ordered frees
-    //     printf("------\n");
-    //     ail_bench_begin_profile();
-    //     u64 el_size = 64;
-    //     u64 el_count = mem_max/(el_size + 16); // +16 for some header sizes
-    //     AIL_ASSERT(el_size * el_count <= mem_max);
-    //     printf("%lld fixed-size allocations (with randomly ordered frees) of size %lld:\n", el_count, el_size);
-    //     #define X(name, macro, allocator) macro(name, n, fixed_size_allocs_arb_frees(allocator, el_size, el_count));
-    //         ALLOCATORS_WO_PAGER
-    //     #undef X
-    //     ail_bench_end_and_print_profile(true);
-    // }
+    { // Fixed Size Allocs with randomly ordered frees
+        printf("------\n");
+        ail_bench_begin_profile();
+        u64 el_size = 1022; // 64;
+        u64 el_count = mem_max/(el_size + 16); // +16 for some header sizes
+        AIL_ASSERT(el_size * el_count <= mem_max);
+        printf("%lld fixed-size allocations (with randomly ordered frees) of size %lld:\n", el_count, el_size);
+        #define X(name, macro, allocator) macro(name, n, fixed_size_allocs_arb_frees(allocator, el_size, el_count));
+            ALLOCATORS_WO_PAGER
+        #undef X
+        ail_bench_end_and_print_profile(true);
+    }
     { // Fixed Size Allocs with immediate frees
         printf("------\n");
         ail_bench_begin_profile();

@@ -279,7 +279,7 @@ typedef char*    str;
 #define _AIL_STATIC_ASSERT1(cond) _AIL_STATIC_ASSERT2(cond, __FILE__ ":" AIL_STR_LINE ": Static Assert failed")
 #define AIL_STATIC_ASSERT(...) AIL_VFUNC(_AIL_STATIC_ASSERT, __VA_ARGS__)
 
-#define AIL_OFFSETOF(var, field) (((char *) &(var)->field) - ((char *) (var)))
+#define AIL_OFFSETOF(ptr, field) (((char *) &(ptr)->field) - ((char *) (ptr)))
 
 #define AIL_IS_2POWER(x) x && !(x & (x - 1))
 #define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
@@ -309,14 +309,20 @@ typedef char*    str;
 
 #define _AIL_CALL_CALLOC3(allocator, nelem, size_el) (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL, 0)
 #define _AIL_CALL_CALLOC2(allocator, size)           (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (size),            NULL, 0)
+// @Note: Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
 #define AIL_CALL_CALLOC(...) AIL_VFUNC(_AIL_CALL_CALLOC, __VA_ARGS__)
 
 #define AIL_CALL_REALLOC(allocator, old_ptr, size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (size), (old_ptr), 0)
 
 #define _AIL_CALL_FREE3(allocator, old_ptr, old_size) (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr), (old_size))
 #define _AIL_CALL_FREE2(allocator, old_ptr)           (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr), 0)
+// @Note: Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
 #define AIL_CALL_FREE(...) AIL_VFUNC(_AIL_CALL_FREE, __VA_ARGS__)
 
+// @Note: If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
+#define AIL_CALL_CLEAR_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_CLEAR_ALL, 0, NULL, 0)
+
+// @Note: If the allocator holds several memory regions, it frees all of them except for one
 #define AIL_CALL_FREE_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL, 0)
 
 // The action that should be executed when calling the allocator proc
@@ -326,6 +332,7 @@ typedef enum AIL_Allocator_Mode {
     AIL_MEM_REALLOC,
     AIL_MEM_FREE,
     AIL_MEM_FREE_ALL,
+    AIL_MEM_CLEAR_ALL,
 } AIL_Allocator_Mode;
 
 typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size);
@@ -348,7 +355,8 @@ AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCA
         case AIL_MEM_ALLOC:    return AIL_MALLOC(size);
         case AIL_MEM_CALLOC:   return AIL_CALLOC(size, 1);
         case AIL_MEM_REALLOC:  return AIL_REALLOC(old_ptr, size);
-        case AIL_MEM_FREE:     AIL_FREE(old_ptr); return NULL;
+        case AIL_MEM_FREE:
+        case AIL_MEM_CLEAR_ALL:
         case AIL_MEM_FREE_ALL: return NULL;
     }
     AIL_UNREACHABLE();
