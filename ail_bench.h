@@ -68,6 +68,9 @@ typedef struct AIL_Bench_Profile_Anchor {
     const char *label;
     u64 elapsed_with_children;
     u64 elapsed_wo_children;
+    u64 old_elapsed_wo_children;
+    u64 min_with_children;
+    u64 min_wo_children;
     u64 hit_count;
 } AIL_Bench_Profile_Anchor;
 
@@ -140,9 +143,15 @@ void ail_bench_profile_block_end(AIL_Bench_Profile_Block *block)
 
     AIL_Bench_Profile_Anchor *parent = &ail_bench_global_anchors[block->parent_idx];
     AIL_Bench_Profile_Anchor *anchor = &ail_bench_global_anchors[block->anchor_idx];
-    parent->elapsed_wo_children   -= elapsed;
-    anchor->elapsed_wo_children   += elapsed;
-    anchor->elapsed_with_children  = block->old_elapsed + elapsed;
+    parent->elapsed_wo_children     -= elapsed;
+    anchor->elapsed_wo_children     += elapsed;
+    anchor->elapsed_with_children    = block->old_elapsed + elapsed;
+
+    u64 cur_elapsed_wo_children      = anchor->elapsed_wo_children - anchor->old_elapsed_wo_children;
+    anchor->old_elapsed_wo_children  = anchor->elapsed_wo_children;
+    if (!anchor->min_wo_children   || anchor->min_wo_children   < cur_elapsed_wo_children) anchor->min_wo_children   = cur_elapsed_wo_children;
+    if (!anchor->min_with_children || anchor->min_with_children < elapsed)                 anchor->min_with_children = elapsed;
+
     ++anchor->hit_count;
     anchor->label = block->label;
 }
@@ -176,6 +185,7 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
     u32 max_name_hit_count_len = 0;
     u32 max_elapsed_cycles_len = 0;
     u32 max_elapsed_ms_len     = 0;
+    u32 max_min_elapsed_ms_len = 0;
     for (u32 anchor_idx = 0; anchor_idx < AIL_BENCH_PROFILE_ANCHOR_COUNT; anchor_idx++) {
         AIL_Bench_Profile_Anchor *anchor = &ail_bench_global_anchors[anchor_idx];
         if (anchor->elapsed_with_children) {
@@ -183,9 +193,11 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
             u32 hit_count_len      = ail_bench_u64_len(anchor->hit_count);
             u32 elapsed_cycles_len = ail_bench_u64_len(anchor->elapsed_wo_children);
             u32 elapsed_ms_len     = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms_fast(anchor->elapsed_wo_children, cpu_freq), float_print_precision);
+            u32 min_elapsed_ms_len = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms_fast(anchor->min_wo_children, cpu_freq), float_print_precision);
             max_name_hit_count_len = AIL_MAX(max_name_hit_count_len, name_len + hit_count_len);
             max_elapsed_cycles_len = AIL_MAX(max_elapsed_cycles_len, elapsed_cycles_len);
             max_elapsed_ms_len     = AIL_MAX(max_elapsed_ms_len,     elapsed_ms_len);
+            max_min_elapsed_ms_len = AIL_MAX(max_min_elapsed_ms_len, min_elapsed_ms_len);
         }
     }
     char tmp_str[8] = {0};
@@ -198,19 +210,29 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
             while (len_diff--) printf(" ");
             len_diff = max_elapsed_cycles_len - ail_bench_u64_len(anchor->elapsed_wo_children);
             while (len_diff--) printf(" ");
-            printf("%llu cycles, ", anchor->elapsed_wo_children);
+            printf("%llucycles, ", anchor->elapsed_wo_children);
             f64 elapsed_in_ms = ail_bench_cpu_elapsed_to_ms_fast(anchor->elapsed_wo_children, cpu_freq);
             len_diff = max_elapsed_ms_len - ail_bench_f64_len(elapsed_in_ms, float_print_precision);
             while (len_diff--) printf(" ");
             printf("%0.*fms ", float_print_precision, elapsed_in_ms);
 
             if (anchor->elapsed_with_children == anchor->elapsed_wo_children) {
-                printf("(%.2f%%)\n", perc_wo_children);
+                printf("(%5.2f%%) ", perc_wo_children);
             } else {
                 f64 perc_with_children = 100.0 * ((f64)anchor->elapsed_with_children / (f64)total_tsc_elapsed);
                 sprintf(tmp_str, "%.2f%%,", perc_wo_children);
-                printf("(%-7s%.2f%% w/children)\n", tmp_str, perc_with_children);
+                printf("(%-7s%.2f%% w/children) ", tmp_str, perc_with_children);
             }
+
+            f64 min_elapsed_in_ms = ail_bench_cpu_elapsed_to_ms_fast(anchor->min_wo_children, cpu_freq);
+            len_diff = max_min_elapsed_ms_len - ail_bench_f64_len(min_elapsed_in_ms, float_print_precision);
+            while (len_diff--) printf(" ");
+            printf("Min: %0.*fms ", float_print_precision, min_elapsed_in_ms);
+            if (anchor->min_with_children != anchor->min_wo_children) {
+                printf("(%0.*fms w/children)", float_print_precision, ail_bench_cpu_elapsed_to_ms_fast(anchor->min_with_children, cpu_freq));
+            }
+            printf("\n");
+
             if (clear_anchors) {
                 anchor->hit_count = 0;
                 anchor->elapsed_wo_children = 0;
