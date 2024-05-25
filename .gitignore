@@ -11,4 +11,5 @@
 *.obj
 *.ilk
 *.pdb
+*.rdbg
 *.raddbg
