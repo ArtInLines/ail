@@ -97,9 +97,9 @@ typedef AIL_Alloc_Buffer AIL_Alloc_Ring;
 AIL_ALLOC_INIT_ALLOCATOR(Arena, u64 used;,)
 typedef AIL_Alloc_Size_Header AIL_Alloc_Arena_Header;
 
-typedef struct AIL_Allloc_Pool_Free_Node { struct AIL_Allloc_Pool_Free_Node *next; } AIL_Allloc_Pool_Free_Node;
+typedef struct AIL_Alloc_Pool_Free_Node { struct AIL_Alloc_Pool_Free_Node *next; } AIL_Alloc_Pool_Free_Node;
 AIL_ALLOC_INIT_ALLOCATOR(Pool,
-    AIL_Allloc_Pool_Free_Node *head;,
+    AIL_Alloc_Pool_Free_Node *head;,
     u64 bucket_amount;
     u64 bucket_size;
 )
@@ -744,7 +744,7 @@ static void _ail_alloc_pool_internal_clear_region_(AIL_Alloc_Pool_Region *region
 {
     region->head = NULL;
     for (u64 i = 0; i < bucket_amount; i++) {
-        AIL_Allloc_Pool_Free_Node *node = (AIL_Allloc_Pool_Free_Node *)&region->mem[i*bucket_size];
+        AIL_Alloc_Pool_Free_Node *node = (AIL_Alloc_Pool_Free_Node *)&region->mem[i*bucket_size];
         node->next   = region->head;
         region->head = node;
     }
@@ -772,16 +772,20 @@ static void* _ail_alloc_pool_internal_alloc_(AIL_Alloc_Pool *pool)
     return ptr;
 }
 
-static u64 _ail_alloc_pool_internal_count_used_(AIL_Alloc_Pool_Region *region)
+static u64 _ail_alloc_pool_internal_count_used_(AIL_Alloc_Pool_Region *region, u64 bucket_size)
 {
-    // @TODO
-    AIL_UNUSED(region);
-    return 0;
+    u64 n = 0;
+    AIL_Alloc_Pool_Free_Node *node = region->head;
+    while (node) {
+        n++;
+        node = node->next;
+    }
+    return region->region_size - (n*bucket_size);
 }
 
 AIL_Allocator ail_alloc_pool_new(u64 bucket_amount, u64 el_size, AIL_Allocator *backing_allocator)
 {
-    u64 bucket_size         = ail_alloc_align_size(AIL_MAX(el_size, sizeof(AIL_Allloc_Pool_Free_Node)));
+    u64 bucket_size         = ail_alloc_align_size(AIL_MAX(el_size, sizeof(AIL_Alloc_Pool_Free_Node)));
     u64 region_size         = bucket_amount*bucket_size;
     AIL_Alloc_Pool *pool    = (AIL_Alloc_Pool *)AIL_CALL_ALLOC(*backing_allocator, region_size + sizeof(AIL_Alloc_Pool));
     pool->backing_allocator = backing_allocator;
@@ -822,21 +826,21 @@ void* ail_alloc_pool_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
                 goto done;
             }
             size = pool->bucket_size;
-            AIL_Allloc_Pool_Free_Node *node = old_ptr;
+            AIL_Alloc_Pool_Free_Node *node = old_ptr;
             node->next   = region->head;
             region->head = node;
         } break;
         case AIL_MEM_CLEAR_ALL: {
             size = 0;
             AIL_ALLOC_FOR_EACH_REGION(Pool, region, &pool->region_head,
-                size = _ail_alloc_pool_internal_count_used_(region);
+                size = _ail_alloc_pool_internal_count_used_(region, pool->bucket_size);
                 _ail_alloc_pool_internal_clear_region_(region, pool->bucket_amount, pool->bucket_size);
             );
         } break;
         case AIL_MEM_FREE_ALL: {
             size = 0;
             AIL_ALLOC_FOR_EACH_REGION(Pool, region, pool->region_head.region_next,
-                size += _ail_alloc_pool_internal_count_used_(region);
+                size += _ail_alloc_pool_internal_count_used_(region, pool->bucket_size);
                 region->region_next = NULL;
                 AIL_CALL_FREE(*pool->backing_allocator, region);
             );

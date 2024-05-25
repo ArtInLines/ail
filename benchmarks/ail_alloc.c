@@ -171,7 +171,7 @@ int main(void)
     { // Fixed Size Allocs with randomly ordered frees
         printf("------\n");
         ail_bench_begin_profile();
-        u64 el_size = 1022; // 64;
+        u64 el_size = 64;
         u64 el_count = mem_max/(el_size + 16); // +16 for some header sizes
         AIL_ASSERT(el_size * el_count <= mem_max);
         printf("%lld fixed-size allocations (with randomly ordered frees) of size %lld:\n", el_count, el_size);
