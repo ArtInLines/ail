@@ -390,9 +390,9 @@ void __ail_alloc_std_unused__(void)
     AIL_UNUSED(ail_alloc_std);
 }
 
-void* ail_alloc_std_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr, u64 old_size)
+void* ail_alloc_std_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-    AIL_UNUSED(data); AIL_UNUSED(size); AIL_UNUSED(old_size);
+    AIL_UNUSED(data); AIL_UNUSED(size);
     void *res = NULL;
     switch (mode) {
         case AIL_MEM_ALLOC:     res = malloc(size); break;
@@ -457,9 +457,9 @@ static void* _ail_alloc_page_internal_alloc_(u64 size)
     return (u8 *)ptr + sizeof(AIL_Alloc_Page_Header);
 }
 
-void *ail_alloc_page_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr, u64 old_size)
+void *ail_alloc_page_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-    AIL_UNUSED(data); AIL_UNUSED(old_size);
+    AIL_UNUSED(data);
     void *res = NULL;
     switch (mode) {
         case AIL_MEM_ALLOC: {
@@ -526,7 +526,7 @@ static void* _ail_alloc_buffer_internal_alloc_(AIL_Alloc_Buffer *buffer, u8 *mem
     return ptr;
 }
 
-void *ail_alloc_buffer_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr, u64 old_size)
+void *ail_alloc_buffer_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
     void *ptr = NULL;
     AIL_Alloc_Buffer *buffer = (AIL_Alloc_Buffer *)data;
@@ -548,9 +548,7 @@ void *ail_alloc_buffer_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void
                 memcpy(ptr, old_ptr, max_old_size);
             }
         } break;
-        case AIL_MEM_FREE: {
-            if (AIL_UNLIKELY(old_size && (u8 *)old_ptr + old_size == mem + buffer->idx)) buffer->idx -= old_size;
-        } break;
+        case AIL_MEM_FREE: break;
         case AIL_MEM_CLEAR_ALL:
         case AIL_MEM_FREE_ALL: buffer->idx = 0;
     }
@@ -583,9 +581,9 @@ static void* _ail_alloc_ring_internal_alloc_(AIL_Alloc_Ring *ring, u8 *mem, u64 
     return ptr;
 }
 
-void *ail_alloc_ring_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr, u64 old_size)
+void *ail_alloc_ring_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-    AIL_UNUSED(old_size);
+
     void *ptr = NULL;
     AIL_Alloc_Ring *ring = (AIL_Alloc_Ring *)data;
     u8 *mem = (u8 *)&ring[1];
@@ -686,9 +684,9 @@ void *_ail_alloc_arena_internal_realloc_(AIL_Alloc_Arena *arena, u64 header_size
     return nptr;
 }
 
-void* ail_alloc_arena_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr, u64 old_size)
+void* ail_alloc_arena_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-    AIL_UNUSED(old_size);
+
     AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)data;
     u64 header_size = ail_alloc_align_size(sizeof(AIL_Alloc_Arena_Header));
     size = ail_alloc_align_size(size);
@@ -799,9 +797,9 @@ AIL_Allocator ail_alloc_pool_new(u64 bucket_amount, u64 el_size, AIL_Allocator *
     };
 }
 
-void* ail_alloc_pool_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr, u64 old_size)
+void* ail_alloc_pool_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-    AIL_UNUSED(size); AIL_UNUSED(old_size);
+    AIL_UNUSED(size);
     AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
     AIL_ASSERT(size <= pool->bucket_size);
     void *ptr = NULL;
@@ -975,9 +973,9 @@ AIL_Allocator ail_alloc_freelist_new(u64 cap, AIL_Allocator *backing_allocator)
     };
 }
 
-void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr, u64 old_size)
+void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-    AIL_UNUSED(old_size);
+
     void *ptr = NULL;
     AIL_Alloc_Freelist *fl = (AIL_Alloc_Freelist *)data;
     AIL_Alloc_Freelist_Region *region = &fl->region_head;

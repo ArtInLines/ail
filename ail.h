@@ -305,25 +305,23 @@ typedef char*    str;
 #define _AIL_ALLOCATOR_SIZE_TYPE size_t
 #endif
 
-#define AIL_CALL_ALLOC(allocator, size) (allocator).alloc((allocator).data, AIL_MEM_ALLOC, (size), NULL, 0)
+#define AIL_CALL_ALLOC(allocator, size) (allocator).alloc((allocator).data, AIL_MEM_ALLOC, (size), NULL)
 
-#define _AIL_CALL_CALLOC3(allocator, nelem, size_el) (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL, 0)
-#define _AIL_CALL_CALLOC2(allocator, size)           (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (size),            NULL, 0)
+#define _AIL_CALL_CALLOC3(allocator, nelem, size_el) (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
+#define _AIL_CALL_CALLOC2(allocator, size)           (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (size),            NULL)
 // @Note: Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
 #define AIL_CALL_CALLOC(...) AIL_VFUNC(_AIL_CALL_CALLOC, __VA_ARGS__)
 
-#define AIL_CALL_REALLOC(allocator, old_ptr, size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (size), (old_ptr), 0)
+#define AIL_CALL_REALLOC(allocator, old_ptr, size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (size), (old_ptr))
 
-#define _AIL_CALL_FREE3(allocator, old_ptr, old_size) (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr), (old_size))
-#define _AIL_CALL_FREE2(allocator, old_ptr)           (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr), 0)
 // @Note: Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
-#define AIL_CALL_FREE(...) AIL_VFUNC(_AIL_CALL_FREE, __VA_ARGS__)
+#define AIL_CALL_FREE(allocator, old_ptr) (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr))
 
 // @Note: If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
-#define AIL_CALL_CLEAR_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_CLEAR_ALL, 0, NULL, 0)
+#define AIL_CALL_CLEAR_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_CLEAR_ALL, 0, NULL)
 
 // @Note: If the allocator holds several memory regions, it frees all of them except for one
-#define AIL_CALL_FREE_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL, 0)
+#define AIL_CALL_FREE_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL)
 
 // The action that should be executed when calling the allocator proc
 typedef enum AIL_Allocator_Mode {
@@ -335,8 +333,8 @@ typedef enum AIL_Allocator_Mode {
     AIL_MEM_CLEAR_ALL,
 } AIL_Allocator_Mode;
 
-typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size);
-typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size);
+typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr);
+typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr);
 
 typedef struct AIL_Allocator {
     void *data; // Metadata required by allocator and provided in all function calls
@@ -347,10 +345,9 @@ typedef struct AIL_Allocator {
 #ifndef _AIL_ALLOCATOR_GUARD_
 #define _AIL_ALLOCATOR_GUARD_
 
-AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr, _AIL_ALLOCATOR_SIZE_TYPE old_size)
+AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr)
 {
     AIL_UNUSED(data);
-    AIL_UNUSED(old_size);
     switch (mode) {
         case AIL_MEM_ALLOC:    return AIL_MALLOC(size);
         case AIL_MEM_CALLOC:   return AIL_CALLOC(size, 1);
