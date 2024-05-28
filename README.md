@@ -12,6 +12,8 @@ All libraries are written in C99.
 
 I'm writing these libraries primarily for myself. I will thus add features that I find useful in a design-style that I like. Alternative usecases are secondary to me.
 
+The file [Predefined_Macros.md](./Predefined_Macros.md) also contains a list of useful, predefined macros in C
+
 ## Libraries
 
 | Library                      | Description                                                                                          |
@@ -34,7 +36,7 @@ All libraries here follow the following conventions. Knowing these can make usag
 
 -   Everything (except the type macros in `ail.h`) is prefixed with the name of the library (e.g. `ail_hm_new`). This is done because C99 has no feature for namespacing
 -   All functions use snake case (this is not consisten across all libraries yet)
--   Macros are uppe-case, unless they are meant to be used like normal functions
+-   Macros are upper-case, unless they are meant to be used like normal functions
 -   Upper-case parameters in a macro definition are Types
 -   Parameters to a macro are never meant to be pointers unless they are called `...Ptr` (eg. `daPtr`)
 

@@ -1,7 +1,78 @@
-// This header contains general utilities used throughout the other ail.h libraries
-//
-// LICENSE
 /*
+* This header contains general utilities used throughout the other ail.h libraries
+*
+* By default this file only includes a bunch of useful macros (see list below), other features can be included by defining the following:
+  * AIL_ALL_IMPL:   include everything
+  * AIL_TYPES_IMPL: include typedefs in the style of u8, i16, f32 and b32 (for 32-bit bools) and str for char*
+  * AIL_ALLOC_IMPL: include the AIL_Allocator struct for custom allocators
+  * AIL_DA_IMPL:    include macro-template for dynamic arrays (automatically enables AIL_ALLOC_IMPL as well)
+* For the documentation of each of these, see below
+*
+* Define AIL_DEF (defaults to `static`), AIL_DEF_INLINE (defaults to `static inline`) if you want different function declarations as a default for all ail.h libraries
+*
+* Define AIL_MALLOC, AIL_CALLOC, AIL_REALLOC, AIL_FREE to redefine the std's memory allocator as a default for all ail.h libraries
+* Define AIL_MEMCPY to redefine memcpy as a default for all ail.h libraries
+*
+*
+*** Useful macros ***
+* The following list only contains the public API of macros, not any internally used macros (which are always prefixed with an underscore)
+* None of these macros are safe in regards to side-effects, so be aware to avoid something like AIL_MIN(x++, --y);
+  * AIL_UNUSED(x): to ignore compiler warnings if x is unused
+  * AIL_ARRLEN(arr): get the size of a fixed-sized, stack-allocated array
+  * AIL_STRINGIZE(x): Turn the token x into a string (useful for macros working with printing)
+  * AIL_STR_LINE: The current line (via __LINE__) as a string
+  * AIL_CONCAT(a, b): Concatenate two tokens to a single token (mainly useful for macros)
+  * AIL_EXPAND(x): Expand a token given to a macro (mainly useful for macros)
+  * AIL_IS_DEF(macro): Check whether macro is defined (basically ifdef but as a runtime value)
+  * AIL_VFUNC(name, ...): Overload a macro on the amount of its arguments
+    * only works if there's 64 or fewer arguments
+    * every overloaded version of the macro must be named '<name>_<number_of_arguments>'
+  * AIL_MAX(a, b): get the maximum of two values
+  * AIL_MIN(a, b): get the minimum of two values
+  * AIL_CLAMP(x, min, max): Returns the closest value to x in the range [min; max]
+  * AIL_TYPEOF(x): get the type of x (only available with certain compiler extensions or on C++/C23)
+  * AIL_SWAP_PORTABLE(Type, x, y): swap x and y in the most portable way (requires you to provide their type)
+  * AIL_SWAP(x, y): swap x and y (without providing their type) (only works where AIL_TYPEOF works)
+  * AIL_LERP(t, min, max): linearly interpolate between min and max
+  * AIL_REV_LERP(x, min, max): does the reverse of a lerp, returning the interpolater
+    * AIL_LERP(AIL_REV_LERP(x, min, max), min, max) == x
+  * AIL_LIKELY(expr): Indicate to the compiler, that the expression expr is likely to be true
+  * AIL_UNLIKELY(expr): Indicate to the compiler, that the expression expr is likely to be false
+  * AIL_ASSERT_MSG(expr, msg): Assert that expr is true and print msg (while panicking) otherwise
+  * AIL_ASSERT(expr): Assert that expr is true
+  * AIL_PANIC(...): Panic and exit the program. Any input will be given as input to printf
+  * AIL_TODO(): Panic when hitting this place while the program is running
+  * AIL_UNREACHABLE(): Panic when hitting this place while the program is running
+  * AIL_STATIC_ASSERT(cond, [msg]): Statically assert that cond is true with an optional message
+  * AIL_OFFSETOF(ptr, field): Return the offset in bytes from a struct-field from a pointer to a struct
+  * AIL_IS_2POWER(x): Returns whether x is a power of 2
+  * AIL_NEXT_2POWER(x): Get the next highest value above x that is a power of 2 (if x isn't already a power of 2)
+*
+*
+*** Custom Allocator interface ***
+* An allocator is an AIL_Allocator struct containing an opaque pointer 'data' and an allocator function
+* Every different allocation action is covered in this function and is picked through an enum
+* The AIL_Allocator_Mode enum contains all the different allocation actions:
+  * AIL_MEM_ALLOC:     Allcoate a new memory region
+  * AIL_MEM_CALLOC:    Allocate a new memory region, that is cleared to 0
+  * AIL_MEM_REALLOC:   Move an allocated memory region to be at least of the provided new size
+  * AIL_MEM_FREE:      Free an allocated memory region
+  * AIL_MEM_FREE_ALL:  Free all memory allocated by this allocator (if supported, it will give its underlying memory regions back to its underlying allocator (e.g. the OS))
+  * AIL_MEM_CLEAR_ALL: Set all memory allocated by this allocator as free to be allocated again (does not give memory back to its underlying allocator (e.g. the OS))
+* It is recommended to use the following convenience macros for using these custom allocators
+  * AIL_CALL_ALLOC(allocator, size)
+  * AIL_CALL_CALLOC(allocator, size) alternatively: AIL_CALL_CALLOC(allocator, el_count, el_size)
+  * AIL_CALL_REALLOC(allocator, old_ptr, new_size)
+  * AIL_CALL_FREE(allocator, ptr)
+  * AIL_CALL_FREE_ALL(allocator)
+  * AIL_CALL_CLEAR_ALL(allocator)
+* To use the std's allocator, ail_default_allocator is provided
+*
+*** Dynamic Array Template ***
+* @TODO: Documentation TBD
+*
+*
+*** LICENSE ***
 Copyright (c) 2024 Val Richter
 
 Permission is hereby granted, free_one of charge, to any person obtaining a copy
@@ -33,7 +104,7 @@ SOFTWARE.
 #define AIL_CALLOC(len, elSize) calloc(len, elSize)
 #define AIL_FREE(ptr)           free(ptr)
 #elif !defined(AIL_MALLOC) || !defined(AIL_REALLOC) || !defined(AIL_CALLOC) || !defined(AIL_FREE)
-#error "You must define AIL_CALLOC, AIL_MALLOC, AIL_REALLOC and AIL_FREE or none of them. You cannot only define one or two of them."
+#error "You must define all of AIL_MALLOC, AIL_CALLOC, AIL_REALLOC and AIL_FREE or none of them. You cannot only define one or two of them."
 #endif
 
 #ifndef AIL_MEMCPY
@@ -50,13 +121,7 @@ SOFTWARE.
 #define AIL_DEF_INLINE static inline
 #endif // AIL_DEF_INLINE
 
-#ifdef _MSC_VER
-#define AIL_UNUSED(v)  (void)sizeof(v)
-#else
-#define AIL_UNUSED(v)  (void)(v)
-#endif
-
-// @TODO: Add support for short names via `AIL_SHORT_NAMES` macro
+// @TODO: Add support for short names via AIL_SHORT_NAMES macro
 
 // Implement all functionalities with `#define AIL_ALL_IMPL`
 #ifdef  AIL_ALL_IMPL
@@ -92,74 +157,6 @@ typedef char*    str;
 
 
 /////////////////////////
-// Some useful predefined Macros
-/////////////////////////
-
-// Full list here: https://sourceforge.net/p/predef/wiki/Home/
-
-// To detect Compilers
-// Clang + Zig:       __clang__
-// MSVC:              _MSC_VER
-// GCC (+Clang+Zig):  __GNUC__
-// MinGW:             __MINGW32__ (defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only)
-// TinyC:             __TINYC__
-// Emscripten:        __EMSCRIPTEN__
-
-// To detect C standard
-// __STDC__                    - C89 or higher Standard
-// __STDC_VERSION__ == 199901L - C99 Standard
-// __STDC_VERSION__ == 201112L - C11 Standard
-// __STDC_VERSION__ == 201710L - C17 Standard
-// __STDC_VERSION__ == 202311L - C23 Standard
-// __cplusplus                 - C++ Standard
-// __cplusplus == 1            - pre C++98 Standard
-// __cplusplus == 199711L      - C++98 Standard
-// __cplusplus == 201103L      - C++11 Standard
-// __cplusplus == 201402L      - C++14 Standard
-// __cplusplus == 201703L      - C++17 Standard
-// __cplusplus == 202002L      - C++20 Standard
-// __cplusplus == 202302L      - C++23 Standard
-
-// To detect OS
-// Win32   - _WIN32 || __WIN32__
-// Win64   - _WIN64
-// POSIX   - __posix
-// UNIX    - __unix
-// Linux   - __linux__
-// GNU     - __GNU__
-// BSD     - BSD
-// Android - __ANDROID__
-// MinGW32 - __MINGW32__
-// MinGW64 - __MINGW64__
-// Cygwin  - __CYGWIN__
-// SPARC   - __sparc__ || __sparc
-// MacOS   - __APPLE__ && __MACH__
-// IOS     - See example below: (Source: https://stackoverflow.com/a/5920028/13764271)
-// #if __APPLE__
-//     #include <TargetConditionals.h>
-//     #if TARGET_IPHONE_SIMULATOR
-//          // iOS, tvOS, or watchOS Simulator
-//     #elif TARGET_OS_MACCATALYST
-//          // Mac's Catalyst (ports iOS API into Mac, like UIKit).
-//     #elif TARGET_OS_IPHONE
-//         // iOS, tvOS, or watchOS device
-//     #elif TARGET_OS_MAC
-//         // Other kinds of Apple platforms
-//     #else
-//     #   error "Unknown Apple platform"
-//     #endif
-// #endif
-
-// To detect Architecture
-// x86-64    - __x86_64  || __x86_64__
-// AMD64     - __amd64__ || _M_AMD64
-// ARM       - __arm__   || _M_ARM
-// ARM64     - __aarch64__
-// Intel x86 - __i386    || _M_IX86 || _X86_
-// MIPS      - __mips    || __mips__
-
-
-/////////////////////////
 // Custom Utility Macros
 // always enabled
 /////////////////////////
@@ -173,10 +170,16 @@ typedef char*    str;
 // No typeof possible
 #endif
 
-#ifndef AIL_DBG_PRINT
+#ifndef _AIL_DBG_PRINT_
 #include <stdio.h>
-#define AIL_DBG_PRINT printf
-#endif // AIL_DBG_PRINT
+#define _AIL_DBG_PRINT_ printf
+#endif // _AIL_DBG_PRINT_
+
+#ifdef _MSC_VER
+#define AIL_UNUSED(v)  (void)sizeof(v)
+#else
+#define AIL_UNUSED(v)  (void)(v)
+#endif
 
 // @Note: Do not include "enum" in the declaration
 #if defined(__GNUC__)
@@ -234,8 +237,8 @@ typedef char*    str;
 #define AIL_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
 
-#define AIL_SWAP_PORTABLE2(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
-#define AIL_SWAP_PORTABLE(T, x, y) AIL_SWAP_PORTABLE2(T, x, y);
+#define _AIL_SWAP_PORTABLE_(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+#define AIL_SWAP_PORTABLE(T, x, y) _AIL_SWAP_PORTABLE_(T, x, y);
 #ifdef AIL_TYPEOF
     #define AIL_SWAP(x, y) do { AIL_TYPEOF(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #else
@@ -254,14 +257,14 @@ typedef char*    str;
     #define AIL_LIKELY(expr)   (expr)
 #endif
 
-#define AIL_DBG_EXIT()               do { int *X = 0; *X = 0; exit(1); } while(0)
-#define AIL_ASSERT_COMMON(expr, msg) do { if (!(expr)) { AIL_DBG_PRINT("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); AIL_DBG_EXIT(); } } while(0)
-#define AIL_ASSERT_MSG(expr, msg)    AIL_ASSERT_COMMON(expr, "with message '" msg "'")
-#define AIL_ASSERT(expr)             AIL_ASSERT_COMMON(expr, "with expression 'AIL_ASSERT(" #expr ")'")
+#define _AIL_DBG_EXIT_()                 do { int *X = 0; *X = 0; exit(1); } while(0)
+#define _AIL_ASSERT_COMMON_(expr, msg)   do { if (!(expr)) { _AIL_DBG_PRINT_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); _AIL_DBG_EXIT_(); } } while(0)
+#define AIL_ASSERT_MSG(expr, msg)        _AIL_ASSERT_COMMON_(expr, "with message '" msg "'")
+#define AIL_ASSERT(expr)                 _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" #expr ")'")
 
-#define AIL_PANIC(...)    do { AIL_DBG_PRINT(__VA_ARGS__); AIL_DBG_PRINT("\n"); AIL_DBG_EXIT(); } while(0)
-#define AIL_TODO()        do { AIL_DBG_PRINT("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
-#define AIL_UNREACHABLE() do { AIL_DBG_PRINT("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); AIL_DBG_EXIT(); } while(0)
+#define AIL_PANIC(...)    do { _AIL_DBG_PRINT_(__VA_ARGS__); _AIL_DBG_PRINT_("\n"); _AIL_DBG_EXIT_(); } while(0)
+#define AIL_TODO()        do { _AIL_DBG_PRINT_("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); _AIL_DBG_EXIT_(); } while(0)
+#define AIL_UNREACHABLE() do { _AIL_DBG_PRINT_("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); _AIL_DBG_EXIT_(); } while(0)
 
 // @TODO: Better static assert message
 #ifdef __cpp_static_assert
@@ -298,11 +301,14 @@ typedef char*    str;
 // enable implementaton with `#define AIL_ALLOCATOR_IMPL`
 // automatically enabled when, AIL_DA is also enabled
 /////////////////////////
+#if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
+#ifndef _AIL_ALLOCATOR_GUARD_
+#define _AIL_ALLOCATOR_GUARD_
 
 #ifdef AIL_TYPES_IMPL
-#define _AIL_ALLOCATOR_SIZE_TYPE u64
+#define _AIL_ALLOCATOR_SIZE_TYPE_ u64
 #else
-#define _AIL_ALLOCATOR_SIZE_TYPE size_t
+#define _AIL_ALLOCATOR_SIZE_TYPE_ size_t
 #endif
 
 #define AIL_CALL_ALLOC(allocator, size) (allocator).alloc((allocator).data, AIL_MEM_ALLOC, (size), NULL)
@@ -333,19 +339,15 @@ typedef enum AIL_Allocator_Mode {
     AIL_MEM_CLEAR_ALL,
 } AIL_Allocator_Mode;
 
-typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr);
-typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr);
+typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr);
+typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr);
 
 typedef struct AIL_Allocator {
     void *data; // Metadata required by allocator and provided in all function calls
     AIL_Allocator_Func_Ptr alloc;
 } AIL_Allocator;
 
-#if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
-#ifndef _AIL_ALLOCATOR_GUARD_
-#define _AIL_ALLOCATOR_GUARD_
-
-AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE size, void *old_ptr)
+AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr)
 {
     AIL_UNUSED(data);
     switch (mode) {
@@ -382,6 +384,10 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 // - nob.h (https://github.com/tsoding/musializer/blob/master/src/nob.h)
 // - stb_ds.h (https://github.com/nothings/stb/blob/master/stb_ds.h)
 /////////////////////////
+#ifdef AIL_DA_IMPL
+#ifndef _AIL_DA_GUARD_
+#define _AIL_DA_GUARD_
+
 #ifndef AIL_DA_PRINT
 #include <stdio.h>
 #define AIL_DA_PRINT printf
@@ -394,9 +400,6 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
 #define AIL_DA(T) AIL_DA_##T
 
-#ifdef AIL_DA_IMPL
-#ifndef _AIL_DA_GUARD_
-#define _AIL_DA_GUARD_
 AIL_DA_INIT(void);
 AIL_DA_INIT(char);
 
