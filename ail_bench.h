@@ -226,8 +226,9 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
 
             f64 min_elapsed_in_ms = ail_bench_cpu_elapsed_to_ms_fast(anchor->min_wo_children, cpu_freq);
             len_diff = max_min_elapsed_ms_len - ail_bench_f64_len(min_elapsed_in_ms, float_print_precision);
+            printf("Min: ");
             while (len_diff--) printf(" ");
-            printf("Min: %0.*fms ", float_print_precision, min_elapsed_in_ms);
+            printf("%0.*fms ", float_print_precision, min_elapsed_in_ms);
             if (anchor->min_with_children != anchor->min_wo_children) {
                 printf("(%0.*fms w/children)", float_print_precision, ail_bench_cpu_elapsed_to_ms_fast(anchor->min_with_children, cpu_freq));
             }
