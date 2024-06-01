@@ -186,6 +186,7 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
     u32 max_elapsed_cycles_len = 0;
     u32 max_elapsed_ms_len     = 0;
     u32 max_min_elapsed_ms_len = 0;
+    b32 any_with_children      = 0;
     for (u32 anchor_idx = 0; anchor_idx < AIL_BENCH_PROFILE_ANCHOR_COUNT; anchor_idx++) {
         AIL_Bench_Profile_Anchor *anchor = &ail_bench_global_anchors[anchor_idx];
         if (anchor->elapsed_with_children) {
@@ -198,9 +199,10 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
             max_elapsed_cycles_len = AIL_MAX(max_elapsed_cycles_len, elapsed_cycles_len);
             max_elapsed_ms_len     = AIL_MAX(max_elapsed_ms_len,     elapsed_ms_len);
             max_min_elapsed_ms_len = AIL_MAX(max_min_elapsed_ms_len, min_elapsed_ms_len);
+            any_with_children     |= (anchor->elapsed_with_children != anchor->elapsed_wo_children);
         }
     }
-    char tmp_str[8] = {0};
+    char tmp_str[16] = {0};
     for (u32 anchor_idx = 0; anchor_idx < AIL_BENCH_PROFILE_ANCHOR_COUNT; anchor_idx++) {
         AIL_Bench_Profile_Anchor *anchor = &ail_bench_global_anchors[anchor_idx];
         if (anchor->elapsed_with_children) {
@@ -210,20 +212,22 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
             while (len_diff--) printf(" ");
             len_diff = max_elapsed_cycles_len - ail_bench_u64_len(anchor->elapsed_wo_children);
             while (len_diff--) printf(" ");
-            printf("%llucycles, ", anchor->elapsed_wo_children);
+            printf("%llu cycles, ", anchor->elapsed_wo_children);
             f64 elapsed_in_ms = ail_bench_cpu_elapsed_to_ms_fast(anchor->elapsed_wo_children, cpu_freq);
             len_diff = max_elapsed_ms_len - ail_bench_f64_len(elapsed_in_ms, float_print_precision);
             while (len_diff--) printf(" ");
             printf("%0.*fms ", float_print_precision, elapsed_in_ms);
 
-            if (anchor->elapsed_with_children == anchor->elapsed_wo_children) {
+            b32 has_children = (anchor->elapsed_with_children != anchor->elapsed_wo_children);
+            if (!has_children) {
                 printf("(%5.2f%%) ", perc_wo_children);
             } else {
                 f64 perc_with_children = 100.0 * ((f64)anchor->elapsed_with_children / (f64)total_tsc_elapsed);
-                sprintf(tmp_str, "%.2f%%,", perc_wo_children);
-                printf("(%-7s%.2f%% w/children) ", tmp_str, perc_with_children);
+                sprintf(tmp_str, "%5.2f%%, ", perc_wo_children);
+                printf("(%-8s%5.2f%% w/children) ", tmp_str, perc_with_children);
             }
 
+            if (!has_children && any_with_children) printf("                   ");
             f64 min_elapsed_in_ms = ail_bench_cpu_elapsed_to_ms_fast(anchor->min_wo_children, cpu_freq);
             len_diff = max_min_elapsed_ms_len - ail_bench_f64_len(min_elapsed_in_ms, float_print_precision);
             printf("Min: ");
