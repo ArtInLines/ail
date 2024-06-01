@@ -8,6 +8,8 @@
   * AIL_DA_IMPL:    include macro-template for dynamic arrays (automatically enables AIL_ALLOC_IMPL as well)
 * For the documentation of each of these, see below
 *
+* Define AIL_ALLOC_DBG if you want to allow tracing/visualization of allocators' internals (see ./ail_alloc.h and ./utils for more info)
+*
 * Define AIL_DEF (defaults to `static`), AIL_DEF_INLINE (defaults to `static inline`) if you want different function declarations as a default for all ail.h libraries
 *
 * Define AIL_MALLOC, AIL_CALLOC, AIL_REALLOC, AIL_FREE to redefine the std's memory allocator as a default for all ail.h libraries
@@ -342,10 +344,26 @@ typedef enum AIL_Allocator_Mode {
 typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr);
 typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr);
 
+#ifdef AIL_ALLOC_DBG
+typedef void* (AIL_Alloc_Dbg_CB)();
+typedef void* (*AIL_Alloc_Dbg_CB_Ptr)();
+typedef struct AIL_Alloc_Dbg_CB_List AIL_Alloc_Dbg_CB_List;
+struct AIL_Alloc_Dbg_CB_List {
+    AIL_Alloc_Dbg_CB_Ptr func;
+    AIL_Alloc_Dbg_CB_List *next;
+}
+
+typedef struct AIL_Allocator {
+    void *data; // Metadata required by allocator and provided in all function calls
+    AIL_Allocator_Func_Ptr alloc;
+    AIL_Alloc_Dbg_CB_List *cbs;
+} AIL_Allocator;
+#else
 typedef struct AIL_Allocator {
     void *data; // Metadata required by allocator and provided in all function calls
     AIL_Allocator_Func_Ptr alloc;
 } AIL_Allocator;
+#endif
 
 AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr)
 {

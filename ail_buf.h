@@ -1,5 +1,7 @@
 // Simple Buffer
 //
+// Define `AIL_BUF_STD_MALLOC` if you don't want to use
+//
 // LICENSE
 /*
 Copyright (c) 2024 Val Richter

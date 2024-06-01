@@ -266,6 +266,8 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
         }                                                          \
     } while(0)
 
+#define AIL_ALLOC_Callback(alName, allocator, mode, ptr, size, optr)
+
 #define AIL_ALLOC_GET_LAST_REGION(listPtr) _ail_alloc_get_last_region_( \
         (listPtr),                                                      \
         AIL_OFFSETOF(listPtr, region_head),                             \
