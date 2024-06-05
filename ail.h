@@ -284,7 +284,7 @@ typedef char*    str;
 
 #define AIL_OFFSETOF(ptr, field) (((char *) &(ptr)->field) - ((char *) (ptr)))
 
-#define AIL_IS_2POWER(x) x && !(x & (x - 1))
+#define AIL_IS_2POWER(x) (x && ((x & (x - 1)) == 0))
 #define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
         out = x;                                                                                                                              \
         out--;                                                                                                                                \
