@@ -28,11 +28,11 @@ static void *counting_pager_alloc(void *data, AIL_Allocator_Mode mode, u64 size,
     void *res = NULL;
     switch (mode) {
         case AIL_MEM_ALLOC: {
-            res = _ail_alloc_page_internal_alloc_(size);
+            res = _ail_alloc_page_internal_alloc_(NULL, size);
             pager->cur_page_count += get_alloc_size_in_pages(res);
         } break;
         case AIL_MEM_CALLOC: {
-            res = _ail_alloc_page_internal_alloc_(size);
+            res = _ail_alloc_page_internal_alloc_(NULL, size);
             memset(res, 0, size);
             pager->cur_page_count += get_alloc_size_in_pages(res);
         } break;
@@ -193,10 +193,11 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
     } while(0)
 
 #define PAGER(alloc_name, n, ...) do {                                                  \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(global_pager));              \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(global_pager));             \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                     \
         global_max_page_sizes[global_max_page_idx].size    = size;                      \
         global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        AIL_CALL_FREE_ALL(global_pager);                                                \
     } while(0)
 
 #define STD(alloc_name, n, ...) ITER(alloc_name, n, __VA_ARGS__)
@@ -204,24 +205,27 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
 #define BUFFER(alloc_name, n, ...) do {                                                 \
         u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max);                     \
         AIL_Allocator buffer = ail_alloc_buffer_new(mem_max, back_buffer);              \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(buffer));                    \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(buffer));                   \
         global_max_page_sizes[global_max_page_idx].size = size_to_page_count(mem_max);  \
         global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        AIL_CALL_FREE_ALL(buffer);                                                      \
         AIL_CALL_FREE(ail_alloc_pager, back_buffer);                                    \
     } while(0)
 
 #define RING(alloc_name, n, ...) do {                                                   \
         u8 *back_buffer = AIL_CALL_ALLOC(ail_alloc_pager, mem_max);                     \
         AIL_Allocator ring = ail_alloc_ring_new(mem_max, back_buffer);                  \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(ring));                      \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(ring));                     \
         global_max_page_sizes[global_max_page_idx].size = size_to_page_count(mem_max);  \
         global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        AIL_CALL_FREE_ALL(ring);                                                        \
         AIL_CALL_FREE(ail_alloc_pager, back_buffer);                                    \
     } while(0)
 
 #define ARENA(alloc_name, n, ...) do {                                                  \
         AIL_Allocator arena = ail_alloc_arena_new(start_cap, &global_pager);            \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(arena));                     \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(arena));                    \
+        AIL_CALL_FREE_ALL(arena);                                                       \
         AIL_CALL_FREE(global_pager, arena.data);                                        \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                     \
         global_max_page_sizes[global_max_page_idx].size    = size;                      \
@@ -231,7 +235,8 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
 // @Note: requires variable el_size to be set
 #define POOL(alloc_name, n, ...) do {                                                       \
         AIL_Allocator pool = ail_alloc_pool_new(start_cap/el_size, el_size, &global_pager); \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(pool));                          \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(pool));                         \
+        AIL_CALL_FREE_ALL(pool);                                                            \
         AIL_CALL_FREE(global_pager, pool.data);                                             \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                         \
         global_max_page_sizes[global_max_page_idx].size    = size;                          \
@@ -240,7 +245,8 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
 
 #define FREELIST(alloc_name, n, ...) do {                                               \
         AIL_Allocator fl = ail_alloc_freelist_new(start_cap, &global_pager);            \
-        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_FREE_ALL(fl));                        \
+        ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(fl));                       \
+        AIL_CALL_FREE_ALL(fl);                                                          \
         AIL_CALL_FREE(global_pager, fl.data);                                           \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                     \
         global_max_page_sizes[global_max_page_idx].size    = size;                      \
@@ -298,14 +304,16 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
     X(Freelist, FREELIST, &fl)          \
 
 
-// @TODO: Track required memory too
 int main(void)
 {
     global_pager = counting_pager_new();
     u64 start_cap = AIL_ALLOC_PAGE_SIZE - sizeof(AIL_Alloc_Page_Header);
     u64 mem_max   = (AIL_ALLOC_PAGE_SIZE - sizeof(AIL_Alloc_Page_Header))*64;
-    u64 n         = 100;
-    printf("Every test is iterated %lld times...\n", n);
+    u64 n         = 1000;
+    printf("Every test is iterated %lld times\n", n);
+    printf("The memory allocated by an allocator is not freed in-between these iterations\n");
+    printf("This way we measure for the optimal case\n");
+    printf("Then we're also comparable with std malloc, which doesn't let us free all its memory anyways\n");
     { // Fixed Size Allocs with randomly ordered frees
         printf("------\n");
         ail_bench_begin_profile();

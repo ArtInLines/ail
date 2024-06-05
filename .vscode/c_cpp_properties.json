@@ -3,8 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${vcpkgRoot}/installed/x64-windows/include"
+                "${workspaceFolder}/**"
             ],
             "defines": [
                 "_DEBUG",
@@ -20,8 +19,7 @@
         {
             "name": "MinGW",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${vcpkgRoot}/installed/x64-windows/include"
+                "${workspaceFolder}/**"
             ],
             "defines": [
                 "_DEBUG",
@@ -36,8 +34,7 @@
         {
             "name": "Win (clang)",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${vcpkgRoot}/installed/x64-windows/include"
+                "${workspaceFolder}/**"
             ],
             "defines": [
                 "_DEBUG",

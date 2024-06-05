@@ -11,6 +11,7 @@
 // @TODO: Add documentation explaining the different available Allocators
 // @TODO: Add a way to only track allocations of a single allocator / allocator-type (?)
 // @TODO: Add a way to track amount of used memory
+// @TODO: Change the semantics of alloc/calloc to mean that if `old_ptr` is unequal to 0, it should try to allocate there (like mmap & VirtualAlloc do too)
 //
 // LICENSE
 /*
@@ -224,7 +225,6 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 
 // @TODO: Provide reserve/committ capacities for allocators instead of just one capacity
 // @TODO: Implement Page Allocations for OSes other than WINDOWS and UNIX
-// @TODO: Check whether page calloc actually requires a memset or whether they are required to return zero-pages already
 #if defined(_WIN32)
 #include <Windows.h> // For VirtualAlloc, VirtualFree
 #else
@@ -459,14 +459,14 @@ static inline void _ail_alloc_internal_free_pages_(void *ptr, u64 size)
 #endif
 }
 
-static void* _ail_alloc_page_internal_alloc_(u64 size)
+static void* _ail_alloc_page_internal_alloc_(void *addr, u64 size)
 {
     u64 aligned_size = ail_alloc_align_forward(size + sizeof(AIL_Alloc_Page_Header), AIL_ALLOC_PAGE_SIZE);
     size = aligned_size - sizeof(AIL_Alloc_Page_Header);
 #if defined(_WIN32)
-    void *ptr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    void *ptr = VirtualAlloc(addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 #else
-    void *ptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+    void *ptr = mmap(addr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
 #endif
     ((AIL_Alloc_Page_Header *)ptr)->size = aligned_size - sizeof(AIL_Alloc_Page_Header);
     return (u8 *)ptr + sizeof(AIL_Alloc_Page_Header);
@@ -487,9 +487,11 @@ static void* _ail_alloc_page_internal_realloc_(void *old_ptr, u64 size)
     } else {
         // @TODO: VirtualAlloc can take the previous pointer to potentially just increase the size
         // @TODO: mmap has some kind of hint system, that probably does more or less the same
+        void *res = _ail_alloc_page_internal_alloc_(NULL, size);
         AIL_Alloc_Page_Header *header = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Page_Header);
+        AIL_MEMCPY(res, old_ptr, header->size);
         _ail_alloc_internal_free_pages_(old_ptr, header->size);
-        return _ail_alloc_page_internal_alloc_(size);
+        return res;
     }
 }
 
@@ -499,11 +501,11 @@ void* ail_alloc_page_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
     void *res = NULL;
     switch (mode) {
         case AIL_MEM_ALLOC: {
-            res = _ail_alloc_page_internal_alloc_(size);
+            res = _ail_alloc_page_internal_alloc_(old_ptr, size);
         } break;
         case AIL_MEM_CALLOC: {
-            res = _ail_alloc_page_internal_alloc_(size);
-            memset(res, 0, size);
+            // @Note: Pages are already set to zero when returned by the OS, so memseting to 0 is unnecessary
+            res = _ail_alloc_page_internal_alloc_(old_ptr, size);
         } break;
         case AIL_MEM_REALLOC: {
             res = _ail_alloc_page_internal_realloc_(old_ptr, size);
