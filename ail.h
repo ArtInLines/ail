@@ -422,8 +422,8 @@ AIL_DA_INIT(str);
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
 
 #define ail_da_from_parts(T, d, l, c, alPtr) (AIL_DA(T)) { .data = (d), .len = (l), .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_with_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->alloc((alPtr)->data, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_zero_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = (alPtr)->zero_alloc((alPtr)->data, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_with_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = AIL_CALL_ALLOC (*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_zero_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = AIL_CALL_CALLOC(*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
 #define ail_da_new_with_cap(T, c)            (AIL_DA(T)) { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
 #define ail_da_new(T)                        (AIL_DA(T)) { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = &ail_default_allocator }
 #define ail_da_new_empty(T)                  (AIL_DA(T)) { .data = NULL, .len = 0, .cap = 0, .allocator = &ail_default_allocator }

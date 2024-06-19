@@ -848,7 +848,7 @@ AIL_GUI_DEF AIL_Gui_Update_Res ail_gui_drawInputBox(AIL_Gui_Input_Box *self)
     }
 
     ail_gui_free_drawable_text(&prepText);
-    AIL_CALL_FREE(ail_gui_allocator.data, coords);
+    AIL_CALL_FREE(ail_gui_allocator, coords);
     if (hovered) SetMouseCursor(MOUSE_CURSOR_IBEAM);
     res.state = state;
     return res;
