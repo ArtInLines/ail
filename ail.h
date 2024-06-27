@@ -249,6 +249,11 @@ typedef char*    str;
 #define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
 #define AIL_REV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
 
+#define AIL_KB(x) (((u64)(x)) << 10)
+#define AIL_MB(x) (((u64)(x)) << 20)
+#define AIL_GB(x) (((u64)(x)) << 30)
+#define AIL_TB(x) (((u64)(x)) << 40)
+
 #if defined(__GNUC__) || defined(__clang__)
     #define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
     #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
