@@ -172,7 +172,7 @@ typedef char*    str;
 
 #ifndef _AIL_DBG_PRINT_
 #include <stdio.h>
-#define _AIL_DBG_PRINT_ printf
+#define _AIL_DBG_PRINT_ puts
 #endif // _AIL_DBG_PRINT_
 
 #ifdef _MSC_VER
@@ -265,7 +265,7 @@ typedef char*    str;
 #define _AIL_DBG_EXIT_()                 do { int *X = 0; *X = 0; exit(1); } while(0)
 #define _AIL_ASSERT_COMMON_(expr, msg)   do { if (!(expr)) { _AIL_DBG_PRINT_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); _AIL_DBG_EXIT_(); } } while(0)
 #define AIL_ASSERT_MSG(expr, msg)        _AIL_ASSERT_COMMON_(expr, "with message '" msg "'")
-#define AIL_ASSERT(expr)                 _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" #expr ")'")
+#define AIL_ASSERT(expr)                 _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" AIL_STRINGIZE(expr) ")'")
 
 #define AIL_PANIC(...)    do { _AIL_DBG_PRINT_(__VA_ARGS__); _AIL_DBG_PRINT_("\n"); _AIL_DBG_EXIT_(); } while(0)
 #define AIL_TODO()        do { _AIL_DBG_PRINT_("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); _AIL_DBG_EXIT_(); } while(0)
