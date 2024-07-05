@@ -113,6 +113,8 @@ AIL_DA_INIT(AIL_Str);
 // Creating a Str //
 ////////////////////
 
+#define AIL_STR_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit) }
+#define AIL_STR_FROM_LITERAL_T(clit) (AIL_Str)AIL_STR_FROM_LITERAL(clit)
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_parts(char *s, u64 len);
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_cstr (char *s);
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_da(AIL_DA(char) str);
@@ -134,6 +136,8 @@ AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv);
 // Creating a SV //
 ///////////////////
 
+#define AIL_SV_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit) }
+#define AIL_SV_FROM_LITERAL_T(clit) (AIL_SV)AIL_SV_FROM_LITERAL(clit)
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_parts(const char *str, u64 len);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr (const char *str);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_str(AIL_Str str);
@@ -211,6 +215,7 @@ AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split     (AIL_SV sv, AIL_SV split_by, bool ign
 AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty);
 
 // @Note: rev_join joins the splitted substrings in reverse order
+// @Important: To avoid memory leaks, make sure to free the underlying string
 AIL_SV_DEF AIL_Str ail_sv_join    (AIL_SV *list, u64 n, AIL_SV joiner);
 AIL_SV_DEF AIL_Str ail_sv_rev_join(AIL_SV *list, u64 n, AIL_SV joiner);
 AIL_SV_DEF AIL_Str ail_sv_join_da    (AIL_DA(AIL_SV) list, AIL_SV joiner);
