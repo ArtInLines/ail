@@ -402,13 +402,9 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #define AIL_DA_INIT_CAP 256
 #endif
 
-#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
-#define AIL_DA(T) AIL_DA_##T
-
-AIL_DA_INIT(void);
-AIL_DA_INIT(char);
-
 #ifdef AIL_TYPES_IMPL
+#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator *allocator; } AIL_DA_##T
+#define AIL_DA(T) AIL_DA_##T
 AIL_DA_INIT(u8);
 AIL_DA_INIT(u16);
 AIL_DA_INIT(u32);
@@ -420,19 +416,33 @@ AIL_DA_INIT(i64);
 AIL_DA_INIT(f32);
 AIL_DA_INIT(f64);
 AIL_DA_INIT(str);
+#else
+#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
+#define AIL_DA(T) AIL_DA_##T
 #endif
+
+AIL_DA_INIT(void);
+AIL_DA_INIT(char);
 #endif // _AIL_DA_GUARD_
 #endif // AIL_DA_IMPL
 
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
 
-#define ail_da_from_parts(T, d, l, c, alPtr) (AIL_DA(T)) { .data = (d), .len = (l), .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_with_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = AIL_CALL_ALLOC (*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_zero_alloc(T, c, alPtr)   (AIL_DA(T)) { .data = AIL_CALL_CALLOC(*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_with_cap(T, c)            (AIL_DA(T)) { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
-#define ail_da_new(T)                        (AIL_DA(T)) { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = &ail_default_allocator }
-#define ail_da_new_empty(T)                  (AIL_DA(T)) { .data = NULL, .len = 0, .cap = 0, .allocator = &ail_default_allocator }
-#define ail_da_new_zero_init(T, c)           (AIL_DA(T)) { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
+#define ail_da_from_parts(T, d, l, c, alPtr) { .data = (d), .len = (l), .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_with_alloc(T, c, alPtr)   { .data = AIL_CALL_ALLOC (*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_zero_alloc(T, c, alPtr)   { .data = AIL_CALL_CALLOC(*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
+#define ail_da_new_with_cap(T, c)            { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
+#define ail_da_new(T)                        { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = &ail_default_allocator }
+#define ail_da_new_empty(T)                  { .data = NULL, .len = 0, .cap = 0, .allocator = &ail_default_allocator }
+#define ail_da_new_zero_init(T, c)           { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
+#define ail_da_new_zero_init_t(T, c)           (AIL_DA((T)))ail_da_new_zero_init()
+#define ail_da_new_empty_t(T)                  (AIL_DA((T)))ail_da_new_empty(T)
+#define ail_da_new_t(T)                        (AIL_DA((T)))ail_da_new(T)
+#define ail_da_new_with_cap_t(T, c)            (AIL_DA((T)))ail_da_new_with_cap(T, c)
+#define ail_da_new_zero_alloc_t(T, c, alPtr)   (AIL_DA((T)))ail_da_new_zero_alloc(T, c, alPtr)
+#define ail_da_new_with_alloc_t(T, c, alPtr)   (AIL_DA((T)))ail_da_new_with_alloc(T, c, alPtr)
+#define ail_da_from_parts_t(T, d, l, c, alPtr) (AIL_DA((T)))ail_da_from_parts(T, d, l, c, alPtr)
+
 #define ail_da_free(daPtr) do { AIL_CALL_FREE((*(daPtr)->allocator), (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
 
 #define ail_da_printf(da, format, ...) do {                                       \
