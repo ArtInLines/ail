@@ -28,7 +28,7 @@ CFLAGS += -O2
 endif
 
 else ifeq ($(COMP),clang)
-CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Wno-zero-length-array
 ifeq ($(MODE),DBG)
 CFLAGS += -ggdb
 else
@@ -45,7 +45,7 @@ endif
 
 else ifeq ($(COMP),zig)
 C      := zig cc
-CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Wno-zero-length-array
 ifeq ($(MODE),DBG)
 CFLAGS += -ggdb
 else
