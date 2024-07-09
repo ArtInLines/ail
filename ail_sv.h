@@ -113,7 +113,7 @@ AIL_DA_INIT(AIL_Str);
 // Creating a Str //
 ////////////////////
 
-#define AIL_STR_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit) }
+#define AIL_STR_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit)-1 }
 #define AIL_STR_FROM_LITERAL_T(clit) (AIL_Str)AIL_STR_FROM_LITERAL(clit)
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_parts(char *s, u64 len);
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_cstr (char *s);
@@ -136,7 +136,7 @@ AIL_SV_DEF char* ail_sv_copy_to_cstr(AIL_SV sv);
 // Creating a SV //
 ///////////////////
 
-#define AIL_SV_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit) }
+#define AIL_SV_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit)-1 }
 #define AIL_SV_FROM_LITERAL_T(clit) (AIL_SV)AIL_SV_FROM_LITERAL(clit)
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_parts(const char *str, u64 len);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr (const char *str);

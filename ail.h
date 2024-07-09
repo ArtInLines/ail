@@ -27,6 +27,8 @@
   * AIL_VFUNC(name, ...): Overload a macro on the amount of its arguments
     * only works if there's 64 or fewer arguments
     * every overloaded version of the macro must be named '<name>_<number_of_arguments>'
+  * AIL_IS_EMPTY(...): Check whether the given var-arg list is empty or not
+    * Does not work for conditional compilation
   * AIL_MAX(a, b): get the maximum of two values
   * AIL_MIN(a, b): get the minimum of two values
   * AIL_CLAMP(x, min, max): Returns the closest value to x in the range [min; max]
@@ -232,6 +234,9 @@ typedef char*    str;
 #define __AIL_NARG__(...)  __AIL_NARG_I_(__VA_ARGS__,__AIL_RSEQ_N())
 #define AIL_VFUNC(func, ...) AIL_EXPAND(AIL_CONCAT(func, __AIL_NARG__(__VA_ARGS__))(__VA_ARGS__))
 
+// Implementation taken from here: https://stackoverflow.com/a/55420185
+#define AIL_IS_EMPTY(...) (sizeof((char[]){#__VA_ARGS__}) == 1)
+
 // @Note: Not safe to use with expressions, that have side-effects (like AIL_MAX(x++, y++))
 #define AIL_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define AIL_MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -280,7 +285,7 @@ typedef char*    str;
     #include <assert.h>
     #define _AIL_STATIC_ASSERT2(cond, msg) _Static_assert(!!(cond), msg)
 #else
-    #define _AIL_STATIC_ASSERT_MSG2(cond, msg, line) do { char __ail_static_assertion_at_line##line[((!!(cond))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIZE(msg); AIL_UNUSED(__ail_static_assertion_at_line##line); AIL_UNUSED(__ail_static_assertion_at_line##line_message); } while(0)
+    #define _AIL_STATIC_ASSERT_MSG2(cond, msg, line) char __ail_static_assertion_at_line##line[((!!(cond))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIZE(msg)
     #define _AIL_STATIC_ASSERT_MSG1(cond, msg, line) _AIL_STATIC_ASSERT_MSG2(cond, msg, line)
     #define _AIL_STATIC_ASSERT2(cond, msg)           _AIL_STATIC_ASSERT_MSG1(cond, msg, __LINE__)
 #endif
