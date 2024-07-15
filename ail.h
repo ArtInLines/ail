@@ -71,8 +71,55 @@
 * To use the std's allocator, ail_default_allocator is provided
 *
 *** Dynamic Array Template ***
-* @TODO: Documentation TBD
-*
+* There are two common ways for implementing dynamic arrays in C.
+* One is to put the required metadata right in front of the allocated array.
+  * The main benefit here is the ease of use, since no custom type needs to be declared and NULL can be used as a valid initialization for an empty array.
+  * However, this means also that there is no seperate type for dynamic arrays, making code more ambiguous and thus harder to read and potentially even more error-prone as the type checker is effectively bypassed here.
+  * Furthermore, it using a pointer as a type to the dynamic array also forces one to remember to overwrite the variable whenever the array was potentially resized.
+* The other way is to create a seperate structure for each type that a dynamic array is required for
+  * The main negative here is the overhead of these additional type-declarations
+  * Zero-Initialization stays possible here. However, the type system is not bypassed and the variable containing the array never needs to be overwritten by the user, as this can be ensured by macros instead
+  * Additionally, since all functionality can be implemented via macros, users can provide any custom structures as long as they contain the fields `data`, `len` and `cap`
+* This library implements the latter option
+* Since all functionality is implemented via macros, dynamic arrays are implemented similarly to a template in C++ or an interface in a duck-typed language like python
+* Every dynamic array structure is expected to have the following fields by the macros:
+  * data:      The pointer to the actual array of elementss
+  * len:       The amount of elements currently stored in this array
+  * cap:       The amount of elements currently allocated for this array
+  * allcoator: [optional] An AIL_Allocator struct. All frees/allocations for this dynamic array are done through this allocator
+    * This field is optional. Instead of storing this allocator as a field of the struct, you can also provide the allocator with every macro
+* To reduce the overhead of the additional type-declarations, it offers two utility macros:
+  * AIL_DA_INIT(T): Declare the type "AIL_DA_<T>" as a dynamic array of Ts
+    * This type includes the required fields `data`, `len`, `cap` as well as the optional `allocator` field, which contains an AIL_Allocator struct
+    * Because the type T is used for the struct's name, "T" cannot contain any spaces. Instead of "AIL_DA_INIT(unsigned int)" you have to use a typedef to map "unsigned int" to something like "uint"
+  * AIL_DA(T): Get the name of the type declared in AIL_DA_INIT(T) - this simply maps to "AIL_DA_<T>", but is easier to remember & removes reliance on this implementation detail
+* The following is a list of macros to ease the initialization of dynamic arrays
+* @Note: Zero-initialization is also valid if you do not store the allocator as part of the dynamic array
+* @Note: All of these macros expect that this dynamic array contains the `allocator` field
+* @Note: As with all initialization macros in the ail libraries, each macro also exists with a `_t` suffix to provide the type name before the struct literal
+  * ail_da_from_parts(d, l, c, al):   Create a dynamic array of elemments with d pointing at the array, l providing the length, c the capacity and al the allocator
+  * ail_da_new_with_alloc(T, c, al): Allocate a new array with a capacity of `c` using the allocator `al`. Length is set to 0
+  * ail_da_new_zero_alloc(T, c, al): Same as ail_da_new_with_alloc, but calls calloc instead of alloc for the array
+  * ail_da_new_with_cap(T, c):       Same as ail_da_new_with_alloc, but using the default allocator
+  * ail_da_new_zero_init(T, c):      Same as ail_da_new_with_cap, but using calloc instead of alloc
+  * ail_da_new(T):                   Same as ail_da_new_with_cap, but with a default capacity defined in AIL_DA_INIT_CAP
+  * ail_da_new_empty(T):             Creates an empty list without any allocations
+* In the following, all other available macros are listed.
+* @Note: For each macro potentially requiring allocation/freeing, another version with the suffix `_a` exists, allowing you to provide an allocator, if no allocator is stored with the dynamic array
+  * ail_da_free(daPtr):                   Free the underlying array and set capacity and length to 0
+  * ail_da_setn(daPtr, idx, elems, n):    Overwrite the elements from idx to idx+n to the elements in the array elems
+  * ail_da_push(daPtr, elem):             Add a new element to the end of the array
+  * ail_da_pushn(daPtr, elems, n):        Add n new elements from the array elems to the end of the array
+  * ail_da_insert(daPtr, idx, elem):      Insert a new element at index idx of the array, pushing all elements afterwards back. The new element will be stored at index idx afterwards
+  * ail_da_insertn(daPtr, idx, elems, n): Insert n new elements from the array elems into the array at index idx
+  * ail_da_rm(daPtr, idx):                Remove an element from the array, moving all elements afterwards forward - this keeps all elements in the same order
+  * ail_da_rmn(daPtr, idx, n):            Remove n elements from the array, moving all elements afterwards forward - this keeps all elements in the same order
+  * ail_da_rm_swap(daPtr, idx):           Remove the element at index idx from the array, by swapping it with the last element - this does not keep the array's order, but is potentially much faster
+  * ail_da_printf(da, format, ...):       Print all elements from the array to the console using printf. The format is regarding an individual element, which can be accessed using (da).data[i]
+  * ail_da_resize(daPtr, newCap):              Resize the underlying array to the new capacity. Usually not directly called by user code
+  * ail_da_maybe_grow(daPtr, n):               Ensure the underlying array has the capacity for at least n elements, potentially resizing it if necessary. Usually not directly called by user code
+  * ail_da_maybe_grow_with_gap(daPtr, idx, n): Same as ail_da_maybe_grow, but leaving a gap at index idx when resizing. This is needed for insertions. Usually not directly called by user code
+  * ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize): Grows the array to the new capacity, but leaving a gap at gapStart. This is needed for insertions. Usually not directly called by user code
 *
 *** LICENSE ***
 Copyright (c) 2024 Val Richter
@@ -433,20 +480,20 @@ AIL_DA_INIT(char);
 
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
 
-#define ail_da_from_parts(T, d, l, c, al) { .data = (d), .len = (l), .cap = (c), .allocator = (al) }
-#define ail_da_new_with_alloc(T, c, al)   { .data = AIL_CALL_ALLOC ((al), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (al) }
-#define ail_da_new_zero_alloc(T, c, al)   { .data = AIL_CALL_CALLOC((al), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (al) }
-#define ail_da_new_with_cap(T, c)         { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = ail_default_allocator }
-#define ail_da_new(T)                     { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = ail_default_allocator }
-#define ail_da_new_empty(T)               { .data = NULL, .len = 0, .cap = 0, .allocator = ail_default_allocator }
-#define ail_da_new_zero_init(T, c)        { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = ail_default_allocator }
+#define ail_da_from_parts(d, l, c, al)  { .data = (d), .len = (l), .cap = (c), .allocator = (al) }
+#define ail_da_new_with_alloc(T, c, al) { .data = AIL_CALL_ALLOC ((al), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (al) }
+#define ail_da_new_zero_alloc(T, c, al) { .data = AIL_CALL_CALLOC((al), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (al) }
+#define ail_da_new_with_cap(T, c)       { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = ail_default_allocator }
+#define ail_da_new_zero_init(T, c)      { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = ail_default_allocator }
+#define ail_da_new(T)                   { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = ail_default_allocator }
+#define ail_da_new_empty(T)             { .data = NULL, .len = 0, .cap = 0, .allocator = ail_default_allocator }
 #define ail_da_new_zero_init_t(T, c)        (AIL_DA((T)))ail_da_new_zero_init()
 #define ail_da_new_empty_t(T)               (AIL_DA((T)))ail_da_new_empty(T)
 #define ail_da_new_t(T)                     (AIL_DA((T)))ail_da_new(T)
 #define ail_da_new_with_cap_t(T, c)         (AIL_DA((T)))ail_da_new_with_cap(T, c)
 #define ail_da_new_zero_alloc_t(T, c, al)   (AIL_DA((T)))ail_da_new_zero_alloc(T, c, al)
 #define ail_da_new_with_alloc_t(T, c, al)   (AIL_DA((T)))ail_da_new_with_alloc(T, c, al)
-#define ail_da_from_parts_t(T, d, l, c, al) (AIL_DA((T)))ail_da_from_parts(T, d, l, c, al)
+#define ail_da_from_parts_t(T, d, l, c, al) (AIL_DA((T)))ail_da_from_parts(d, l, c, al)
 
 #define ail_da_free(daPtr) ail_da_free_a(daPtr, (daPtr)->allocator)
 #define ail_da_free_a(daPtr, al) do { AIL_CALL_FREE((al), (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
