@@ -528,6 +528,13 @@ AIL_DA_INIT(char);
         }                                                                                \
     } while(0)
 
+#define ail_da_rmn(daPtr, idx, n) do {                                                      \
+        (daPtr)->len -= (n);                                                                \
+        for (u32 _ail_da_rmn_i_ = (idx); _ail_da_rmn_i_ < (daPtr)->len; _ail_da_rmn_i_++) { \
+            (daPtr)->data[_ail_da_rmn_i_] = (daPtr)->data[_ail_da_rmn_i_ + (n)];            \
+        }                                                                                   \
+    } while(0)
+
 #define ail_da_rm_swap(daPtr, idx) (daPtr)->data[(idx)] = (daPtr)->data[--(daPtr)->len]
 
 #endif // AIL_H_
