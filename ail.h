@@ -408,7 +408,7 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #endif
 
 #ifdef AIL_TYPES_IMPL
-#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator *allocator; } AIL_DA_##T
+#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator allocator; } AIL_DA_##T
 #define AIL_DA(T) AIL_DA_##T
 AIL_DA_INIT(u8);
 AIL_DA_INIT(u16);
@@ -433,22 +433,23 @@ AIL_DA_INIT(char);
 
 // #define AIL_DA(T) AIL_DA // To allow adding the element T in array definitions - serves only as documentation
 
-#define ail_da_from_parts(T, d, l, c, alPtr) { .data = (d), .len = (l), .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_with_alloc(T, c, alPtr)   { .data = AIL_CALL_ALLOC (*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_zero_alloc(T, c, alPtr)   { .data = AIL_CALL_CALLOC(*(alPtr), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (alPtr) }
-#define ail_da_new_with_cap(T, c)            { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
-#define ail_da_new(T)                        { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = &ail_default_allocator }
-#define ail_da_new_empty(T)                  { .data = NULL, .len = 0, .cap = 0, .allocator = &ail_default_allocator }
-#define ail_da_new_zero_init(T, c)           { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = &ail_default_allocator }
-#define ail_da_new_zero_init_t(T, c)           (AIL_DA((T)))ail_da_new_zero_init()
-#define ail_da_new_empty_t(T)                  (AIL_DA((T)))ail_da_new_empty(T)
-#define ail_da_new_t(T)                        (AIL_DA((T)))ail_da_new(T)
-#define ail_da_new_with_cap_t(T, c)            (AIL_DA((T)))ail_da_new_with_cap(T, c)
-#define ail_da_new_zero_alloc_t(T, c, alPtr)   (AIL_DA((T)))ail_da_new_zero_alloc(T, c, alPtr)
-#define ail_da_new_with_alloc_t(T, c, alPtr)   (AIL_DA((T)))ail_da_new_with_alloc(T, c, alPtr)
-#define ail_da_from_parts_t(T, d, l, c, alPtr) (AIL_DA((T)))ail_da_from_parts(T, d, l, c, alPtr)
+#define ail_da_from_parts(T, d, l, c, al) { .data = (d), .len = (l), .cap = (c), .allocator = (al) }
+#define ail_da_new_with_alloc(T, c, al)   { .data = AIL_CALL_ALLOC ((al), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (al) }
+#define ail_da_new_zero_alloc(T, c, al)   { .data = AIL_CALL_CALLOC((al), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (al) }
+#define ail_da_new_with_cap(T, c)         { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = ail_default_allocator }
+#define ail_da_new(T)                     { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = ail_default_allocator }
+#define ail_da_new_empty(T)               { .data = NULL, .len = 0, .cap = 0, .allocator = ail_default_allocator }
+#define ail_da_new_zero_init(T, c)        { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = ail_default_allocator }
+#define ail_da_new_zero_init_t(T, c)        (AIL_DA((T)))ail_da_new_zero_init()
+#define ail_da_new_empty_t(T)               (AIL_DA((T)))ail_da_new_empty(T)
+#define ail_da_new_t(T)                     (AIL_DA((T)))ail_da_new(T)
+#define ail_da_new_with_cap_t(T, c)         (AIL_DA((T)))ail_da_new_with_cap(T, c)
+#define ail_da_new_zero_alloc_t(T, c, al)   (AIL_DA((T)))ail_da_new_zero_alloc(T, c, al)
+#define ail_da_new_with_alloc_t(T, c, al)   (AIL_DA((T)))ail_da_new_with_alloc(T, c, al)
+#define ail_da_from_parts_t(T, d, l, c, al) (AIL_DA((T)))ail_da_from_parts(T, d, l, c, al)
 
-#define ail_da_free(daPtr) do { AIL_CALL_FREE((*(daPtr)->allocator), (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
+#define ail_da_free(daPtr) ail_da_free_a(daPtr, (daPtr)->allocator)
+#define ail_da_free_a(daPtr, al) do { AIL_CALL_FREE((al), (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
 
 #define ail_da_printf(da, format, ...) do {                                       \
         AIL_DA_PRINT("{\n  cap: %d,\n  len: %d,\n  data: [", (da).cap, (da).len); \
@@ -465,58 +466,66 @@ AIL_DA_INIT(char);
         }                                                                                  \
     } while(0)
 
-#define ail_da_resize(daPtr, newCap) do {                                                                          \
-        (daPtr)->data = AIL_CALL_REALLOC((*(daPtr)->allocator), (daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
-        (daPtr)->cap  = (newCap);                                                                                  \
-        if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                                              \
+#define ail_da_resize(daPtr, newCap) ail_da_resize_a(daPtr, newCap, (daPtr)->allocator)
+#define ail_da_resize_a(daPtr, newCap, al) do {                                                   \
+        (daPtr)->data = AIL_CALL_REALLOC((al), (daPtr)->data, sizeof(*((daPtr)->data))*(newCap)); \
+        (daPtr)->cap  = (newCap);                                                                 \
+        if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                             \
     } while(0)
 
-#define ail_da_maybe_grow(daPtr, n) do {                                       \
-        if ((daPtr)->len + (n) > (daPtr)->cap)                                   \
-            ail_da_resize(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n))); \
+#define ail_da_maybe_grow(daPtr, n) ail_da_maybe_grow_a(daPtr, n, (daPtr)->allocator)
+#define ail_da_maybe_grow_a(daPtr, n, al) do {                                         \
+        if ((daPtr)->len + (n) > (daPtr)->cap)                                         \
+            ail_da_resize_a(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), (al)); \
     } while(0)
 
-#define ail_da_push(daPtr, elem) do {           \
-        ail_da_maybe_grow(daPtr, 1);            \
+#define ail_da_push(daPtr, elem) ail_da_push_a(daPtr, elem, (daPtr)->allocator)
+#define ail_da_push_a(daPtr, elem, al) do {     \
+        ail_da_maybe_grow_a(daPtr, 1, (al));    \
         (daPtr)->data[(daPtr)->len++] = (elem); \
     } while(0)
 
-#define ail_da_pushn(daPtr, elems, n) do {                                               \
-        ail_da_maybe_grow(daPtr, n);                                                     \
+#define ail_da_pushn(daPtr, elems, n) ail_da_pushn_a(daPtr, elems, n, (daPtr)->allocator)
+#define ail_da_pushn_a(daPtr, elems, n, al) do {                                         \
+        ail_da_maybe_grow_a(daPtr, n, (al));                                             \
         AIL_MEMCPY((daPtr)->data + (daPtr)->len, (elems), sizeof(*((daPtr)->data))*(n)); \
         (daPtr)->len += (n);                                                             \
     } while(0)
 
-#define ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize) do {                                                                 \
+#define ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize) ail_da_grow_with_gap_a(daPtr, gapStart, gapLen, newCap, elSize, (daPtr)->allocator)
+#define ail_da_grow_with_gap_a(daPtr, gapStart, gapLen, newCap, elSize, al) do {                                                           \
         (daPtr)->cap = (newCap);                                                                                                           \
         char *_ail_da_gwg_ptr_ = (char *) (daPtr)->data;                                                                                   \
-        (daPtr)->data = AIL_CALL_ALLOC((*(daPtr)->allocator), (elSize)*(newCap));                                                          \
+        (daPtr)->data = AIL_CALL_ALLOC((al), (elSize)*(newCap));                                                                           \
         AIL_ASSERT((daPtr)->data != NULL);                                                                                                 \
         AIL_MEMCPY((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
         AIL_MEMCPY(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
-        AIL_CALL_FREE((*(daPtr)->allocator), _ail_da_gwg_ptr_);                                                                            \
+        AIL_CALL_FREE((al), _ail_da_gwg_ptr_);                                                                                             \
         (daPtr)->len += (gapLen);                                                                                                          \
     } while(0)
 
-#define ail_da_maybe_grow_with_gap(daPtr, idx, n) do {                                                                        \
-        if ((daPtr)->len + (n) > (daPtr)->cap) {                                                                              \
-            ail_da_grow_with_gap((daPtr), (idx), (n), AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), sizeof(*((daPtr)->data))); \
-        } else {                                                                                                              \
-            for (unsigned int _ail_da_i_ = 1; _ail_da_i_ <= ((daPtr)->len - (idx)); _ail_da_i_++) {                           \
-                (daPtr)->data[((daPtr)->len + (n)) - _ail_da_i_] =  (daPtr)->data[(daPtr)->len - _ail_da_i_];                 \
-            }                                                                                                                 \
-            (daPtr)->len += (n);                                                                                              \
-        }                                                                                                                     \
+#define ail_da_maybe_grow_with_gap(daPtr, idx, n) ail_da_maybe_grow_with_gap_a(daPtr, idx, n, (daPtr)->allocator)
+#define ail_da_maybe_grow_with_gap_a(daPtr, idx, n, al) do {                                                                          \
+        if ((daPtr)->len + (n) > (daPtr)->cap) {                                                                                      \
+            ail_da_grow_with_gap_a((daPtr), (idx), (n), AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), sizeof(*((daPtr)->data)), (al)); \
+        } else {                                                                                                                      \
+            for (unsigned int _ail_da_i_ = 1; _ail_da_i_ <= ((daPtr)->len - (idx)); _ail_da_i_++) {                                   \
+                (daPtr)->data[((daPtr)->len + (n)) - _ail_da_i_] =  (daPtr)->data[(daPtr)->len - _ail_da_i_];                         \
+            }                                                                                                                         \
+            (daPtr)->len += (n);                                                                                                      \
+        }                                                                                                                             \
     } while(0)
 
-#define ail_da_insert(daPtr, idx, elem) do {       \
-        ail_da_maybe_grow_with_gap(daPtr, idx, 1); \
-        (daPtr)->data[(idx)] = (elem);             \
+#define ail_da_insert(daPtr, idx, elem) ail_da_insert_a(daPtr, idx, elem, (daPtr)->allocator)
+#define ail_da_insert_a(daPtr, idx, elem, al) do {         \
+        ail_da_maybe_grow_with_gap_a(daPtr, idx, 1, (al)); \
+        (daPtr)->data[(idx)] = (elem);                     \
     } while(0)
 
-#define ail_da_insertn(daPtr, idx, elems, n) do {  \
-        ail_da_maybe_grow_with_gap(daPtr, idx, n); \
-        ail_da_setn(daPtr, idx, elems, n);         \
+#define ail_da_insertn(daPtr, idx, elems, n) ail_da_insertn_a(daPtr, idx, elems, n, (daPtr)->allocator)
+#define ail_da_insertn_a(daPtr, idx, elems, n, al) do {    \
+        ail_da_maybe_grow_with_gap_a(daPtr, idx, n, (al)); \
+        ail_da_setn(daPtr, idx, elems, n);                 \
     } while(0)
 
 // @TODO: Add ail_da_shrink & ail_da_maybe_shrink (they should only ever be explicitly called by the user)
