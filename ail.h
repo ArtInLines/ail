@@ -122,7 +122,7 @@
   * ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize): Grows the array to the new capacity, but leaving a gap at gapStart. This is needed for insertions. Usually not directly called by user code
 *
 *** LICENSE ***
-Copyright (c) 2024 Val Richter
+Copyright (c) 2024 Lily Val Richter
 
 Permission is hereby granted, free_one of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
