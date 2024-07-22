@@ -121,6 +121,20 @@
   * ail_da_maybe_grow_with_gap(daPtr, idx, n): Same as ail_da_maybe_grow, but leaving a gap at index idx when resizing. This is needed for insertions. Usually not directly called by user code
   * ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize): Grows the array to the new capacity, but leaving a gap at gapStart. This is needed for insertions. Usually not directly called by user code
 *
+*
+* A substantial amount of code for macros was adapted from Hedley (https://nemequ.github.io/hedley)
+* Hedley is under public domain. For completeness it's license is copied below:
+*** HEDLEY LICENSE ***
+Created by Evan Nemerson <evan@nemerson.com>
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to
+the public domain worldwide. This software is distributed without
+any warranty.
+
+For details, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+SPDX-License-Identifier: CC0-1.0
+
 *** LICENSE ***
 Copyright (c) 2024 Lily Val Richter
 
