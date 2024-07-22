@@ -19,7 +19,7 @@
 * None of these macros are safe in regards to side-effects, so be aware to avoid something like AIL_MIN(x++, --y);
   * AIL_UNUSED(x): to ignore compiler warnings if x is unused
   * AIL_ARRLEN(arr): get the size of a fixed-sized, stack-allocated array
-  * AIL_STRINGIZE(x): Turn the token x into a string (useful for macros working with printing)
+  * AIL_STRINGIFY(x): Turn the token x into a string (useful for macros working with printing)
   * AIL_STR_LINE: The current line (via __LINE__) as a string
   * AIL_CONCAT(a, b): Concatenate two tokens to a single token (mainly useful for macros)
   * AIL_EXPAND(x): Expand a token given to a macro (mainly useful for macros)
@@ -146,19 +146,23 @@ SOFTWARE.
 #ifndef AIL_H_
 #define AIL_H_
 
+#if !((defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)) || (defined(__cplusplus) && (__cplusplus >= 199711L)))
+#   error "The ail.h library only works for C99 or C++97. Support for C++ has barely been tested, but any version of C from C99 onwards should work. See the README for requirements on using this library."
+#endif
+
 #if   !defined(AIL_MALLOC) && !defined(AIL_REALLOC) && !defined(AIL_CALLOC) && !defined(AIL_FREE)
-#include <stdlib.h>
-#define AIL_MALLOC(sz)          malloc(sz)
-#define AIL_REALLOC(ptr, sz)    realloc(ptr, sz)
-#define AIL_CALLOC(len, elSize) calloc(len, elSize)
-#define AIL_FREE(ptr)           free(ptr)
+#   include <stdlib.h>
+#   define AIL_MALLOC(sz)          malloc(sz)
+#   define AIL_REALLOC(ptr, sz)    realloc(ptr, sz)
+#   define AIL_CALLOC(len, elSize) calloc(len, elSize)
+#   define AIL_FREE(ptr)           free(ptr)
 #elif !defined(AIL_MALLOC) || !defined(AIL_REALLOC) || !defined(AIL_CALLOC) || !defined(AIL_FREE)
-#error "You must define all of AIL_MALLOC, AIL_CALLOC, AIL_REALLOC and AIL_FREE or none of them. You cannot only define one or two of them."
+#   error "You must define all of AIL_MALLOC, AIL_CALLOC, AIL_REALLOC and AIL_FREE or none of them. You cannot only define one or two of them."
 #endif
 
 #ifndef AIL_MEMCPY
-#include <string.h>
-#define AIL_MEMCPY(dst, src, n) memcpy(dst, src, n)
+#   include <string.h>
+#   define AIL_MEMCPY(dst, src, n) memcpy(dst, src, n)
 #endif
 
 // AIL_DEF and AIL_DEF_INLINE only effect the AIL_ALLOC functions
@@ -211,42 +215,9 @@ typedef char*    str;
 /////////////////////////
 #include <stdlib.h> // For exit
 
-#ifdef __cplusplus
-    #define AIL_TYPEOF(x) decltype(x)
-#elif defined(__GNUC__) || defined(_MINGW)
-    #define AIL_TYPEOF(x) __typeof__(x)
-#else
-// No typeof possible
-#endif
-
-#ifndef _AIL_DBG_PRINT_
-#include <stdio.h>
-#define _AIL_DBG_PRINT_ puts
-#endif // _AIL_DBG_PRINT_
-
-#ifdef _MSC_VER
-#define AIL_UNUSED(v)  (void)sizeof(v)
-#else
-#define AIL_UNUSED(v)  (void)(v)
-#endif
-
-// @Note: Do not include "enum" in the declaration
-#if defined(__GNUC__)
-    #define AIL_PACK_BEGIN() __attribute__((__packed__))
-    #define AIL_PACK_END()
-#elif defined(_MSC_VER)
-    #define AIL_PACK_BEGIN() __pragma(pack(push, 1))
-    #define AIL_PACK_END()   __pragma(pack(pop))
-#elif defined(__clang__) || defined(__TINYC__)
-    #define AIL_PACK_BEGIN() __attribute__((packed))
-    #define AIL_PACK_END()
-#endif
-
-#define AIL_ARRLEN(arr) (sizeof(arr) / sizeof(*(arr)))
-
-#define _AIL_STRINGIZE2(x) #x
-#define AIL_STRINGIZE(x) _AIL_STRINGIZE2(x)
-#define AIL_STR_LINE AIL_STRINGIZE(__LINE__)
+#define _AIL_STRINGIFY2(x) #x
+#define AIL_STRINGIFY(x) _AIL_STRINGIFY2(x)
+#define AIL_STR_LINE AIL_STRINGIFY(__LINE__)
 
 #define _AIL_CONCAT2(A, B) A##B
 #define AIL_CONCAT(A, B) _AIL_CONCAT2(A, B)
@@ -284,6 +255,368 @@ typedef char*    str;
 // Implementation taken from here: https://stackoverflow.com/a/55420185
 #define AIL_IS_EMPTY(...) (sizeof((char[]){#__VA_ARGS__}) == 1)
 
+// Most of the following macros that deal with providing a unified interface for compiler extensions across compilers, have been adapted from Hedley:
+// https://github.com/nemequ/hedley
+// The original Hedley project supports even more compilers as well as older C versions
+#define _AIL_VERSION_ENCODE_(major, minor, patch) (((major) * 1000000) + ((minor) * 1000) + (patch))
+#define _AIL_VERSION_CHECK_(version, major, minor, patch) ((version) >= _AIL_VERSION_ENCODE_(major, minor, patch))
+// _AIL_VERSION_GNUC_
+#if defined(__GNUC__)
+#   if defined(__GNUC_PATCHLEVEL__)
+#       define _AIL_VERSION_GNUC_ _AIL_VERSION_ENCODE_(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
+#   else
+#       define _AIL_VERSION_GNUC_ _AIL_VERSION_ENCODE_(__GNUC__, __GNUC_MINOR__, 0)
+#   endif
+#else
+#   define _AIL_VERSION_GNUC_ (0)
+#endif
+// _AIL_VERSION_MSVC_
+#if defined(_MSC_FULL_VER) && !defined(__ICL)
+#   if (_MSC_FULL_VER >= 140000000)
+#       define _AIL_VERSION_MSVC_ _AIL_VERSION_ENCODE_(_MSC_FULL_VER / 10000000, (_MSC_FULL_VER % 10000000) / 100000, (_MSC_FULL_VER % 100000) / 100)
+#   else
+#       define _AIL_VERSION_MSVC_ _AIL_VERSION_ENCODE_(_MSC_FULL_VER / 1000000, (_MSC_FULL_VER % 1000000) / 10000, (_MSC_FULL_VER % 10000) / 10)
+#   endif
+#elif defined(_MSC_VER) && !defined(__ICL)
+#   define _AIL_VERSION_MSVC_ _AIL_VERSION_ENCODE_(_MSC_VER / 100, _MSC_VER % 100, 0)
+#else
+#   define _AIL_VERSION_MSVC_ (0)
+#endif
+// _AIL_VERSION_INTEL_
+#if defined(__INTEL_COMPILER) && !defined(__ICL)
+#   if defined(__INTEL_COMPILER_UPDATE)
+#       define _AIL_VERSION_INTEL_ _AIL_VERSION_ENCODE_(__INTEL_COMPILER / 100, __INTEL_COMPILER % 100, __INTEL_COMPILER_UPDATE)
+#   else
+#       define _AIL_VERSION_INTEL_ _AIL_VERSION_ENCODE_(__INTEL_COMPILER / 100, __INTEL_COMPILER % 100, 0)
+#   endif
+#else
+#   define _AIL_VERSION_INTEL_ (0)
+#endif
+// _AIL_VERSION_ICL_
+#if defined(__INTEL_COMPILER) && defined(__ICL) && defined(__INTEL_COMPILER_UPDATE)
+#   define _AIL_VERSION_ICL_ _AIL_VERSION_ENCODE_(__INTEL_COMPILER, __INTEL_COMPILER_UPDATE, 0)
+#else
+#   define _AIL_VERSION_ICL_ (0)
+#endif
+// _AIL_VERSION_TCC_
+#if defined(__TINYC__)
+#   define _AIL_VERSION_TCC_ _AIL_VERSION_ENCODE_(__TINYC__ / 1000, (__TINYC__ / 100) % 10, __TINYC__ % 100)
+#else
+#   define _AIL_VERSION_TCC_ (0)
+#endif
+// _AIL_VERSION_DMC_
+#if defined(__DMC__)
+#   define _AIL_VERSION_DMC_ _AIL_VERSION_ENCODE_(__DMC__ >> 8, (__DMC__ >> 4) & 0xf, __DMC__ & 0xf)
+#else
+#   define _AIL_VERSION_DMC_ (0)
+#endif
+// _AIL_VERSION_PELLES_
+#if defined(__POCC__)
+#   define _AIL_VERSION_PELLES_ _AIL_VERSION_ENCODE_(__POCC__ / 100, __POCC__ % 100, 0)
+#else
+#   define _AIL_VERSION_PELLES_ (0)
+#endif
+// _AIL_VERSION_GCC_
+#if defined(_AIL_VERSION_GNUC_) && !defined(__clang__) && !defined(_AIL_VERSION_INTEL_)
+#   define _AIL_VERSION_GCC_ _AIL_VERSION_GNUC_
+#else
+#   define _AIL_VERSION_GCC_ (0)
+#endif
+
+// AIL_HAS_ATTRIBUTE
+#if defined(__has_attribute)
+#   define AIL_HAS_ATTRIBUTE(attribute) __has_attribute(attribute)
+#else
+#   define AIL_HAS_ATTRIBUTE(attribute) (0)
+#endif
+// AIL_HAS_CPP_ATTRIBUTE
+#if defined(__has_cpp_attribute) && defined(__cplusplus)
+#   define AIL_HAS_CPP_ATTRIBUTE(attribute) __has_cpp_attribute(attribute)
+#else
+#   define AIL_HAS_CPP_ATTRIBUTE(attribute) (0)
+#endif
+// AIL_HAS_BUILTIN
+#if defined(__has_builtin)
+#   define AIL_HAS_BUILTIN(builtin) __has_builtin(builtin)
+#else
+#   define AIL_HAS_BUILTIN(builtin) (0)
+#endif
+// AIL_HAS_FEATURE
+#if defined(__has_feature)
+#   define AIL_HAS_FEATURE(feature) __has_feature(feature)
+#else
+#   define AIL_HAS_FEATURE(feature) (0)
+#endif
+// AIL_HAS_EXTENSION
+#if defined(__has_extension)
+#   define AIL_HAS_EXTENSION(extension) __has_extension(extension)
+#else
+#   define AIL_HAS_EXTENSION(extension) (0)
+#endif
+// AIL_HAS_WARNING
+#if defined(__has_warning)
+#   define AIL_HAS_WARNING(warning) __has_warning(warning)
+#else
+#   define AIL_HAS_WARNING(warning) (0)
+#endif
+
+// AIL_WARN_PUSH && AIL_WARN_POP
+#if defined(__clang__)
+#   define AIL_WARN_PUSH _Pragma("clang diagnostic push")
+#   define AIL_WARN_POP  _Pragma("clang diagnostic pop")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_WARN_PUSH _Pragma("warning(push)")
+#   define AIL_WARN_POP  _Pragma("warning(pop)")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 6, 0)
+#   define AIL_WARN_PUSH _Pragma("GCC diagnostic push")
+#   define AIL_WARN_POP  _Pragma("GCC diagnostic pop")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0) || _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
+#   define AIL_WARN_PUSH _Pragma(warning(push))
+#   define AIL_WARN_POP  _Pragma(warning(pop))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 2, 90, 0)
+#   define AIL_WARN_PUSH _Pragma("warning(push)")
+#   define AIL_WARN_POP  _Pragma("warning(pop)")
+#else
+#   define AIL_WARN_PUSH
+#   define AIL_WARN_POP
+#endif
+// AIL_WARN_NO_DEPRECATED
+#if AIL_HAS_WARNING("-Wdeprecated-declarations")
+#   define AIL_WARN_NO_DEPRECATED _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_WARN_NO_DEPRECATED _Pragma("warning(disable:1478 1786)")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
+#   define AIL_WARN_NO_DEPRECATED _Pragma(warning(disable:1478 1786))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 3, 0)
+#   define AIL_WARN_NO_DEPRECATED _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0)
+#   define AIL_WARN_NO_DEPRECATED _Pragma(warning(disable:4996))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 2, 90, 0)
+#   define AIL_WARN_NO_DEPRECATED _Pragma("warn(disable:2241)")
+#else
+#   define AIL_WARN_NO_DEPRECATED
+#endif
+// AIL_WARN_NO_UNKNOWN_PRAGMAS
+#if AIL_HAS_WARNING("-Wunknown-pragmas")
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("clang diagnostic ignored \"-Wunknown-pragmas\"")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("warning(disable:161)")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma(warning(disable:161))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 3, 0)
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("GCC diagnostic ignored \"-Wunknown-pragmas\"")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0)
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma(warning(disable:4068))
+#else
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS
+#endif
+// AIL_WARN_NO_CAST_QUAL
+#if AIL_HAS_WARNING("-Wcast-qual")
+#   define AIL_WARN_NO_CAST_QUAL _Pragma("clang diagnostic ignored \"-Wcast-qual\"")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_WARN_NO_CAST_QUAL _Pragma("warning(disable:2203 2331)")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 0, 0)
+#   define AIL_WARN_NO_CAST_QUAL _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
+#else
+#   define AIL_WARN_NO_CAST_QUAL
+#endif
+// AIL_WARN_NO_UNUSED_FUNCTION
+#if AIL_HAS_WARNING("-Wunknown-function")
+#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma("clang diagnostic ignored \"-Wunknown-function\"")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 4, 0)
+#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma("GCC diagnostic ignored \"-Wunknown-function\"")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 1, 0, 0)
+#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma(warning(disable:4505))
+#else
+#   define AIL_WARN_NO_UNUSED_FUNCTION
+#endif
+
+// AIL_DEPRECATED([since[, replacement]])
+#if _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 14, 0, 0) || _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
+#   define _AIL_DEPRECATED_0()                   __declspec(deprecated())
+#   define _AIL_DEPRECATED_1(since)              __declspec(deprecated("Since " #since))
+#   define _AIL_DEPRECATED_2(since, replacement) __declspec(deprecated("Since " #since "; use " #replacement))
+#elif AIL_HAS_EXTENSION(attribute_deprecated_with_message) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 5, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define _AIL_DEPRECATED_0()                   __attribute__(deprecated())
+#   define _AIL_DEPRECATED_1(since)              __attribute__(deprecated("Since " #since))
+#   define _AIL_DEPRECATED_2(since, replacement) __attribute__(deprecated("Since " #since "; use " #replacement))
+#elif defined(__cplusplus) && (__cplusplus >= 201402L)
+#   define _AIL_DEPRECATED_0()                   [[deprecated()]]
+#   define _AIL_DEPRECATED_1(since)              [[deprecated("Since " #since)]]
+#   define _AIL_DEPRECATED_2(since, replacement) [[deprecated("Since " #since "; use " #replacement)]]
+#elif AIL_HAS_ATTRIBUTE(deprecated) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 1, 0)
+#   define _AIL_DEPRECATED_0()                   __attribute__((__deprecated__))
+#   define _AIL_DEPRECATED_1(since)              __attribute__((__deprecated__))
+#   define _AIL_DEPRECATED_2(since, replacement) __attribute__((__deprecated__))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 13, 10, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_,  6, 50, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_,   2021, 1, 0)
+#   define _AIL_DEPRECATED_0()                   __declspec(deprecated)
+#   define _AIL_DEPRECATED_1(since)              __declspec(deprecated)
+#   define _AIL_DEPRECATED_2(since, replacement) __declspec(deprecated)
+#else
+#   define _AIL_DEPRECATED_0()
+#   define _AIL_DEPRECATED_1(since)
+#   define _AIL_DEPRECATED_2(since, replacement)
+#endif
+#define AIL_DEPRECATED(...) AIL_VFUNC(_AIL_DEPRECATED_, __VA_ARGS__)
+
+// AIL_NO_UNUSED_RESULT([msg])
+#if AIL_HAS_ATTRIBUTE(warn_unused_result) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_,    3, 4, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define _AIL_NO_UNUSED_RESULT_0()    __attribute__((__warn_unused_result__))
+#   define _AIL_NO_UNUSED_RESULT_1(msg) __attribute__((__warn_unused_result__))
+#elif (AIL_HAS_CPP_ATTRIBUTE(nodiscard) >= 201907L)
+#   define _AIL_NO_UNUSED_RESULT_0()    [[nodiscard]]
+#   define _AIL_NO_UNUSED_RESULT_1(msg) [[nodiscard(msg)]]
+#elif AIL_HAS_CPP_ATTRIBUTE(nodiscard)
+#   define _AIL_NO_UNUSED_RESULT_0()    [[nodiscard]]
+#   define _AIL_NO_UNUSED_RESULT_1(msg) [[nodiscard]]
+#elif defined(_Check_return_)
+#   define _AIL_NO_UNUSED_RESULT_0()    _Check_return_
+#   define _AIL_NO_UNUSED_RESULT_1(msg) _Check_return_
+#else
+#   define _AIL_NO_UNUSED_RESULT_0()
+#   define _AIL_NO_UNUSED_RESULT_1(msg)
+#endif
+#define AIL_NO_UNUSED_RESULT(...) AIL_VFUNC(_AIL_NO_UNUSED_RESULT_, __VA_ARGS__)
+
+// AIL_NO_RETURN
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L)
+#   define AIL_NO_RETURN _Noreturn
+#elif defined(__cplusplus) && (__cplusplus >= 201103L)
+#   define AIL_NO_RETURN [[noreturn]]
+#elif AIL_HAS_ATTRIBUTE(noreturn) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_,    3, 3, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_NO_RETURN __attribute__((__noreturn__))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 13, 10, 0) || _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
+#   define AIL_NO_RETURN __declspec((noreturn))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 9, 0, 0)
+#   define AIL_NO_RETURN __declspec(noreturn)
+#else
+#   define AIL_NO_RETURN
+#endif
+
+// AIL_PRINTF_FORMAT
+#if defined(__MINGW32__) && AIL_HAS_ATTRIBUTE(format)
+#   if defined(__USE_MINGW_ANSI_STDIO)
+#       define AIL_PRINTF_FORMAT(str_idx, first_arg_idx) __attribute__((__format__(ms_printf, str_idx, first_arg_idx)))
+#   else
+#       define AIL_PRINTF_FORMAT(str_idx, first_arg_idx) __attribute__((__format__(gnu_printf, str_idx, first_arg_idx)))
+#   endif
+#elif AIL_HAS_ATTRIBUTE(format) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 1, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_PRINTF_FORMAT(str_idx, first_arg_idx) __attribute__((__format__(__printf__, str_idx, first_arg_idx)))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 6, 0, 0)
+#   define AIL_PRINTF_FORMAT(str_idx, first_arg_idx) __declspec(vaformat(printf, str_idx, first_arg_idx))
+#else
+#   define AIL_PRINTF_FORMAT(str_idx, first_arg_idx)
+#endif
+
+// AIL_PURE
+#if AIL_HAS_ATTRIBUTE(pure) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 2, 96, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_PURE __attribute__((__pure__))
+#else
+#   define AIL_PURE
+#endif
+
+// AIL_CONST
+#if AIL_HAS_ATTRIBUTE(const) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 2, 5, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_CONST __attribute__((__const__))
+#else
+#   define AIL_CONST AIL_PURE
+#endif
+
+// AIL_NO_INLINE
+#if AIL_HAS_ATTRIBUTE(noinline) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 0, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_NO_INLINE __attribute__((__noinline__))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 13, 10, 0) || _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
+#   define AIL_NO_INLINE __declspec((noinline))
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 9, 0, 0)
+#   define AIL_NO_INLINE __declspec(noinline)
+#else
+#   define AIL_NO_INLINE
+#endif
+
+// AIL_LIKELY && AIL_UNLIKELY
+#if (AIL_HAS_BUILTIN(__builtin_expect) && !_AIL_VERSION_ICL_) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 0, 0) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_TCC_, 0, 9, 27) || \
+    _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0) || \
+    defined(__clang__)
+#   define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
+#   define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
+#else
+#   define AIL_UNLIKELY(expr) (!!(expr))
+#   define AIL_LIKELY(expr)   (!!(expr))
+#endif
+
+// AIL_FALLTHROUGH
+#if AIL_HAS_ATTRIBUTE(fallthrough) || _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 7, 0, 0)
+#   define AIL_FALLTHROUGH __attribute__((__fallthrough__))
+#elif AIL_HAS_CPP_ATTRIBUTE(fallthrough)
+#   define AIL_FALLTHROUGH [[fallthrough]]
+#elif defined(__fallthrough)
+#   define AIL_FALLTHROUGH __fallthrough
+#else
+#   define AIL_FALLTHROUGH
+#endif
+
+// AIL_FLAG_ENUM
+#if AIL_HAS_ATTRIBUTE(flag_enum) && (!defined(__cplusplus) || AIL_HAS_WARNING("-Wbitfield-enum-conversion"))
+#   define AIL_FLAG_ENUM __attribute__((__flag_enum__))
+#else
+#   define AIL_FLAG_ENUM
+#endif
+
+// AIL_TYPEOF
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L)
+#   define AIL_TYPEOF(x) typeof_unqual(x)
+#elif defined(__cplusplus)
+#   define AIL_TYPEOF(x) decltype(x)
+#elif defined(__GNUC__) || defined(_MINGW)
+#   define AIL_TYPEOF(x) __typeof__(x)
+#else
+// No typeof possible
+#endif
+
+#ifndef _AIL_DBG_PRINT_
+#include <stdio.h>
+#define _AIL_DBG_PRINT_ puts
+#endif // _AIL_DBG_PRINT_
+
+#if defined(_MSC_VER)
+#   define AIL_UNUSED(v)  (void)sizeof(v)
+#else
+#   define AIL_UNUSED(v)  (void)(v)
+#endif
+
+// @Note: Do not include "enum" in the declaration
+#if defined(__GNUC__)
+#   define AIL_PACK_BEGIN() __attribute__((__packed__))
+#   define AIL_PACK_END()
+#elif defined(_MSC_VER)
+#   define AIL_PACK_BEGIN() _Pragma(pack(push, 1))
+#   define AIL_PACK_END()   _Pragma(pack(pop))
+#elif defined(__clang__) || defined(__TINYC__)
+#   define AIL_PACK_BEGIN() __attribute__((packed))
+#   define AIL_PACK_END()
+#endif
+
+#define AIL_ARRLEN(arr) (sizeof(arr) / sizeof(*(arr)))
+
 // @Note: Not safe to use with expressions, that have side-effects (like AIL_MAX(x++, y++))
 #define AIL_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define AIL_MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -292,9 +625,9 @@ typedef char*    str;
 #define _AIL_SWAP_PORTABLE_(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #define AIL_SWAP_PORTABLE(T, x, y) _AIL_SWAP_PORTABLE_(T, x, y);
 #ifdef AIL_TYPEOF
-    #define AIL_SWAP(x, y) do { AIL_TYPEOF(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+#   define AIL_SWAP(x, y) do { AIL_TYPEOF(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #else
-    #define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
+#   define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
 #endif
 
 // AIL_LERP(AIL_REV_LERP(x, min, max), min, max) = x
@@ -306,18 +639,10 @@ typedef char*    str;
 #define AIL_GB(x) (((u64)(x)) << 30)
 #define AIL_TB(x) (((u64)(x)) << 40)
 
-#if defined(__GNUC__) || defined(__clang__)
-    #define AIL_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
-    #define AIL_LIKELY(expr)   __builtin_expect(!!(expr), 1)
-#else
-    #define AIL_UNLIKELY(expr) (expr)
-    #define AIL_LIKELY(expr)   (expr)
-#endif
-
 #define _AIL_DBG_EXIT_()                 do { int *X = 0; *X = 0; exit(1); } while(0)
 #define _AIL_ASSERT_COMMON_(expr, msg)   do { if (!(expr)) { _AIL_DBG_PRINT_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); _AIL_DBG_EXIT_(); } } while(0)
 #define AIL_ASSERT_MSG(expr, msg)        _AIL_ASSERT_COMMON_(expr, "with message '" msg "'")
-#define AIL_ASSERT(expr)                 _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" AIL_STRINGIZE(expr) ")'")
+#define AIL_ASSERT(expr)                 _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" AIL_STRINGIFY(expr) ")'")
 
 #define AIL_PANIC(...)    do { _AIL_DBG_PRINT_(__VA_ARGS__); _AIL_DBG_PRINT_("\n"); _AIL_DBG_EXIT_(); } while(0)
 #define AIL_TODO()        do { _AIL_DBG_PRINT_("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); _AIL_DBG_EXIT_(); } while(0)
@@ -325,16 +650,16 @@ typedef char*    str;
 
 // @TODO: Better static assert message
 #ifdef __cpp_static_assert
-    #define _AIL_STATIC_ASSERT2(cond, msg) static_assert(!!(cond), msg)
+#   define _AIL_STATIC_ASSERT2(cond, msg) static_assert(!!(cond), msg)
 #elif __STDC_VERSION__ >= 202311L
-    #define _AIL_STATIC_ASSERT2(cond, msg) static_assert(!!(cond), msg)
+#   define _AIL_STATIC_ASSERT2(cond, msg) static_assert(!!(cond), msg)
 #elif __STDC_VERSION__ >= 201112L
-    #include <assert.h>
-    #define _AIL_STATIC_ASSERT2(cond, msg) _Static_assert(!!(cond), msg)
+#   include <assert.h>
+#   define _AIL_STATIC_ASSERT2(cond, msg) _Static_assert(!!(cond), msg)
 #else
-    #define _AIL_STATIC_ASSERT_MSG2(cond, msg, line) char __ail_static_assertion_at_line##line[((!!(cond))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIZE(msg)
-    #define _AIL_STATIC_ASSERT_MSG1(cond, msg, line) _AIL_STATIC_ASSERT_MSG2(cond, msg, line)
-    #define _AIL_STATIC_ASSERT2(cond, msg)           _AIL_STATIC_ASSERT_MSG1(cond, msg, __LINE__)
+#   define _AIL_STATIC_ASSERT_MSG2(cond, msg, line) char __ail_static_assertion_at_line##line[((!!(cond))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIFY(msg)
+#   define _AIL_STATIC_ASSERT_MSG1(cond, msg, line) _AIL_STATIC_ASSERT_MSG2(cond, msg, line)
+#   define _AIL_STATIC_ASSERT2(cond, msg)           _AIL_STATIC_ASSERT_MSG1(cond, msg, __LINE__)
 #endif
 #define _AIL_STATIC_ASSERT1(cond) _AIL_STATIC_ASSERT2(cond, __FILE__ ":" AIL_STR_LINE ": Static Assert failed")
 #define AIL_STATIC_ASSERT(...) AIL_VFUNC(_AIL_STATIC_ASSERT, __VA_ARGS__)

@@ -6,14 +6,18 @@ A bigger list (that isn't strictly a superset) can be found here: https://source
 
 ## To detect Compilers
 
-| Macro-Name       | Compiler    | Comment                                                                              |
-| ---------------- | ----------- | ------------------------------------------------------------------------------------ |
-| `__clang__`      | Clang + Zig | Might not stay predefined in Zig if/when they switch backends                        |
-| `_MSC_VER`       | MSVC        |                                                                                      |
-| `__GNUC__`       | GCC         | Sometimes apparently also defined on Clang & Zig, so check for them first            |
-| `__MINGW32__`    | MinGW       | Defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only |
-| `__TINYC__`      | TinyC       |                                                                                      |
-| `__EMSCRIPTEN__` | Emscripten  |                                                                                      |
+| Macro-Name         | Compiler       | Comment                                                                              |
+| ------------------ | -------------- | ------------------------------------------------------------------------------------ |
+| `__clang__`        | Clang + Zig    | Might not stay predefined in Zig if/when they switch backends                        |
+| `_MSC_VER`         | MSVC           |                                                                                      |
+| `__GNUC__`         | GCC            | Sometimes apparently also defined on Clang & Zig, so check for them first            |
+| `__MINGW32__`      | MinGW          | Defined on 32- and 64-bit version, use __MINGW64__ for detecting 64-bit version only |
+| `__TINYC__`        | TinyC          |                                                                                      |
+| `__POCC__`         | Pelles C       |                                                                                      |
+| `__DMC__`          | Digital Mars C |                                                                                      |
+| `__INTEL_COMPILER` | Intel          |                                                                                      |
+| `__ICL`            | Intel CL       |                                                                                      |
+| `__EMSCRIPTEN__`   | Emscripten     |                                                                                      |
 
 ## To detect C/C++ standard
 
