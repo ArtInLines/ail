@@ -66,26 +66,69 @@ SOFTWARE.
 #endif // AIL_FS_MAX_ATTEMPTS
 
 #ifdef _WIN32
-    #include <windows.h>
-    #include <direct.h>
-    #define mkdir(dir, mode)      _mkdir(dir)
-    #define open(name, ...)       _open(name, __VA_ARGS__)
-    #define read(fd, buf, count)  _read(fd, buf, count)
-    #define close(fd)             _close(fd)
-    #define write(fd, buf, count) _write(fd, buf, count)
-    #define dup2(fd1, fd2)        _dup2(fd1, fd2)
-    #define unlink(file)          _unlink(file)
-    #define rmdir(dir)            _rmdir(dir)
+#   include <windows.h>
+#   include <direct.h>
+#   define mkdir(dir, mode)      _mkdir(dir)
+#   define open(name, ...)       _open(name, __VA_ARGS__)
+#   define read(fd, buf, count)  _read(fd, buf, count)
+#   define close(fd)             _close(fd)
+#   define write(fd, buf, count) _write(fd, buf, count)
+#   define dup2(fd1, fd2)        _dup2(fd1, fd2)
+#   define unlink(file)          _unlink(file)
+#   define rmdir(dir)            _rmdir(dir)
 
-    #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-    #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#   define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#   define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#else
+#   include <dirent.h>
 #endif
 
-///////////////////////////
-// Reading/Writing Files //
-///////////////////////////
+///////////////////
+// Files/Directories
+///////////////////
 
-AIL_FS_DEF bool ail_fs_open_file(const char *fpath, u64 *file, bool writeable);
+#ifdef _WIN32
+#   define AIL_FS_DIRENT_NAME_LEN (MAX_PATH + MAX_PATH + 1)
+#else
+#   define AIL_FS_DIRENT_NAME_LEN (256)
+#endif
+
+typedef enum AIL_FS_Error {
+    AIL_FS_ERR_SUCCESS,           // No error
+    AIL_FS_ERR_ACCESS,            // No access for the desired action
+    AIL_FS_ERR_BAD_HANDLE,        // the provided handle was invalid
+    AIL_FS_ERR_OPEN_HANDLE_LIMIT, // Reached limit of open files/directories
+    AIL_FS_ERR_NO_ENTRY,          // The desired file/directory doesn't exist
+    AIL_FS_ERR_NO_MEMORY,         // Not enough memory to do the desired action
+    AIL_FS_ERR_NOT_DIR,           // The provided target is not a directory
+    AIL_FS_ERR_NOT_FILE,          // The provided target is not a file
+} AIL_FS_Error;
+
+typedef enum AIL_FS_Entry_Type {
+    AIL_FS_ENTRY_FILE,
+    AIL_FS_ENTRY_DIR,
+    AIL_FS_ENTRY_OTHER,
+} AIL_FS_Entry_Type;
+
+typedef struct AIL_FS_Dirent {
+    char name[AIL_FS_DIRENT_NAME_LEN];
+    AIL_FS_Entry_Type type;
+    AIL_FS_Error err;
+} AIL_FS_Dirent;
+static const AIL_FS_Dirent AIL_FS_DIRENT_NIL = {0};
+
+typedef struct AIL_FS_Read_Dir_Res {
+    void* handle;
+    AIL_FS_Dirent dirent;
+    AIL_FS_Error err;
+} AIL_FS_Read_Dir_Res;
+
+AIL_FS_DEF_INLINE b32 ail_fs_dirent_is_nil(AIL_FS_Dirent a);
+AIL_FS_DEF AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath);
+AIL_FS_DEF AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir);
+AIL_FS_DEF void ail_fs_read_dir_deinit(AIL_FS_Read_Dir_Res dir);
+
+AIL_FS_DEF b32 ail_fs_open_file(const char *fpath, u64 *file, b32 writeable);
 
 AIL_FS_DEF void ail_fs_close_file(u64 file);
 
@@ -93,17 +136,17 @@ AIL_FS_DEF void ail_fs_close_file(u64 file);
 // @Note: 'fd' be valid File-Handle on Windows (a void pointer cast to a u64) and a file-descriptor on Unix
 // @Note: 'buf' must have space for 'maxN' bytes
 // @Note: 'actualN' will contain the amount of bytes, that were actually read into 'buf'
-AIL_FS_DEF bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN);
+AIL_FS_DEF b32 ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN);
 
 // Same as ail_fs_read_n_bytes(), except that it handles opening and closing the file
-AIL_FS_DEF bool ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN);
+AIL_FS_DEF b32 ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN);
 
 // Same as ail_fs_read_file(), except that it checks the file's size first and allocates an output buffer of the appropriate size for it
 // Returns NULL on error
 AIL_FS_DEF char* ail_fs_read_entire_file(const char *fpath, u64 *size);
 
 // Write `size` many bytes from `buf` into `fpath`
-AIL_FS_DEF bool  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
+AIL_FS_DEF b32  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
 
 //////////////////
 // Miscellanous //
@@ -114,10 +157,10 @@ AIL_FS_DEF bool  ail_fs_write_file(const char *fpath, const char *buf, u64 size)
 AIL_FS_DEF AIL_DA(str) ail_fs_get_files_in_dir(const char *dirpath);
 #endif
 
-AIL_FS_DEF_INLINE bool ail_fs_dir_exists(const char *dirpath);
+AIL_FS_DEF_INLINE b32 ail_fs_dir_exists(const char *dirpath);
 AIL_FS_DEF const char *ail_fs_get_file_ext(const char *filename);
-AIL_FS_DEF bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
-AIL_FS_DEF bool ail_fs_is_file(const char *path);
+AIL_FS_DEF b32 ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
+AIL_FS_DEF b32 ail_fs_is_file(const char *path);
 
 #endif // AIL_FS_H_
 
@@ -131,17 +174,83 @@ AIL_FS_DEF bool ail_fs_is_file(const char *path);
 // Utility functions //
 ///////////////////////
 
-bool ail_fs_str_eq(const char *restrict a, const char *restrict b)
+b32 ail_fs_str_eq(const char *restrict a, const char *restrict b)
 {
     while (*a && *b && *a++ == *b++) {}
     return *a == *b && !*a;
 }
 
+//////////////////////
+// Read Directories //
+//////////////////////
+
+b32 ail_fs_dirent_is_nil(AIL_FS_Dirent a)
+{
+    return !a.name[0];
+}
+
+AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath)
+{
+    AIL_ASSERT(dirpath);
+    AIL_FS_Read_Dir_Res res = { 0 };
+#ifdef _WIN32
+    WCHAR buffer[MAX_PATH];
+    swprintf_s(buffer, MAX_PATH, L"%s\\*", dirpath);
+    WIN32_FIND_DATAW ffd;
+    res.handle = FindFirstFileW(buffer, &ffd);
+    if (res.handle == INVALID_HANDLE_VALUE) res.err = AIL_FS_ERR_NO_ENTRY;
+    else {
+        i32 len = WideCharToMultiByte(CP_UTF8, 0, buffer, lstrlenW(buffer), res.dirent.name, sizeof(res.dirent.name), NULL, NULL);
+        res.dirent.type = (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? AIL_FS_ENTRY_DIR : AIL_FS_ENTRY_FILE;
+    }
+#else
+    AIL_TODO();
+#endif
+    return res;
+}
+
+AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir)
+{
+    AIL_FS_Dirent res = dir.dirent;
+    if (AIL_LIKELY(ail_fs_dirent_is_nil(res))) {
+#ifdef _WIN32
+        WIN32_FIND_DATAW ffd;
+        if (!FindNextFileW(dir.handle, &ffd)) {
+            DWORD err = GetLastError();
+            if (err != ERROR_NO_MORE_FILES) {
+                // @TODO: Figure out what error actually happened
+                res.err = AIL_FS_ERR_NO_ENTRY;
+            }
+        } else {
+            AIL_ASSERT(AIL_ARRLEN(res.name) >= AIL_ARRLEN(ffd.cFileName));
+            memcpy(res.name, ffd.cFileName, AIL_ARRLEN(ffd.cFileName));
+            res.type = (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? AIL_FS_ENTRY_DIR : AIL_FS_ENTRY_FILE;
+        }
+#else
+        AIL_TODO();
+#endif
+    } else {
+        dir.dirent = AIL_FS_DIRENT_NIL;
+    }
+    return res;
+}
+
+void ail_fs_read_dir_deinit(AIL_FS_Read_Dir_Res dir)
+{
+#ifdef _WIN32
+    FindClose(dir.handle);
+#else
+    AIL_TODO();
+#endif
+}
+
+
+
 ///////////////////
 // Read/Write IO //
 ///////////////////
 
-bool ail_fs_open_file(const char *fpath, u64 *file, bool writeable)
+b32 ail_fs_open_file(const char *fpath, u64 *file, b32 writeable)
 {
 #ifdef _WIN32
     u32 access = GENERIC_READ;
@@ -169,7 +278,7 @@ void ail_fs_close_file(u64 file)
 #endif // _WIN32
 }
 
-bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
+b32 ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
 {
 #ifdef _WIN32
     *actualN = 0;
@@ -194,7 +303,7 @@ bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
         switch(dwRes) {
             case WAIT_OBJECT_0: {
                 // Read completed.
-                bool succ = GetOverlappedResult(file, &osReader, &nRead, FALSE);
+                b32 succ = GetOverlappedResult(file, &osReader, &nRead, FALSE);
                 res = succ ? 1 : 0;
             } break;
             case WAIT_TIMEOUT:
@@ -216,10 +325,10 @@ bool ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
 #endif // _WIN32
 }
 
-bool ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN)
+b32 ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN)
 {
     u64 file;
-    bool res = ail_fs_open_file(fpath, &file, false);
+    b32 res = ail_fs_open_file(fpath, &file, false);
     if (res) res = ail_fs_read_n_bytes((u64)file, buf, maxN, actualN);
     ail_fs_close_file(file);
     return res;
@@ -242,7 +351,7 @@ char* ail_fs_read_entire_file(const char *fpath, u64 *size)
     return buf;
 }
 
-bool ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
+b32 ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
 {
 #ifdef _WIN32
     void *file = (void *)fd;
@@ -264,7 +373,7 @@ bool ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
         switch(dwRes) {
             case WAIT_OBJECT_0: {
                 // Write completed
-                bool succ = GetOverlappedResult(file, &osWrite, &dwWritten, FALSE);
+                b32 succ = GetOverlappedResult(file, &osWrite, &dwWritten, FALSE);
                 res = succ ? 1 : 0;
             } break;
             case WAIT_TIMEOUT:
@@ -290,10 +399,10 @@ bool ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
 #endif
 }
 
-bool ail_fs_write_file(const char *fpath, const char *buf, u64 size)
+b32 ail_fs_write_file(const char *fpath, const char *buf, u64 size)
 {
     u64 file;
-    bool res = ail_fs_open_file(fpath, &file, true);
+    b32 res = ail_fs_open_file(fpath, &file, true);
     if (res) res = ail_fs_write_n_bytes((u64)file, buf, size);
     ail_fs_close_file(file);
     return res;
@@ -313,7 +422,7 @@ AIL_DA(str) ail_fs_get_files_in_dir(const char *dirpath)
 }
 #endif
 
-bool ail_fs_dir_exists(const char *dirpath)
+b32 ail_fs_dir_exists(const char *dirpath)
 {
     struct stat sb;
     return stat(dirpath, &sb) == 0 && S_ISDIR(sb.st_mode);
@@ -328,13 +437,13 @@ const char *ail_fs_get_file_ext(const char *filename)
     return &filename[idx];
 }
 
-bool ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext)
+b32 ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext)
 {
     const char *file_ext = ail_fs_get_file_ext(filename);
     return ail_fs_str_eq(file_ext, ext);
 }
 
-bool ail_fs_is_file(const char *path)
+b32 ail_fs_is_file(const char *path)
 {
     struct stat result = {0};
     stat(path, &result);
