@@ -104,8 +104,8 @@ void build_tests(AIL_Build_Comp cc, AIL_Build_Flags cflags, AIL_DA(AIL_SV) tests
 		if (run) {
 			char *arg[1] = { out_name };
 			AIL_DA(str) args = ail_da_from_parts(arg, 1, 1, ail_default_allocator);
-			AIL_Build_Proc proc = ail_build_proc_start(&args);
-			ail_build_proc_wait(proc);
+			AIL_Build_Proc_Res proc = ail_build_proc_exec(&args, ail_default_allocator);
+			if (proc.succ) puts(proc.out);
 		}
 	}
 }

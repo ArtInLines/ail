@@ -104,26 +104,33 @@ typedef enum AIL_Build_Flags {
     // @TODO: Add more options
 } AIL_Build_Flags;
 
+#include <stdio.h>
+#include <ctype.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <direct.h>
 #include <shellapi.h>
-typedef HANDLE AIL_Build_Proc;
-#define AIL_BUILD_PROC_INVALID INVALID_HANDLE_VALUE
+typedef HANDLE AIL_Build_OS_Pipe;
+typedef HANDLE AIL_Build_OS_Proc;
+#define _AIL_BUILD_INVALID_OS_PROC_ INVALID_HANDLE_VALUE
 #else
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
-typedef pid_t AIL_Build_Proc;
-#define AIL_BUILD_PROC_INVALID (-1)
+typedef int AIL_Build_OS_Pipe;
+typedef int AIL_Build_OS_Proc;
+#define _AIL_BUILD_INVALID_OS_PROC_ (-1)
 #endif // _WIN32
+
+typedef struct {
+    char *out;
+    b32 succ;
+} AIL_Build_Proc_Res;
 
 AIL_BUILD_DEF void  ail_build_rebuild_urself(i32 argc, char **argv);
 AIL_BUILD_DEF char* ail_build_get_exe_name(const char *s, u32 n, AIL_Allocator allocator);
-AIL_Build_Proc ail_build_proc_start(AIL_DA(str) *argv);
-b32 ail_build_proc_wait(AIL_Build_Proc proc);
+AIL_BUILD_DEF AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(str) *argv, AIL_Allocator allocator);
 AIL_BUILD_DEF void  ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *fpath, AIL_Allocator allocator);
 AIL_BUILD_DEF AIL_Build_Comp ail_build_comp_from_str(char *str);
 
@@ -131,6 +138,10 @@ AIL_BUILD_DEF AIL_Build_Comp ail_build_comp_from_str(char *str);
 #ifdef AIL_BUILD_IMPL
 #ifndef _AIL_BUILD_IMPL_GUARD_
 #define _AIL_BUILD_IMPL_GUARD_
+
+#ifndef AIL_BUILD_PIPE_SIZE
+#define AIL_BUILD_PIPE_SIZE 2048
+#endif
 
 // Case-insensitive str-compare - expects `b` to be lowercase
 #define _AIL_BUILD_STREQ_I(a_str, a_len, b_literal) ail_build_streq_i(a_str, a_len, b_literal, (sizeof(b_literal) - 1))
@@ -215,102 +226,113 @@ char* ail_build_cmd_to_str(AIL_DA(str) cmd)
     return str.data;
 }
 
-// @Note: Code taken almost 1-to-1 from tsoding's nob.h (https://github.com/tsoding/musializer/blob/master/nob.h)
-AIL_Build_Proc ail_build_proc_start(AIL_DA(str) *argv)
+AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(str) *argv, AIL_Allocator allocator)
 {
+    AIL_Build_Proc_Res res = {
+        .out  = "",
+        .succ = false,
+    };
     if (!argv->len) {
-        printf("Error: Could not run empty command.\n");
-        return AIL_BUILD_PROC_INVALID;
+        printf("Error: Cannot run empty command.\n");
+        return res;
     }
-    AIL_Build_Proc res;
     char *arg_str = ail_build_cmd_to_str(*argv);
     printf("CMD: '%s'\n", arg_str);
 #ifdef _WIN32
-    // https://docs.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
+    AIL_Build_OS_Pipe pipe_read, pipe_write;
+    SECURITY_ATTRIBUTES saAttr = {0};
+    saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+    saAttr.bInheritHandle = TRUE;
+    if (!CreatePipe(&pipe_read, &pipe_write, &saAttr, 0)) {
+        printf("Error: Could not establish pipe to child process\n");
+        return res;
+    }
+
     STARTUPINFO siStartInfo;
     ZeroMemory(&siStartInfo, sizeof(siStartInfo));
     siStartInfo.cb = sizeof(STARTUPINFO);
-    // @Note: theoretically setting NULL to std handles should not be a problem
-    // https://docs.microsoft.com/en-us/windows/console/getstdhandle?redirectedfrom=MSDN#attachdetach-behavior
-    // @TODO: check for errors in GetStdHandle
+
     siStartInfo.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
     siStartInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-    siStartInfo.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+    if (siStartInfo.hStdOutput == INVALID_HANDLE_VALUE || siStartInfo.hStdError == INVALID_HANDLE_VALUE) {
+        printf("Error: Could not get the handles to child process stdout/stderr.");
+        return res;
+    }
+    siStartInfo.hStdOutput = pipe_write;
+    siStartInfo.hStdError  = pipe_write;
     siStartInfo.dwFlags   |= STARTF_USESTDHANDLES;
     PROCESS_INFORMATION piProcInfo;
     ZeroMemory(&piProcInfo, sizeof(PROCESS_INFORMATION));
 
-    BOOL succ = CreateProcessA(NULL, arg_str, NULL, NULL, TRUE, 0, NULL, NULL, &siStartInfo, &piProcInfo);
-    if (!succ) {
+    if (!CreateProcessA(NULL, arg_str, NULL, NULL, TRUE, 0, NULL, NULL, &siStartInfo, &piProcInfo)) {
         printf("Error: Could not create child process.\n");
-        res = AIL_BUILD_PROC_INVALID;
-    } else {
-        CloseHandle(piProcInfo.hThread);
-        res = piProcInfo.hProcess;
+        // @Note: Intentional Memory Leak - this library is only used for short-running build processes, leaking memory is fine here
+        // CloseHandle(pipe_write);
+        // CloseHandle(pipe_read);
+        return res;
     }
+
+    if (WaitForSingleObject(piProcInfo.hProcess, INFINITE) == WAIT_FAILED) {
+        printf("Error: Failed to wait for child process to exit.\n");
+        // @Note: Intentional Memory Leak - this library is only used for short-running build processes, leaking memory is fine here
+        // CloseHandle(pipe_write);
+        // CloseHandle(pipe_read);
+        // CloseHandle(piProcInfo.hProcess);
+        return res;
+    }
+
+    char *buf = AIL_CALL_ALLOC(allocator, AIL_BUILD_PIPE_SIZE);
+    if (!buf) {
+        printf("Error: Could not allocate enough memory to read child process' output.\n");
+        return res;
+    }
+    DWORD nBytesRead;
+    ReadFile(pipe_read, buf, AIL_BUILD_PIPE_SIZE, &nBytesRead, 0);
+    res.out = buf;
 #else
+    AIL_Build_OS_Pipe pipefd[2];
+    if (pipe(pipefd) != -1) {
+        printf("Error: Could not establish pipe to child process.\n");
+        return res;
+    }
+
+    AIL_DA(char) da = ail_da_new_with_alloc(char, AIL_BUILD_PIPE_SIZE, allocator);
+    char buf[AIL_BUILD_PIPE_SIZE] = {0};
     pid_t cpid = fork();
     if (cpid < 0) {
         printf("Error: Could not create child process.\n");
-        res = AIL_BUILD_PROC_INVALID;
-    } else {
+        return res;
+    } else if (cpid == 0) { // Run by child
         ail_da_push(argv, NULL);
-        if (cpid == 0) {
-            if (execvp(argv.data[0], (char* const*) argv.data) < 0) {
-                printf("Error: Could not execute child process.\n");
-                exit(1);
-            }
-            AIL_UNREACHABLE();
+        close(pipefd[0]);
+        execvp(argv->data[0], (char* const*) argv->data);
+        while (read(stdout, buf, AIL_BUILD_PIPE_SIZE) != EOF) {
+            u64 len = strlen(buf);
+            ail_da_pushn(&da, buf, len);
+            memset(buf, 0, len);
         }
-        res = cpid;
-    }
-#endif
-    AIL_CALL_FREE(argv->allocator, arg_str);
-    return res;
-}
-
-// @Note: Code taken almost 1-to-1 from tsoding's nob.h (https://github.com/tsoding/musializer/blob/master/nob.h)
-b32 ail_build_proc_wait(AIL_Build_Proc proc)
-{
-    if (proc == AIL_BUILD_PROC_INVALID) return false;
-#ifdef _WIN32
-    DWORD result = WaitForSingleObject(proc, INFINITE);
-    if (result == WAIT_FAILED) {
-        printf("Error: Could not wait on child process: %d\n", GetLastError());
-        return false;
-    }
-    DWORD exit_status;
-    if (!GetExitCodeProcess(proc, &exit_status)) {
-        printf("Error: Could not get process exit code: %d\n", GetLastError());
-        return false;
-    }
-    if (exit_status != 0) {
-        printf("Error: Command exited with exit code %d\n", exit_status);
-        return false;
-    }
-    CloseHandle(proc);
-    return true;
-#else
-    for (;;) {
+        write(pipefd[1], da.data, da.len);
+        close(pipefd[1]); // Required for reader to see EOF
+    } else { // Run by parent
+        close(pipefd[1]);
+        while (read(pipefd[0], buf, AIL_BUILD_PIPE_SIZE) != EOF) {
+            u64 len = strlen(buf);
+            ail_da_pushn(&da, buf, len);
+            memset(buf, 0, len);
+        }
         int wstatus = 0;
-        if (waitpid(proc, &wstatus, 0) < 0) {
-            printf("Error: Could not wait on command (pid %d): %s\n", proc, strerror(errno));
-            return false;
+        if (waitpid(cpid, &wstatus, 0) < 0) {
+            printf("Error: Failed to wait for child process to exit.\n");
+            return res;
         }
-        if (WIFEXITED(wstatus)) {
-            int exit_status = WEXITSTATUS(wstatus);
-            if (exit_status != 0) {
-                printf("Error: Command exited with exit code %d\n", exit_status);
-                return false;
-            }
-            break;
-        }
-        if (WIFSIGNALED(wstatus)) {
-            printf("Error: Command process was terminated by %s\n", strsignal(WTERMSIG(wstatus)));
-            return false;
-        }
+        ail_da_push(&da, 0);
+        res.out = da.data;
     }
 #endif
+    // @Note: Intentional Memory Leak - this library is only used for short-running build processes, leaking memory is fine here
+    // AIL_CALL_FREE(argv->allocator, arg_str);
+    res.succ = true;
+    return res;
 }
 
 void ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *fpath, AIL_Allocator allocator)
@@ -462,9 +484,11 @@ void ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *
         case AIL_BUILD_COMP_COUNT: {
             AIL_UNREACHABLE();
         } break;
+
+
     }
-    ail_build_proc_start(&argv);
-    ail_da_free(&argv);
+    AIL_Build_Proc_Res res = ail_build_proc_exec(&argv, allocator);
+    if (res.succ) puts(res.out);
 }
 
 #endif // _AIL_BUILD_IMPL_GUARD_
