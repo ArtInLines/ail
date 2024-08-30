@@ -3,7 +3,7 @@
 *
 * By default this file only includes a bunch of useful macros (see list below), other features can be included by defining the following:
   * AIL_ALL_IMPL:   include everything
-  * AIL_TYPES_IMPL: include typedefs in the style of u8, i16, f32 and b32 (for 32-bit bools) and str for char*
+  * AIL_TYPES_IMPL: include typedefs in the style of u8, i16, f32, b32 and str for char*; also defines internal/persist/global aliases for "static" keyword
   * AIL_ALLOC_IMPL: include the AIL_Allocator struct for custom allocators
   * AIL_DA_IMPL:    include macro-template for dynamic arrays (automatically enables AIL_ALLOC_IMPL as well)
 * For the documentation of each of these, see below
@@ -219,6 +219,10 @@ typedef int64_t  i64;
 typedef float    f32;
 typedef double   f64;
 typedef char*    str;
+
+#define internal static
+#define persist  static
+#define global   static
 #endif // _AIL_TYPES_GUARD_
 #endif // AIL_TYPES_IMPL
 
