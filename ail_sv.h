@@ -213,6 +213,7 @@ AIL_SV_DEF AIL_SV ail_sv_split_next     (AIL_SV *sv, AIL_SV split_by, bool ignor
 AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_char(AIL_SV sv, char   split_by, bool ignore_empty);
 AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split     (AIL_SV sv, AIL_SV split_by, bool ignore_empty);
 AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty);
+AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_whitespace(AIL_SV sv, bool ignore_empty);
 
 // @Note: rev_join joins the splitted substrings in reverse order
 // @Important: To avoid memory leaks, make sure to free the underlying string
@@ -225,6 +226,8 @@ AIL_SV_DEF AIL_Str ail_sv_rev_join_da(AIL_DA(AIL_SV) list, AIL_SV joiner);
 //////////////////
 // Miscellanous //
 //////////////////
+
+AIL_SV_DEF bool ail_sv_is_space(char c);
 
 // Receive a new SV, that points at the same underlying string as `sv` but offset by `offset` bytes.
 // If `offset` is greater than the length of `sv`, then a SV with zero length is returned
@@ -534,7 +537,11 @@ AIL_SV_DEF AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, bool ignore_
         while (i < sv->len && sv->str[i] == split_by) i++;
     }
     size_t j = i;
-    while (j < sv->len && sv->str[j] != split_by) j++;
+    while (j < sv->len) {
+        size_t tmp_idx = j;
+        j++;
+        if (sv->str[tmp_idx] == split_by) break;
+    }
     *sv = ail_sv_offset(*sv, j);
     return (AIL_SV) {
         .str = &sv->str[i],
@@ -629,6 +636,31 @@ AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_lines(AIL_SV sv, bool ignore_empty)
             } else if (sv.str[i] == '\r') {
                 if (AIL_LIKELY(i + 1 < sv.len && sv.str[i + 1] == '\n')) continue;
                 else AIL_UNREACHABLE();
+            } else {
+                llen++;
+            }
+        }
+    }
+    if (lstart < sv.len && (!ignore_empty || llen > 0)) {
+        ail_da_push(&res, ail_sv_from_parts(&sv.str[lstart], llen));
+    }
+    return res;
+}
+
+AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_whitespace(AIL_SV sv, bool ignore_empty)
+{
+    // @Cleanup: Almost identical to ail_sv_split_lines - maybe we can unite them somehow
+    AIL_DA(AIL_SV) res = ail_da_new(AIL_SV);
+    u64 lstart = 0;
+    u64 llen   = 0;
+    if (sv.len > 0) {
+        for (u64 i = 0; i < sv.len; i++) {
+            if (ail_sv_is_space(sv.str[i])) {
+                if (!ignore_empty || llen > 0) {
+                    ail_da_push(&res, ail_sv_from_parts(&sv.str[lstart], llen));
+                }
+                lstart = i + 1;
+                llen   = 0;
             } else {
                 llen++;
             }
