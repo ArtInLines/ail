@@ -838,13 +838,13 @@ AIL_DA_INIT(char); AIL_LIST_INIT(char);
 #define ail_da_new_zero_init(T, c)      { .data = AIL_CALL_CALLOC(ail_default_allocator, sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = ail_default_allocator }
 #define ail_da_new(T)                   { .data = AIL_CALL_ALLOC(ail_default_allocator, sizeof(T) * AIL_DA_INIT_CAP), .len = 0, .cap = AIL_DA_INIT_CAP, .allocator = ail_default_allocator }
 #define ail_da_new_empty(T)             { .data = NULL, .len = 0, .cap = 0, .allocator = ail_default_allocator }
-#define ail_da_new_zero_init_t(T, c)        (AIL_DA((T)))ail_da_new_zero_init()
-#define ail_da_new_empty_t(T)               (AIL_DA((T)))ail_da_new_empty(T)
-#define ail_da_new_t(T)                     (AIL_DA((T)))ail_da_new(T)
-#define ail_da_new_with_cap_t(T, c)         (AIL_DA((T)))ail_da_new_with_cap(T, c)
-#define ail_da_new_zero_alloc_t(T, c, al)   (AIL_DA((T)))ail_da_new_zero_alloc(T, c, al)
-#define ail_da_new_with_alloc_t(T, c, al)   (AIL_DA((T)))ail_da_new_with_alloc(T, c, al)
-#define ail_da_from_parts_t(T, d, l, c, al) (AIL_DA((T)))ail_da_from_parts(d, l, c, al)
+#define ail_da_new_zero_init_t(T, c)        (AIL_DA(T))ail_da_new_zero_init()
+#define ail_da_new_empty_t(T)               (AIL_DA(T))ail_da_new_empty(T)
+#define ail_da_new_t(T)                     (AIL_DA(T))ail_da_new(T)
+#define ail_da_new_with_cap_t(T, c)         (AIL_DA(T))ail_da_new_with_cap(T, c)
+#define ail_da_new_zero_alloc_t(T, c, al)   (AIL_DA(T))ail_da_new_zero_alloc(T, c, al)
+#define ail_da_new_with_alloc_t(T, c, al)   (AIL_DA(T))ail_da_new_with_alloc(T, c, al)
+#define ail_da_from_parts_t(T, d, l, c, al) (AIL_DA(T))ail_da_from_parts(d, l, c, al)
 
 #define ail_da_free(daPtr) ail_da_free_a(daPtr, (daPtr)->allocator)
 #define ail_da_free_a(daPtr, al) do { AIL_CALL_FREE((al), (daPtr)->data); (daPtr)->data = NULL; (daPtr)->len = 0; (daPtr)->cap = 0; } while(0);
