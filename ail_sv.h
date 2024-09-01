@@ -102,6 +102,11 @@ typedef struct AIL_Str {
 } AIL_Str;
 AIL_DA_INIT(AIL_Str);
 
+typedef struct AIL_SV_Find_Of_Res {
+    i64 sv_idx;
+    i32 needle_idx;
+} AIL_SV_Find_Of_Res;
+
 // @TODO: Implement the following functions:
 // - printf (whole family of printf functions)
 // - split by list of splitters
@@ -178,14 +183,22 @@ AIL_SV_DEF bool ail_sv_ends_with_char(AIL_SV str, char   suffix);
 //////////////
 
 // Get the first index in `str` that the substring `neddle` appears at
-AIL_SV_DEF i64 ail_sv_index_of(AIL_SV str, AIL_SV needle);
+AIL_SV_DEF i64 ail_sv_find(AIL_SV str, AIL_SV needle);
 // Get the last index in `str` that the substring `neddle` appears at
-AIL_SV_DEF i64 ail_sv_last_index_of(AIL_SV str, AIL_SV needle);
-// Get the first index in `str` that `needle` appears at
-AIL_SV_DEF i64 ail_sv_index_of_char(AIL_SV str, char needle);
-// Get the last index in `str` that `needle` appears at
-AIL_SV_DEF i64 ail_sv_last_index_of_char(AIL_SV str, char needle);
+AIL_SV_DEF i64 ail_sv_find_last(AIL_SV str, AIL_SV needle);
+// Get the first index in `str` that any of the substrings in `neddles` appears at
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_of(AIL_SV str, AIL_SV *needles, i32 needles_count);
+// Get the last index in `str` that any of the substrings in `neddles` appears at
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_last_of(AIL_SV str, AIL_SV *needles, i32 needles_count);
 
+// Get the first index in `str` that `needle` appears at
+AIL_SV_DEF i64 ail_sv_find_char(AIL_SV str, char needle);
+// Get the last index in `str` that `needle` appears at
+AIL_SV_DEF i64 ail_sv_find_last_char(AIL_SV str, char needle);
+// Get the first index in `str` that any of the `neddles` appears at
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_of_chars(AIL_SV str, char *needles, i32 needles_count);
+// Get the last index in `str` that any of the `neddles` appears at
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_last_of_chars(AIL_SV str, char *needles, i32 needles_count);
 
 ////////////////////////
 // Splitting, Joining //
@@ -498,7 +511,7 @@ AIL_SV_DEF bool ail_sv_ends_with_char(AIL_SV str, char suffix)
     return str.len > 0 && str.str[str.len - 1] == suffix;
 }
 
-AIL_SV_DEF i64 ail_sv_index_of(AIL_SV str, AIL_SV needle)
+AIL_SV_DEF i64 ail_sv_find(AIL_SV str, AIL_SV needle)
 {
     for (u64 i = 0; i <= str.len - needle.len; i++) {
         if (ail_sv_starts_with(ail_sv_offset(str, i), needle)) return (i64)i;
@@ -506,15 +519,37 @@ AIL_SV_DEF i64 ail_sv_index_of(AIL_SV str, AIL_SV needle)
     return -1;
 }
 
-AIL_SV_DEF i64 ail_sv_last_index_of(AIL_SV str, AIL_SV needle)
+AIL_SV_DEF i64 ail_sv_find_last(AIL_SV str, AIL_SV needle)
 {
     for (i64 i = str.len - needle.len; i >= 0; i--) {
-        if (ail_sv_starts_with(ail_sv_offset(str, i), needle)) return (i64)i;
+        if (ail_sv_starts_with(ail_sv_offset(str, i), needle)) return i;
     }
     return -1;
 }
 
-AIL_SV_DEF i64 ail_sv_index_of_char(AIL_SV str, char needle)
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_of(AIL_SV str, AIL_SV *needles, i32 needles_count)
+{
+    for (i64 i = 0; i < (i64)str.len; i++) {
+        AIL_SV offset = ail_sv_offset(str, i);
+        for (i32 j = 0; j < needles_count; j++) {
+            if (ail_sv_starts_with(offset, needles[j])) return (AIL_SV_Find_Of_Res){ .sv_idx = i, .needle_idx = j };
+        }
+    }
+    return (AIL_SV_Find_Of_Res){ -1, -1 };
+}
+
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_last_of(AIL_SV str, AIL_SV *needles, i32 needles_count)
+{
+    for (i64 i = str.len - 1; i >= 0; i--) {
+       AIL_SV offset = ail_sv_offset(str, i);
+        for (i32 j = 0; j < needles_count; j++) {
+            if (ail_sv_starts_with(offset, needles[j])) return (AIL_SV_Find_Of_Res){ .sv_idx = i, .needle_idx = j };
+        }
+    }
+    return (AIL_SV_Find_Of_Res){ -1, -1 };
+}
+
+AIL_SV_DEF i64 ail_sv_find_char(AIL_SV str, char needle)
 {
     for (u64 i = 0; i < str.len; i++) {
         if (str.str[i] == needle) return (i64)i;
@@ -522,12 +557,34 @@ AIL_SV_DEF i64 ail_sv_index_of_char(AIL_SV str, char needle)
     return -1;
 }
 
-AIL_SV_DEF i64 ail_sv_last_index_of_char(AIL_SV str, char needle)
+AIL_SV_DEF i64 ail_sv_find_last_char(AIL_SV str, char needle)
 {
     for (i64 i = str.len - 1; i >= 0; i--) {
-        if (str.str[i] == needle) return (i64)i;
+        if (str.str[i] == needle) return i;
     }
     return -1;
+}
+
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_of_chars(AIL_SV str, char *needles, i32 needles_count)
+{
+    for (i64 i = 0; i < (i64)str.len; i++) {
+        char c = str.str[i];
+        for (i32 j = 0; j < needles_count; j++) {
+            if (c == needles[j]) return (AIL_SV_Find_Of_Res){ .sv_idx = i, .needle_idx = j };
+        }
+    }
+    return (AIL_SV_Find_Of_Res){ -1, -1 };
+}
+
+AIL_SV_DEF AIL_SV_Find_Of_Res ail_sv_find_last_of_chars(AIL_SV str, char *needles, i32 needles_count)
+{
+    for (i64 i = str.len - 1; i >= 0; i--) {
+        char c = str.str[i];
+        for (i32 j = 0; j < needles_count; j++) {
+            if (c == needles[j]) return (AIL_SV_Find_Of_Res){ .sv_idx = i, .needle_idx = j };
+        }
+    }
+    return (AIL_SV_Find_Of_Res){ -1, -1 };
 }
 
 AIL_SV_DEF AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, bool ignore_empty)
