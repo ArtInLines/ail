@@ -42,6 +42,7 @@ SOFTWARE.
 
 #define AIL_ALL_IMPL
 #include "ail.h"
+#include <string.h> // For memcpy
 
 #ifndef AIL_ALLOC_ALIGNMENT
 #define AIL_ALLOC_ALIGNMENT 8 // Reasonable default for all 64bit machines
@@ -489,7 +490,7 @@ static void* _ail_alloc_page_internal_realloc_(void *old_ptr, u64 size)
         // @TODO: mmap has some kind of hint system, that probably does more or less the same
         void *res = _ail_alloc_page_internal_alloc_(NULL, size);
         AIL_Alloc_Page_Header *header = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Page_Header);
-        AIL_MEMCPY(res, old_ptr, header->size);
+        memcpy(res, old_ptr, header->size);
         _ail_alloc_internal_free_pages_(old_ptr, header->size);
         return res;
     }

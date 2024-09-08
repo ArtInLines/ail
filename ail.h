@@ -10,8 +10,8 @@
 *
 * Define AIL_DEF (defaults to `static`), AIL_DEF_INLINE (defaults to `static inline`) if you want different function declarations as a default for all ail.h libraries
 *
-* Define AIL_MALLOC, AIL_CALLOC, AIL_REALLOC, AIL_FREE to redefine the std's memory allocator as a default for all ail.h libraries
-* Define AIL_MEMCPY to redefine memcpy as a default for all ail.h libraries
+* Define AIL_MALLOC, AIL_CALLOC, AIL_REALLOC, AIL_FREE to redefine the default allocator for all ail.h libraries
+* Alternatively reassign ail_default_allocator to your default allocator of choice
 *
 *
 *** Useful macros ***
@@ -172,11 +172,6 @@ SOFTWARE.
 #   define AIL_FREE(ptr)           free(ptr)
 #elif !defined(AIL_MALLOC) || !defined(AIL_REALLOC) || !defined(AIL_CALLOC) || !defined(AIL_FREE)
 #   error "You must define all of AIL_MALLOC, AIL_CALLOC, AIL_REALLOC and AIL_FREE or none of them. You cannot only define one or two of them."
-#endif
-
-#ifndef AIL_MEMCPY
-#   include <string.h>
-#   define AIL_MEMCPY(dst, src, n) memcpy(dst, src, n)
 #endif
 
 // AIL_DEF and AIL_DEF_INLINE only effect the AIL_ALLOC functions
@@ -788,8 +783,9 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #ifndef _AIL_DA_GUARD_
 #define _AIL_DA_GUARD_
 
+#include <string.h> // For memcpy
 #ifndef AIL_DA_PRINT
-#include <stdio.h>
+#include <stdio.h> // For printf
 #define AIL_DA_PRINT printf
 #endif
 
@@ -886,7 +882,7 @@ AIL_DA_INIT(char); AIL_LIST_INIT(char);
 #define ail_da_pushn(daPtr, elems, n) ail_da_pushn_a(daPtr, elems, n, (daPtr)->allocator)
 #define ail_da_pushn_a(daPtr, elems, n, al) do {                                         \
         ail_da_maybe_grow_a(daPtr, n, (al));                                             \
-        AIL_MEMCPY((daPtr)->data + (daPtr)->len, (elems), sizeof(*((daPtr)->data))*(n)); \
+        memcpy((daPtr)->data + (daPtr)->len, (elems), sizeof(*((daPtr)->data))*(n)); \
         (daPtr)->len += (n);                                                             \
     } while(0)
 
@@ -896,8 +892,8 @@ AIL_DA_INIT(char); AIL_LIST_INIT(char);
         char *_ail_da_gwg_ptr_ = (char *) (daPtr)->data;                                                                                   \
         (daPtr)->data = AIL_CALL_ALLOC((al), (elSize)*(newCap));                                                                           \
         AIL_ASSERT((daPtr)->data != NULL);                                                                                                 \
-        AIL_MEMCPY((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
-        AIL_MEMCPY(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
+        memcpy((daPtr)->data, _ail_da_gwg_ptr_, (elSize)*(gapStart));                                                                  \
+        memcpy(&(daPtr)->data[((gapStart) + (gapLen))], &_ail_da_gwg_ptr_[(elSize)*(gapStart)], (elSize)*((daPtr)->len - (gapStart))); \
         AIL_CALL_FREE((al), _ail_da_gwg_ptr_);                                                                                             \
         (daPtr)->len += (gapLen);                                                                                                          \
     } while(0)

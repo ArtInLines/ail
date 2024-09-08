@@ -59,14 +59,7 @@ SOFTWARE.
 #error "You must define both AIL_BUF_MALLOC and AIL_BUF_FREE, or neither."
 #endif
 
-#ifndef AIL_BUF_MEMCPY
-#ifdef AIL_MEMCPY
-#define AIL_BUF_MEMCPY AIL_MEMCPY
-#elif
-#include <string.h>
-#define AIL_BUF_MEMCPY(dst, src, len) memcpy(dst, src, len)
-#endif
-#endif
+#include <string.h> // For memcpy
 
 typedef struct {
     u8 *data;
@@ -247,7 +240,7 @@ AIL_BUF_DEF_INLINE u64 ail_buf_peek8msb(AIL_Buffer buf)
 AIL_BUF_DEF char *ail_buf_peekstr(AIL_Buffer buf, u64 len)
 {
     char *out = AIL_BUF_MALLOC(sizeof(char) * (len + 1));
-    AIL_BUF_MEMCPY(out, &buf.data[buf.idx], len);
+    memcpy(out, &buf.data[buf.idx], len);
     out[len] = 0;
     return out;
 }
