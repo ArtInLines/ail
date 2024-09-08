@@ -42,13 +42,13 @@ bool test_ail_sv_num_conversions(void)
     i64 one  = 1;
     i64 big  = 19420;
     i64 neg  = -329;
-    AIL_SV numu0   = ail_sv_from_unsigned(zero);
-    AIL_SV numu1   = ail_sv_from_unsigned(one);
-    AIL_SV numu2   = ail_sv_from_unsigned(big);
-    AIL_SV numi0   = ail_sv_from_signed(zero);
-    AIL_SV numi1   = ail_sv_from_signed(one);
-    AIL_SV numi2   = ail_sv_from_signed(big);
-    AIL_SV numineg = ail_sv_from_signed(neg);
+    AIL_SV numu0   = ail_sv_new_unsigned(zero);
+    AIL_SV numu1   = ail_sv_new_unsigned(one);
+    AIL_SV numu2   = ail_sv_new_unsigned(big);
+    AIL_SV numi0   = ail_sv_new_signed(zero);
+    AIL_SV numi1   = ail_sv_new_signed(one);
+    AIL_SV numi2   = ail_sv_new_signed(big);
+    AIL_SV numineg = ail_sv_new_signed(neg);
     ASSERT(ail_sv_eq(ail_sv_from_cstr("0"),     numu0));
     ASSERT(ail_sv_eq(ail_sv_from_cstr("1"),     numu1));
     ASSERT(ail_sv_eq(ail_sv_from_cstr("19420"), numu2));
@@ -151,13 +151,13 @@ bool test_ail_sv_others(void)
     ASSERT(ail_sv_eq(ail_sv_from_cstr("def"), ail_sv_offset(ail_sv_from_cstr("abcdef"), 3)));
     ASSERT(ail_sv_eq(empty, ail_sv_offset(empty, 3)));
 
-    char *hello_copy = ail_sv_copy_to_cstr(hello1);
+    char *hello_copy = ail_sv_to_cstr(hello1);
     ASSERT(hello_copy != hello1.str); // checks that it isn't the same pointer
     ASSERT(memcmp(hello_copy, hello1.str, hello1.len) == 0);
     ASSERT(hello_copy[hello1.len] == 0);
     free(hello_copy);
 
-    char *empty_copy = ail_sv_copy_to_cstr(empty);
+    char *empty_copy = ail_sv_to_cstr(empty);
     ASSERT(empty_copy != empty.str); // checks that it isn't the same pointer
     ASSERT(memcmp(empty_copy, empty.str, empty.len) == 0);
     ASSERT(empty_copy[empty.len] == 0);
