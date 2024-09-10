@@ -114,6 +114,7 @@ typedef struct AIL_SV_Find_Of_Res { // Result from ail_sv_find* functions
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_parts(char *s, u64 len);       // @Assert: s[len] == '\0'
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_da_nil_term(AIL_DA(char) str); // @Assert: str.data[str.len] == '\0'
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_cstr (char *s);
+#define ail_str_from_sv(sv) ail_str_from_parts(sv.str, sv.len)
 
 // @Important: Copies the underlying string to a new memory region. Remember to free the Str with ail_str_free
 AIL_SV_DEF AIL_Str ail_str_new_sv_a(AIL_SV sv, AIL_Allocator allocator);
@@ -294,7 +295,7 @@ AIL_SV_DEF AIL_SV ail_sv_rtrim(AIL_SV sv);
 // Concatenate two String-Views to a single String
 // @Important: To avoid memory leaks, make sure to free the underlying string
 AIL_SV_DEF AIL_Str ail_sv_concat_a(AIL_SV a, AIL_SV b, AIL_Allocator allocator);
-#define ail_sv_concat(a, b) ail_sv_concat_a(a, b, allocator)
+#define ail_sv_concat(a, b) ail_sv_concat_a(a, b, ail_default_allocator)
 
 // Receive a new SV, that has all appearances of `to_replace` replaced with `replace_with`
 // @Note: Since this only works by changing the underlying string, an allocation and copy of the original string is required

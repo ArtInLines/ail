@@ -757,7 +757,7 @@ AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCA
     return NULL;
 }
 
-static AIL_Allocator ail_default_allocator = {
+global AIL_Allocator ail_default_allocator = {
     .data  = NULL,
     .alloc = &ail_default_alloc,
 };
@@ -765,7 +765,7 @@ static AIL_Allocator ail_default_allocator = {
 // Function just exists to suppress of potential "unused ail_default_allocator" warning
 AIL_DEF void __ail_default_allocator_unused__(void)
 {
-    (void)ail_default_allocator;
+    AIL_UNUSED(ail_default_allocator);
 }
 
 #endif // _AIL_ALLOCATOR_GUARD_

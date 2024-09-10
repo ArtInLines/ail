@@ -70,10 +70,13 @@ typedef struct {
 
 // @TODO: Add overflow checks when reading/peeking
 
+#ifdef AIL_FS_IMPL
+#   include "ail_fs.h"
+#endif // AIL_FS_IMPL
 #ifdef AIL_FS_H_
-AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_file(const char *filename);
-AIL_BUF_DEF_INLINE bool ail_buf_copy_to_file(AIL_Buffer buf, const char *filename);
-AIL_BUF_DEF_INLINE bool ail_buf_to_file(AIL_Buffer *buf, const char *filename);
+    AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_file(const char *filename);
+    AIL_BUF_DEF_INLINE bool ail_buf_copy_to_file(AIL_Buffer buf, const char *filename);
+    AIL_BUF_DEF_INLINE bool ail_buf_to_file(AIL_Buffer *buf, const char *filename);
 #endif // AIL_FS_H_
 
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_data(u8 *data, u64 len, u64 idx);
