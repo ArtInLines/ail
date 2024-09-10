@@ -5,17 +5,18 @@
 // Currently, regex and glob patterns are supported (see list of supported syntax below)
 //
 // To match a pattern, you first need to compile it with `ail_pm_compile`
-// Then you can match strings against the pattern with `ail_pm_match`
+// Then you can match strings against the pattern with `ail_pm_match_greedy` or `ail_pm_match_lazy`
+// @TODO: For now, lazy matching is not implemented yet
 //
 //  *** REGEX Support ***
 //  * '.'        Dot, matches any character
 //  * '^'        Start anchor, matches beginning of string
 //  * '$'        End anchor, matches end of string
-//  * '*'        Asterisk, match zero or more (greedy)
-//  * '+'        Plus, match one or more (greedy)
-//  * '?'        Question, match zero or one (non-greedy)
+//  * '*'        Asterisk, match zero or more
+//  * '+'        Plus, match one or more
+//  * '?'        Question, match zero or one
 //  * '[abc]'    Character class, match if one of {'a', 'b', 'c'}
-//  * '[^abc]'   Inverted class, match if NOT one of {'a', 'b', 'c'} -- @Bug: feature is currently broken!
+//  * '[^abc]'   Inverted class, match if NOT one of {'a', 'b', 'c'}
 //  * '[a-zA-Z]' Character ranges, the character set of the ranges { a-z | A-Z }
 //  * '\s'       Whitespace, \t \f \r \n \v and spaces
 //  * '\S'       Non-whitespace
@@ -246,16 +247,20 @@ AIL_PM_DEF u32   ail_pm_el_to_str (AIL_PM_El  el,  char *buf, u32 buflen);
 AIL_PM_DEF u32   ail_pm_pattern_to_str(AIL_PM_Pattern pattern, char *buf, u32 buflen);
 
 AIL_PM_DEF AIL_PM_Comp_Res ail_pm_compile_a(const char *p, u32 plen, AIL_PM_Exp_Type exp_type, AIL_Allocator allocator);
-AIL_PM_DEF void        ail_pm_free_a (AIL_PM_Pattern pattern, AIL_Allocator allocator);
-AIL_PM_DEF AIL_PM_Match    ail_pm_match  (AIL_PM_Pattern pattern, const char *s, u32 slen);
-AIL_PM_DEF b32         ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u32 slen);
+AIL_PM_DEF void         ail_pm_free_a(AIL_PM_Pattern pattern, AIL_Allocator allocator);
+AIL_PM_DEF AIL_PM_Match ail_pm_match (AIL_PM_Pattern pattern, const char *s, u32 slen);
+AIL_PM_DEF AIL_PM_Match ail_pm_match_lazy  (AIL_PM_Pattern pattern, const char *s, u32 len);
+AIL_PM_DEF AIL_PM_Match ail_pm_match_greedy(AIL_PM_Pattern pattern, const char *s, u32 len);
+AIL_PM_DEF b32          ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u32 slen);
 #define ail_pm_compile(p, plen, exp_type) ail_pm_compile_a(p, plen, exp_type, ail_default_allocator)
 #define ail_pm_free(pattern)              ail_pm_free_a(pattern, ail_default_allocator)
 
 #ifdef AIL_SV_H_
     AIL_PM_DEF AIL_PM_Comp_Res ail_pm_compile_sv_a(AIL_SV pattern, AIL_PM_Exp_Type type, AIL_Allocator allocator);
-    AIL_PM_DEF AIL_PM_Match    ail_pm_match_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
-    AIL_PM_DEF b32             ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv);
+    AIL_PM_DEF AIL_PM_Match ail_pm_match_greedy_sv(AIL_PM_Pattern pattern, AIL_SV sv);
+    AIL_PM_DEF AIL_PM_Match ail_pm_match_lazy_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
+    AIL_PM_DEF AIL_PM_Match ail_pm_match_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
+    AIL_PM_DEF b32          ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv);
 #   define ail_pm_compile_sv(pattern, type) ail_pm_compile_sv_a(pattern, type, ail_default_allocator)
 #endif
 
@@ -607,16 +612,6 @@ backtrack:
 
 AIL_PM_Match ail_pm_match_greedy(AIL_PM_Pattern pattern, const char *s, u32 len)
 {
-    return ail_pm_match(pattern, s, len);
-}
-
-AIL_PM_Match ail_pm_match_lazy(AIL_PM_Pattern pattern, const char *s, u32 len)
-{
-    return ail_pm_match(pattern, s, len);
-}
-
-AIL_PM_Match ail_pm_match(AIL_PM_Pattern pattern, const char *s, u32 len)
-{
     if ((pattern.attrs & (AIL_PM_ATTR_START | AIL_PM_ATTR_END)) == (AIL_PM_ATTR_START | AIL_PM_ATTR_END)) {
         u32 n = _ail_pm_match_immediate_greedy(pattern.els, pattern.len, s, len);
         return (AIL_PM_Match) {
@@ -647,6 +642,20 @@ AIL_PM_Match ail_pm_match(AIL_PM_Pattern pattern, const char *s, u32 len)
         }
     }
     return (AIL_PM_Match) {0};
+}
+
+AIL_PM_Match ail_pm_match_lazy(AIL_PM_Pattern pattern, const char *s, u32 len)
+{
+    AIL_UNUSED(pattern);
+    AIL_UNUSED(s);
+    AIL_UNUSED(len);
+    AIL_TODO();
+    return (AIL_PM_Match) {0};
+}
+
+AIL_PM_Match ail_pm_match(AIL_PM_Pattern pattern, const char *s, u32 len)
+{
+    return ail_pm_match_greedy(pattern, s, len);
 }
 
 AIL_PM_Match ail_pm_match_sv(AIL_PM_Pattern pattern, AIL_SV sv)
