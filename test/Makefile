@@ -29,16 +29,16 @@ endif
 ifeq ($(COMP),cl)
 CFLAGS ?= /W1 /std:c++14 /Zi
 else ifeq ($(COMP),gcc)
-CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c11 -Wno-unused-function -Wno-unused-variable -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
 else ifeq ($(COMP),clang)
-CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c11 -Wno-unused-function -Wno-unused-variable -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
 else ifeq ($(COMP),tcc)
-CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c11 -Wno-unused-function -Wno-unused-variable -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
 else ifeq ($(COMP),zig)
 C      := zig cc
-CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c11 -Wno-unused-function -Wno-unused-variable -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb
 else ifeq ($(COMP),icx-cc)
-CFLAGS ?= -Wall -Wextra -Wpedantic -std=c99 -Wno-unused-function -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb -Rno-debug-disables-optimization
+CFLAGS ?= -Wall -Wextra -Wpedantic -std=c11 -Wno-unused-function -Wno-unused-variable -Wno-unused-local-typedefs -Wno-zero-length-array -ggdb -Rno-debug-disables-optimization
 else ifeq ($(COMP),dmc)
 
 else ifeq ($(COMP),pelles)
@@ -75,3 +75,6 @@ buf: ail_buf.c
 
 ring: ail_ring.c
 	$(C) $(CFLAGS) -o ail_ring ail_ring.c
+
+pm: ail_pm.c
+	$(C) $(CFLAGS) -o ail_pm ail_pm.c
