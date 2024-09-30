@@ -2,10 +2,10 @@
 * This header contains general utilities used throughout the other ail.h libraries
 *
 * By default this file only includes a bunch of useful macros (see list below), other features can be included by defining the following:
-  * AIL_ALL_IMPL:   include everything
-  * AIL_TYPES_IMPL: include typedefs in the style of u8, i16, f32, b32 and str for char*; also defines internal/persist/global aliases for "static" keyword
-  * AIL_ALLOC_IMPL: include the AIL_Allocator struct for custom allocators
-  * AIL_DA_IMPL:    include macro-template for dynamic arrays (automatically enables AIL_ALLOC_IMPL as well)
+  * AIL_ALL_IMPL:     shorthand to define all the following features
+  * AIL_TYPES_IMPL:   include shortform type names
+  * AIL_ALLOC_IMPL:   include the AIL_Allocator struct for custom allocators
+  * AIL_DA_IMPL:      include macro-template for dynamic arrays (automatically enables AIL_ALLOC_IMPL as well)
 * For the documentation of each of these, see below
 *
 * Define AIL_DEF (defaults to `static`), AIL_DEF_INLINE (defaults to `static inline`) if you want different function declarations as a default for all ail.h libraries
@@ -14,41 +14,82 @@
 * Alternatively reassign ail_default_allocator to your default allocator of choice
 *
 *
+*** Type Definitions ***
+* stdint.h & stdbool.h are included for specifically sized integer types and boolean types
+* via typedefs, the following types are declared as shortened forms of the original
+* Integers: u8, u16, u32, u64, i8, i16, i32, i64
+* Floats:   f32, f64
+* Boolean:  b32
+* char*:    str
+* Furthermore, aliases for the static keyword are defined, that make the keyword's usage clearer:
+* 'internal', 'persist', 'global'
+*
+*
 *** Useful macros ***
-* The following list only contains the public API of macros, not any internally used macros (which are always prefixed with an underscore)
-* None of these macros are safe in regards to side-effects, so be aware to avoid something like AIL_MIN(x++, --y);
-  * AIL_UNUSED(x): to ignore compiler warnings if x is unused
-  * AIL_ARRLEN(arr): get the size of a fixed-sized, stack-allocated array
+* The following list only contains the public API of macros, but none of the internally used macros (which are always prefixed with an underscore)
+* None of these macros guarantuee safety in regards to side-effects, so be aware to avoid something like AIL_MIN(x++, --y);
+  * AIL_ARRLEN(arr): Get the size of a fixed-sized, stack-allocated array
+  * AIL_TYPEOF(x):   Get the type of x (only available with certain compiler extensions or on C++/C23)
+  * AIL_OFFSETOF(ptr, field): Return the offset in bytes from a struct-field from a pointer to a struct
+  *
+  * AIL_SWAP(x, y):             Swap x and y (without providing their type) (only works when AIL_TYPEOF works)
+  * AIL_SWAP_PORTABLE(T, x, y): Swap x and y in the most portable way (requires you to provide their type T)
+  * AIL_MAX(a, b):              Get the maximum of two values
+  * AIL_MIN(a, b):              Get the minimum of two values
+  * AIL_CLAMP(x, min, max):     Returns the closest value to x in the range [min; max]
+  * AIL_IS_2POWER(x):           Returns whether x is a power of 2
+  * AIL_NEXT_2POWER(x):         Get the next highest value above x that is a power of 2 (if x isn't already a power of 2)
+  * AIL_LERP(t, min, max):      Linearly interpolate between min and max
+  * AIL_INV_LERP(x, min, max):  Does the inverse of a linear interpolation, returning the interpolater, such that the following holds: AIL_LERP(AIL_INV_LERP(x, min, max), min, max) == x
+  *
+  * AIL_KB(n): Get n kilobyte
+  * AIL_MB(n): Get n megabyte
+  * AIL_GB(n): Get n gigabyte
+  * AIL_TB(n): Get n terabyte
+  *
+  * AIL_ASSERT(expr, [msg]):        Assert that expr is true with an optional message
+  * AIL_STATIC_ASSERT(cond, [msg]): Statically assert that cond is true with an optional message
+  * AIL_PANIC(...):                 Panic and exit the program. Any input will be given as input to printf
+  * AIL_TODO():                     Panic when hitting this place while the program is running
+  * AIL_UNREACHABLE():              Panic when hitting this place while the program is running
+  *
+  * AIL_UNUSED(x):      To ignore compiler warnings if x is unused
+  * AIL_LIKELY(expr):   Indicate that the expression expr is most often true
+  * AIL_UNLIKELY(expr): Indicate that the expression expr is most often false
+  * AIL_FALLTHROUGH:    Indicate that falling through is intended for this particular case of the switch-statement.
+  * AIL_FLAG_ENUM:      Mark this enum as a bitfield
+  *
+  * AIL_IS_DEF(macro): Check whether `macro` is defined (basically ifdef but as a runtime value)
+  * AIL_IS_EMPTY(...): Check whether the given var-arg list is empty or not (doesn't work for conditional compilation)
+  * AIL_HAS_BUILTIN(builtin):         Check whether the given built-in function is supported by the compiler/architecture
+  * AIL_HAS_ATTRIBUTE(attribute):     Check whether the given attribute is supported by the compiler.
+  * AIL_HAS_CPP_ATTRIBUTE(attribute): Check whether the given c++-specific attribute is supported by the compiler
+  * AIL_HAS_EXTENSION(extension):     Check whether the given extension is enabled by the compiler
+  * AIL_HAS_WARNING(warning):         Check whether the provided warning is active. For example: AIL_HAS_WARNING("-Wformat")
+  *
+  * AIL_WARN_PUSH: Store the current warning level (presumably to change it temporarily)
+  * AIL_WARN_POP:  Reset the latest saved warning level
+  * AIL_WARN_NO_DEPRECATED:      Disable warnings for usage of deprecated functions
+  * AIL_WARN_NO_UNKNOWN_PRAGMAS: Disable warnings regarding unknown pragmas
+  * AIL_WARN_NO_CAST_QUAL:       Disable warning for casts that change qualifiers like 'const'
+  * AIL_WARN_NO_UNUSED_FUNCTION: Disable warnings for unused functions
+  *
+  * AIL_PRINTF_FORMAT(str_idx, first_arg_idx): Mark the parameters of this function to abide by the formatting used in printf. `str_idx` is the index of the parameter containing the format string, while `first_arg_idx` is index of the first input to the format
+  * AIL_DEPRECATED([since, [replacement]]): Mark a function as deprecated, with optional strings indicating since when the function's deprecated and what should be used instead
+  * AIL_NO_UNUSED_RESULT([msg]): Forbid ignoring the return value of this function
+  * AIL_NO_RETURN: Declare that this function never returns. Examples for such functions would be `abort` or `exit`
+  * AIL_PURE:      Mark this function as a pure function, meaning this function doesn't change the state of the program outside of its return value
+  * AIL_CONST:     Mark this function as constant, meaning the result is not influenced by the state of the program outside of its input values
+  * AIL_NO_INLINE: Prevent this function from being inlined
+  * AIL_NON_NULL:  Indicates that the function's return value is a non-null pointer
+  *
   * AIL_STRINGIFY(x): Turn the token x into a string (useful for macros working with printing)
-  * AIL_STR_LINE: The current line (via __LINE__) as a string
+  * AIL_STR_LINE:     The current line (via __LINE__) as a string
   * AIL_CONCAT(a, b): Concatenate two tokens to a single token (mainly useful for macros)
-  * AIL_EXPAND(x): Expand a token given to a macro (mainly useful for macros)
-  * AIL_IS_DEF(macro): Check whether macro is defined (basically ifdef but as a runtime value)
+  * AIL_EXPAND(x):    Expand a token given to a macro (mainly useful for macros)
   * AIL_VFUNC(name, ...): Overload a macro on the amount of its arguments
     * only works if there's 64 or fewer arguments
-    * every overloaded version of the macro must be named '<name>_<number_of_arguments>'
-  * AIL_IS_EMPTY(...): Check whether the given var-arg list is empty or not
-    * Does not work for conditional compilation
-  * AIL_MAX(a, b): get the maximum of two values
-  * AIL_MIN(a, b): get the minimum of two values
-  * AIL_CLAMP(x, min, max): Returns the closest value to x in the range [min; max]
-  * AIL_TYPEOF(x): get the type of x (only available with certain compiler extensions or on C++/C23)
-  * AIL_SWAP_PORTABLE(Type, x, y): swap x and y in the most portable way (requires you to provide their type)
-  * AIL_SWAP(x, y): swap x and y (without providing their type) (only works where AIL_TYPEOF works)
-  * AIL_LERP(t, min, max): linearly interpolate between min and max
-  * AIL_REV_LERP(x, min, max): does the reverse of a lerp, returning the interpolater
-    * AIL_LERP(AIL_REV_LERP(x, min, max), min, max) == x
-  * AIL_LIKELY(expr): Indicate to the compiler, that the expression expr is likely to be true
-  * AIL_UNLIKELY(expr): Indicate to the compiler, that the expression expr is likely to be false
-  * AIL_ASSERT_MSG(expr, msg): Assert that expr is true and print msg (while panicking) otherwise
-  * AIL_ASSERT(expr): Assert that expr is true
-  * AIL_PANIC(...): Panic and exit the program. Any input will be given as input to printf
-  * AIL_TODO(): Panic when hitting this place while the program is running
-  * AIL_UNREACHABLE(): Panic when hitting this place while the program is running
-  * AIL_STATIC_ASSERT(cond, [msg]): Statically assert that cond is true with an optional message
-  * AIL_OFFSETOF(ptr, field): Return the offset in bytes from a struct-field from a pointer to a struct
-  * AIL_IS_2POWER(x): Returns whether x is a power of 2
-  * AIL_NEXT_2POWER(x): Get the next highest value above x that is a power of 2 (if x isn't already a power of 2)
+    * every overloaded version of the macro must be named '<name><number_of_arguments>'
 *
 *
 *** Custom Allocator interface ***
@@ -69,6 +110,7 @@
   * AIL_CALL_FREE_ALL(allocator)
   * AIL_CALL_CLEAR_ALL(allocator)
 * To use the std's allocator, ail_default_allocator is provided
+*
 *
 *** Dynamic Array Template ***
 * There are two common ways for implementing dynamic arrays in C.
@@ -122,19 +164,11 @@
   * ail_da_grow_with_gap(daPtr, gapStart, gapLen, newCap, elSize): Grows the array to the new capacity, but leaving a gap at gapStart. This is needed for insertions. Usually not directly called by user code
 *
 *
-* A substantial amount of code for macros was adapted from Hedley (https://nemequ.github.io/hedley)
-* Hedley is under public domain. For completeness it's license is copied below:
-*** HEDLEY LICENSE ***
-Created by Evan Nemerson <evan@nemerson.com>
-
-To the extent possible under law, the author(s) have dedicated all
-copyright and related and neighboring rights to this software to
-the public domain worldwide. This software is distributed without
-any warranty.
-
-For details, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-SPDX-License-Identifier: CC0-1.0
-
+* A substantial amount of code for macros was adapted from "Hedley" (https://nemequ.github.io/hedley)
+* Hedley was created by Evan Nemerson <evan@nemerson.com>
+* Hedley is under public domain. For details, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+* Hedley's SPDX-License-Identifier: CC0-1.0
+*
 *** LICENSE ***
 Copyright (c) 2024 Lily Val Richter
 
@@ -354,12 +388,6 @@ typedef char*    str;
 #else
 #   define AIL_HAS_BUILTIN(builtin) (0)
 #endif
-// AIL_HAS_FEATURE
-#if defined(__has_feature)
-#   define AIL_HAS_FEATURE(feature) __has_feature(feature)
-#else
-#   define AIL_HAS_FEATURE(feature) (0)
-#endif
 // AIL_HAS_EXTENSION
 #if defined(__has_extension)
 #   define AIL_HAS_EXTENSION(extension) __has_extension(extension)
@@ -515,7 +543,7 @@ typedef char*    str;
 #   define AIL_NO_RETURN
 #endif
 
-// AIL_PRINTF_FORMAT
+// AIL_PRINTF_FORMAT(str_idx, first_arg_idx)
 #if defined(__MINGW32__) && AIL_HAS_ATTRIBUTE(format)
 #   if defined(__USE_MINGW_ANSI_STDIO)
 #       define AIL_PRINTF_FORMAT(str_idx, first_arg_idx) __attribute__((__format__(ms_printf, str_idx, first_arg_idx)))
@@ -587,6 +615,15 @@ typedef char*    str;
 #   define AIL_FALLTHROUGH
 #endif
 
+// AIL_NON_NULL
+#if AIL_HAS_ATTRIBUTE(returns_nonnull) || _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 9, 0)
+#   define AIL_NON_NULL __attribute__((__returns_nonnull__))
+#elif defined(_Ret_notnull_)
+#   define AIL_NON_NULL _Ret_notnull_
+#else
+#   define AIL_NON_NULL
+#endif
+
 // AIL_FLAG_ENUM
 #if AIL_HAS_ATTRIBUTE(flag_enum) && (!defined(__cplusplus) || AIL_HAS_WARNING("-Wbitfield-enum-conversion"))
 #   define AIL_FLAG_ENUM __attribute__((__flag_enum__))
@@ -643,19 +680,20 @@ typedef char*    str;
 #   define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
 #endif
 
-// AIL_LERP(AIL_REV_LERP(x, min, max), min, max) = x
+// AIL_LERP(AIL_INV_LERP(x, min, max), min, max) = x
 #define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
-#define AIL_REV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
+#define AIL_INV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
 
 #define AIL_KB(x) (((u64)(x)) << 10)
 #define AIL_MB(x) (((u64)(x)) << 20)
 #define AIL_GB(x) (((u64)(x)) << 30)
 #define AIL_TB(x) (((u64)(x)) << 40)
 
-#define _AIL_DBG_EXIT_()                 do { int *X = 0; *X = 0; exit(1); } while(0)
-#define _AIL_ASSERT_COMMON_(expr, msg)   do { if (!(expr)) { _AIL_DBG_PRINT_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); _AIL_DBG_EXIT_(); } } while(0)
-#define AIL_ASSERT_MSG(expr, msg)        _AIL_ASSERT_COMMON_(expr, "with message '" msg "'")
-#define AIL_ASSERT(expr)                 _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" AIL_STRINGIFY(expr) ")'")
+#define _AIL_DBG_EXIT_()               do { int *X = 0; *X = 0; exit(1); } while(0)
+#define _AIL_ASSERT_COMMON_(expr, msg) do { if (!(expr)) { _AIL_DBG_PRINT_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); _AIL_DBG_EXIT_(); } } while(0)
+#define _AIL_ASSERT_2(expr, msg)       _AIL_ASSERT_COMMON_(expr, "with message '" msg "'")
+#define _AIL_ASSERT_1(expr)            _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" AIL_STRINGIFY(expr) ")'")
+#define AIL_ASSERT(...) AIL_VFUNC(_AIL_ASSERT_, __VA_ARGS__);
 
 #define AIL_PANIC(...)    do { _AIL_DBG_PRINT_(__VA_ARGS__); _AIL_DBG_PRINT_("\n"); _AIL_DBG_EXIT_(); } while(0)
 #define AIL_TODO()        do { _AIL_DBG_PRINT_("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); _AIL_DBG_EXIT_(); } while(0)
