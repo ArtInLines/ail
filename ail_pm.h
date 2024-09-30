@@ -649,8 +649,9 @@ AIL_PM_Match ail_pm_match_lazy(AIL_PM_Pattern pattern, const char *s, u32 len)
     AIL_UNUSED(pattern);
     AIL_UNUSED(s);
     AIL_UNUSED(len);
-    AIL_TODO();
-    return (AIL_PM_Match) {0};
+    return ail_pm_match_greedy(pattern, s, len); // @TODO: Actually implement lazy pattern matching
+    // AIL_TODO();
+    // return (AIL_PM_Match) {0};
 }
 
 AIL_PM_Match ail_pm_match(AIL_PM_Pattern pattern, const char *s, u32 len)

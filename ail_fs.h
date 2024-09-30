@@ -200,7 +200,9 @@ AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath)
     res.handle = FindFirstFileW(buffer, &ffd);
     if (res.handle == INVALID_HANDLE_VALUE) res.err = AIL_FS_ERR_NO_ENTRY;
     else {
+        // @TODO
         i32 len = WideCharToMultiByte(CP_UTF8, 0, buffer, lstrlenW(buffer), res.dirent.name, sizeof(res.dirent.name), NULL, NULL);
+        AIL_UNUSED(len);
         res.dirent.type = (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? AIL_FS_ENTRY_DIR : AIL_FS_ENTRY_FILE;
     }
 #else

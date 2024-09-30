@@ -50,7 +50,7 @@ endif
 
 C ?= $(COMP)
 
-all: da macros sv fs hm alloc buf ring
+all: da macros sv fs hm alloc buf ring pm
 
 da: ail_da.c
 	$(C) $(CFLAGS) -o ail_da ail_da.c
