@@ -196,7 +196,7 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
         ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(global_pager));             \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                     \
         global_max_page_sizes[global_max_page_idx].size    = size;                      \
-        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIFY(alloc_name); \
         AIL_CALL_FREE_ALL(global_pager);                                                \
     } while(0)
 
@@ -207,7 +207,7 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
         AIL_Allocator buffer = ail_alloc_buffer_new(mem_max, back_buffer);              \
         ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(buffer));                   \
         global_max_page_sizes[global_max_page_idx].size = size_to_page_count(mem_max);  \
-        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIFY(alloc_name); \
         AIL_CALL_FREE_ALL(buffer);                                                      \
         AIL_CALL_FREE(ail_alloc_pager, back_buffer);                                    \
     } while(0)
@@ -217,7 +217,7 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
         AIL_Allocator ring = ail_alloc_ring_new(mem_max, back_buffer);                  \
         ITER(alloc_name, n, __VA_ARGS__; AIL_CALL_CLEAR_ALL(ring));                     \
         global_max_page_sizes[global_max_page_idx].size = size_to_page_count(mem_max);  \
-        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIFY(alloc_name); \
         AIL_CALL_FREE_ALL(ring);                                                        \
         AIL_CALL_FREE(ail_alloc_pager, back_buffer);                                    \
     } while(0)
@@ -229,7 +229,7 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
         AIL_CALL_FREE(global_pager, arena.data);                                        \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                     \
         global_max_page_sizes[global_max_page_idx].size    = size;                      \
-        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIFY(alloc_name); \
     } while(0)
 
 // @Note: requires variable el_size to be set
@@ -240,7 +240,7 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
         AIL_CALL_FREE(global_pager, pool.data);                                             \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                         \
         global_max_page_sizes[global_max_page_idx].size    = size;                          \
-        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name);     \
+        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIFY(alloc_name);     \
     } while(0)
 
 #define FREELIST(alloc_name, n, ...) do {                                               \
@@ -250,7 +250,7 @@ static inline void steadily_increasing_reallocs(AIL_Allocator *a, u64 el_size, u
         AIL_CALL_FREE(global_pager, fl.data);                                           \
         u64 size = counting_pager_get_max_and_reset(&global_pager);                     \
         global_max_page_sizes[global_max_page_idx].size    = size;                      \
-        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIZE(alloc_name); \
+        global_max_page_sizes[global_max_page_idx++].label = AIL_STRINGIFY(alloc_name); \
     } while(0)
 
 #define ALLOCATORS                      \

@@ -89,7 +89,7 @@ AIL_BENCH_DEF void ail_bench_profile_block_end(AIL_Bench_Profile_Block *block);
 AIL_BENCH_DEF void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors);
 
 #define AIL_BENCH_PROFILE_BLOCK_NAME(name) AIL_CONCAT(ail_bench_profile_block_, name)
-#define AIL_BENCH_PROFILE_START(name) AIL_Bench_Profile_Block AIL_BENCH_PROFILE_BLOCK_NAME(name) = ail_bench_profile_block_start(AIL_STRINGIZE(name), __COUNTER__ + 1)
+#define AIL_BENCH_PROFILE_START(name) AIL_Bench_Profile_Block AIL_BENCH_PROFILE_BLOCK_NAME(name) = ail_bench_profile_block_start(AIL_STRINGIFY(name), __COUNTER__ + 1)
 #define AIL_BENCH_PROFILE_END(name) ail_bench_profile_block_end(&AIL_BENCH_PROFILE_BLOCK_NAME(name))
 #define AIL_BENCH_END_OF_COMPILATION_UNIT() AIL_STATIC_ASSERT(__COUNTER__ < AIL_BENCH_PROFILE_ANCHOR_COUNT, "Number of profile points exceeds size of profiler::Anchors array")
 #endif // AIL_BENCH_PROFILE
