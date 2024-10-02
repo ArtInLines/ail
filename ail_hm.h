@@ -23,6 +23,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+// @TODO: Improve Hashmap
+// see for example Jai's hashmap implementation here: https://pastebin.com/xMUQXshn
+
 #ifndef AIL_HM_H_
 #define AIL_HM_H_
 

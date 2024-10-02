@@ -137,7 +137,7 @@ typedef struct AIL_PM_Range {
     char end;
 } AIL_PM_Range;
 AIL_DA_INIT(AIL_PM_Range);
-AIL_LIST_INIT(AIL_PM_Range);
+AIL_SLICE_INIT(AIL_PM_Range);
 
 // @Memory: This struct takes up much more space than neccessary rn (pack attributes together to improve this)
 // @Note: The implementation uses the assumption that the 0-value for AIL_PM_El means that exactly one non-inverted character with c=='\0'
@@ -149,12 +149,12 @@ typedef struct AIL_PM_El {
     union {
         char     c;
         AIL_PM_Range r;
-        AIL_LIST(char)     cs;
-        AIL_LIST(AIL_PM_Range) rs;
+        AIL_SLICE(char) cs;
+        AIL_SLICE(AIL_PM_Range) rs;
     };
 } AIL_PM_El;
 AIL_DA_INIT(AIL_PM_El);
-AIL_LIST_INIT(AIL_PM_El);
+AIL_SLICE_INIT(AIL_PM_El);
 
 // Used as bitmasks
 typedef enum AIL_PM_Pattern_Attr {
@@ -402,7 +402,7 @@ report_err:
             ail_da_free(&ranges);
         } else {
             el.type = AIL_PM_EL_ONE_OF_RANGE;
-            el.rs   = ail_list_from_da_t(AIL_PM_Range, ranges);
+            el.rs   = ail_slice_from_da_t(AIL_PM_Range, ranges);
         }
     }
     else {
@@ -421,7 +421,7 @@ report_err:
             ail_da_free(&chars);
         } else {
             el.type = AIL_PM_EL_ONE_OF_CHAR;
-            el.cs   = ail_list_from_da_t(char, chars);
+            el.cs   = ail_slice_from_da_t(char, chars);
         }
     }
 

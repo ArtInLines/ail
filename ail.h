@@ -832,38 +832,48 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #endif
 
 #ifdef AIL_TYPES_IMPL
-#define AIL_LIST_INIT(T) typedef struct AIL_LIST_##T { T *data; u32 len; } AIL_LIST_##T
-#define AIL_LIST(T) AIL_LIST_##T
-#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator allocator; } AIL_DA_##T
-#define AIL_DA(T) AIL_DA_##T
-AIL_DA_INIT(u8);   AIL_LIST_INIT(u8);
-AIL_DA_INIT(u16);  AIL_LIST_INIT(u16);
-AIL_DA_INIT(u32);  AIL_LIST_INIT(u32);
-AIL_DA_INIT(u64);  AIL_LIST_INIT(u64);
-AIL_DA_INIT(i8);   AIL_LIST_INIT(i8);
-AIL_DA_INIT(i16);  AIL_LIST_INIT(i16);
-AIL_DA_INIT(i32);  AIL_LIST_INIT(i32);
-AIL_DA_INIT(i64);  AIL_LIST_INIT(i64);
-AIL_DA_INIT(f32);  AIL_LIST_INIT(f32);
-AIL_DA_INIT(f64);  AIL_LIST_INIT(f64);
-AIL_DA_INIT(str);  AIL_LIST_INIT(str);
+#   define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; u32 len; } AIL_SLICE_##T
+#   define AIL_SLICE(T) AIL_SLICE_##T
+#   define AIL_ARR_INIT(T) typedef struct AIL_ARR_##T { T *data; u32 len; u32 cap; } AIL_ARR_##T
+#   define AIL_ARR(T) AIL_ARR_##T
+#   define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator allocator; } AIL_DA_##T
+#   define AIL_DA(T) AIL_DA_##T
+    AIL_DA_INIT(u8);   AIL_SLICE_INIT(u8);   AIL_ARR_INIT(u8);
+    AIL_DA_INIT(u16);  AIL_SLICE_INIT(u16);  AIL_ARR_INIT(u16);
+    AIL_DA_INIT(u32);  AIL_SLICE_INIT(u32);  AIL_ARR_INIT(u32);
+    AIL_DA_INIT(u64);  AIL_SLICE_INIT(u64);  AIL_ARR_INIT(u64);
+    AIL_DA_INIT(i8);   AIL_SLICE_INIT(i8);   AIL_ARR_INIT(i8);
+    AIL_DA_INIT(i16);  AIL_SLICE_INIT(i16);  AIL_ARR_INIT(i16);
+    AIL_DA_INIT(i32);  AIL_SLICE_INIT(i32);  AIL_ARR_INIT(i32);
+    AIL_DA_INIT(i64);  AIL_SLICE_INIT(i64);  AIL_ARR_INIT(i64);
+    AIL_DA_INIT(f32);  AIL_SLICE_INIT(f32);  AIL_ARR_INIT(f32);
+    AIL_DA_INIT(f64);  AIL_SLICE_INIT(f64);  AIL_ARR_INIT(f64);
+    AIL_DA_INIT(str);  AIL_SLICE_INIT(str);  AIL_ARR_INIT(str);
 #else
-#define AIL_LIST_INIT(T) typedef struct AIL_LIST_##T { T *data; unsigned int len; } AIL_LIST_##T
-#define AIL_LIST(T) AIL_LIST_##T
-#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
-#define AIL_DA(T) AIL_DA_##T
+#   define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; unsigned int len; } AIL_SLICE_##T
+#   define AIL_SLICE(T) AIL_SLICE_##T
+#   define AIL_ARR_INIT(T) typedef struct AIL_ARR_##T { T *data; unsigned int len; } AIL_ARR_##T
+#   define AIL_ARR(T) AIL_ARR_##T
+#   define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
+#   define AIL_DA(T) AIL_DA_##T
+    AIL_DA_INIT(char);    AIL_SLICE_INIT(char);    AIL_ARR_INIT(char);
+    AIL_DA_INIT(short);   AIL_SLICE_INIT(short);   AIL_ARR_INIT(short);
+    AIL_DA_INIT(int);     AIL_SLICE_INIT(int);     AIL_ARR_INIT(short);
+    AIL_DA_INIT(long);    AIL_SLICE_INIT(long);    AIL_ARR_INIT(short);
+    AIL_DA_INIT(float);   AIL_SLICE_INIT(float);   AIL_ARR_INIT(float);
+    AIL_DA_INIT(double);  AIL_SLICE_INIT(double);  AIL_ARR_INIT(double);
 #endif
 
-AIL_DA_INIT(void); AIL_LIST_INIT(void);
-AIL_DA_INIT(char); AIL_LIST_INIT(char);
+AIL_DA_INIT(void);    AIL_SLICE_INIT(void);    AIL_ARR_INIT(void);
+AIL_DA_INIT(char);    AIL_SLICE_INIT(char);    AIL_ARR_INIT(char);
 
 
-#define ail_list_from_parts(d, l) { .data = (d),       .len = (l) }
-#define ail_list_from_arr(arr)    { .data = (arr),     .len = AIL_ARRLEN(arr) }
-#define ail_list_from_da(da)      { .data = (da).data, .len = (da).len }
-#define ail_list_from_parts_t(T, d, l) (AIL_LIST(T))ail_list_from_parts(d, l)
-#define ail_list_from_arr_t(T, arr)    (AIL_LIST(T))ail_list_from_arr(arr)
-#define ail_list_from_da_t(T, da)      (AIL_LIST(T))ail_list_from_da(da)
+#define ail_slice_from_parts(d, l) { .data = (d),       .len = (l) }
+#define ail_slice_from_arr(arr)    { .data = (arr),     .len = AIL_ARRLEN(arr) }
+#define ail_slice_from_da(da)      { .data = (da).data, .len = (da).len }
+#define ail_slice_from_parts_t(T, d, l) (AIL_SLICE(T))ail_slice_from_parts(d, l)
+#define ail_slice_from_arr_t(T, arr)    (AIL_SLICE(T))ail_slice_from_arr(arr)
+#define ail_slice_from_da_t(T, da)      (AIL_SLICE(T))ail_slice_from_da(da)
 
 #define ail_da_from_parts(d, l, c, al)  { .data = (d), .len = (l), .cap = (c), .allocator = (al) }
 #define ail_da_new_with_alloc(T, c, al) { .data = AIL_CALL_ALLOC ((al), sizeof(T)*(c)), .len = 0, .cap = (c), .allocator = (al) }

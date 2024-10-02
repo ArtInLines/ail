@@ -79,7 +79,7 @@ SOFTWARE.
 
 
 typedef struct AIL_SV { // Sized String View
-    const char *str;
+    char *str;
     u64 len;
 } AIL_SV;
 AIL_DA_INIT(AIL_SV);
@@ -116,9 +116,14 @@ AIL_SV_DEF_INLINE AIL_Str ail_str_from_da_nil_term(AIL_DA(char) str); // @Assert
 AIL_SV_DEF_INLINE AIL_Str ail_str_from_cstr (char *s);
 #define ail_str_from_sv(sv) ail_str_from_parts(sv.str, sv.len)
 
+AIL_SV_DEF_INLINE AIL_SLICE(u8) ail_slice_from_sv(AIL_SV sv);
+AIL_SV_DEF_INLINE AIL_SLICE(u8) ail_slice_from_str(AIL_Str str);
+AIL_SV_DEF_INLINE AIL_ARR(u8) ail_arr_from_sv(AIL_SV sv);
+AIL_SV_DEF_INLINE AIL_ARR(u8) ail_arr_from_str(AIL_Str str);
+
 // @Important: Copies the underlying string to a new memory region. Remember to free the Str with ail_str_free
 AIL_SV_DEF AIL_Str ail_str_new_sv_a(AIL_SV sv, AIL_Allocator allocator);
-AIL_SV_DEF AIL_Str ail_str_new_cstr_a(const char *str, AIL_Allocator allocator);
+AIL_SV_DEF AIL_Str ail_str_new_cstr_a(char *str, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_da_a(AIL_DA(char) str, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_unsigned_a(u64 num, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_signed_a  (i64 num, AIL_Allocator allocator);
@@ -138,8 +143,8 @@ AIL_SV_DEF void ail_str_free_a(AIL_Str str, AIL_Allocator allocator);
 
 #define AIL_SV_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit)-1 }
 #define AIL_SV_FROM_LITERAL_T(clit) (AIL_SV)AIL_SV_FROM_LITERAL(clit)
-AIL_SV_DEF_INLINE AIL_SV ail_sv_from_parts(const char *str, u64 len);
-AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr (const char *str);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_parts(char *str, u64 len);
+AIL_SV_DEF_INLINE AIL_SV ail_sv_from_cstr (char *str);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_str(AIL_Str str);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_from_da(AIL_DA(char) str);
 AIL_SV_DEF_INLINE AIL_SV ail_sv_new_unsigned_a(u64 num, AIL_Allocator allocator);
@@ -158,7 +163,7 @@ AIL_SV_DEF_INLINE AIL_SB ail_sb_from_parts(char *data, u32 len, u32 cap, AIL_All
 AIL_SV_DEF_INLINE AIL_SB ail_sb_from_da(AIL_DA(char) da);
 AIL_SV_DEF_INLINE AIL_SB ail_sb_new_a(AIL_Allocator allocator);
 AIL_SV_DEF_INLINE AIL_SB ail_sb_new_cap_a(u64 initial_cap, AIL_Allocator allocator);
-AIL_SV_DEF AIL_SB ail_sb_new_cstr_a(const char *str, AIL_Allocator allocator);
+AIL_SV_DEF AIL_SB ail_sb_new_cstr_a(char *str, AIL_Allocator allocator);
 AIL_SV_DEF AIL_SB ail_sb_new_str_a (AIL_Str str, AIL_Allocator allocator);
 AIL_SV_DEF AIL_SB ail_sb_new_da_a  (AIL_DA(char) str, AIL_Allocator allocator);
 AIL_SV_DEF AIL_SB ail_sb_new_unsigned_a(u64 num, AIL_Allocator allocator);
@@ -202,8 +207,8 @@ AIL_SV_DEF f64 ail_sv_parse_float   (AIL_SV sv, u32 *len);
 
 #define ail_sv_eq(a, b)  ail_sv_full_eq ((a).str, (a).len, (b).str, (b).len)
 #define ail_sv_cmp(a, b) ail_sv_full_cmp((a).str, (a).len, (b).str, (b).len)
-AIL_SV_DEF bool ail_sv_full_eq (const char *astr, u64 alen, const char *bstr, u64 blen);
-AIL_SV_DEF i32  ail_sv_full_cmp(const char *astr, u64 alen, const char *bstr, u64 blen);
+AIL_SV_DEF bool ail_sv_full_eq (char *astr, u64 alen, char *bstr, u64 blen);
+AIL_SV_DEF i32  ail_sv_full_cmp(char *astr, u64 alen, char *bstr, u64 blen);
 AIL_SV_DEF bool ail_sv_starts_with     (AIL_SV str, AIL_SV prefix);
 AIL_SV_DEF bool ail_sv_starts_with_char(AIL_SV str, char   prefix);
 AIL_SV_DEF bool ail_sv_ends_with     (AIL_SV str, AIL_SV suffix);
@@ -331,7 +336,42 @@ AIL_SV_DEF AIL_Str ail_sv_replace_a(AIL_SV sv, AIL_SV to_replace, AIL_SV replace
 #ifndef _AIL_SV_IMPL_GUARD_
 #define _AIL_SV_IMPL_GUARD_
 
-AIL_SV ail_sv_from_parts(const char *s, u64 len)
+AIL_SLICE(u8) ail_slice_from_sv(AIL_SV sv)
+{
+    return (AIL_SLICE(u8)) {
+        .data = (u8*) sv.str,
+        .len  = sv.len,
+    };
+}
+
+AIL_SLICE(u8) ail_slice_from_str(AIL_Str str)
+{
+    return (AIL_SLICE(u8)) {
+        .data = (u8*) str.str,
+        .len  = str.len + 1,
+    };
+}
+
+AIL_ARR(u8) ail_arr_from_sv(AIL_SV sv)
+{
+    return (AIL_ARR(u8)) {
+        .data = (u8*) sv.str,
+        .len  = sv.len,
+        .cap  = sv.len,
+    };
+}
+
+AIL_ARR(u8) ail_arr_from_str(AIL_Str str)
+{
+    return (AIL_ARR(u8)) {
+        .data = (u8*) str.str,
+        .len  = str.len + 1,
+        .cap  = str.len + 1,
+    };
+}
+
+
+AIL_SV ail_sv_from_parts(char *s, u64 len)
 {
     return (AIL_SV) {
         .str = s,
@@ -349,7 +389,7 @@ AIL_SV ail_sv_from_str(AIL_Str str)
     return ail_sv_from_parts(str.str, str.len);
 }
 
-AIL_SV ail_sv_from_cstr(const char *str)
+AIL_SV ail_sv_from_cstr(char *str)
 {
     u64 len = 0;
     while (str[len]) len++;
@@ -381,7 +421,7 @@ AIL_Str ail_str_new_da_a(AIL_DA(char) str, AIL_Allocator allocator)
     return ail_str_new_sv_a(ail_sv_from_da(str), allocator);
 }
 
-AIL_Str ail_str_new_cstr_a(const char *str, AIL_Allocator allocator)
+AIL_Str ail_str_new_cstr_a(char *str, AIL_Allocator allocator)
 {
     return ail_str_new_sv_a(ail_sv_from_cstr(str), allocator);
 }
@@ -521,7 +561,7 @@ AIL_SB ail_sb_new_cap_a(u64 initial_cap, AIL_Allocator allocator)
     return ail_da_new_with_alloc_t(char, initial_cap, allocator);
 }
 
-AIL_SB ail_sb_new_cstr_a(const char *str, AIL_Allocator allocator)
+AIL_SB ail_sb_new_cstr_a(char *str, AIL_Allocator allocator)
 {
     return ail_sb_new_str_a(ail_str_new_cstr_a(str, allocator), allocator);
 }
@@ -607,7 +647,7 @@ f64 ail_sv_parse_float(AIL_SV sv, u32 *len)
     return 0;
 }
 
-bool ail_sv_full_eq(const char *astr, u64 alen, const char *bstr, u64 blen)
+bool ail_sv_full_eq(char *astr, u64 alen, char *bstr, u64 blen)
 {
     if (alen != blen) return false;
     for (u32 i = 0; i < alen; i++) {
@@ -616,7 +656,7 @@ bool ail_sv_full_eq(const char *astr, u64 alen, const char *bstr, u64 blen)
     return true;
 }
 
-i32  ail_sv_full_cmp(const char *astr, u64 alen, const char *bstr, u64 blen)
+i32  ail_sv_full_cmp(char *astr, u64 alen, char *bstr, u64 blen)
 {
     for (u64 i = 0; i < alen && i < blen; i++) {
         if (astr[i] != bstr[i]) return astr[i] - bstr[i];
