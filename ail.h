@@ -412,8 +412,8 @@ typedef char*    str;
 #   define AIL_WARN_PUSH _Pragma("GCC diagnostic push")
 #   define AIL_WARN_POP  _Pragma("GCC diagnostic pop")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0) || _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
-#   define AIL_WARN_PUSH _Pragma(warning(push))
-#   define AIL_WARN_POP  _Pragma(warning(pop))
+#   define AIL_WARN_PUSH _Pragma("warning(push)")
+#   define AIL_WARN_POP  _Pragma("warning(pop)")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 2, 90, 0)
 #   define AIL_WARN_PUSH _Pragma("warning(push)")
 #   define AIL_WARN_POP  _Pragma("warning(pop)")
@@ -427,11 +427,11 @@ typedef char*    str;
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
 #   define AIL_WARN_NO_DEPRECATED _Pragma("warning(disable:1478 1786)")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
-#   define AIL_WARN_NO_DEPRECATED _Pragma(warning(disable:1478 1786))
+#   define AIL_WARN_NO_DEPRECATED _Pragma("warning(disable:1478 1786)")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 3, 0)
 #   define AIL_WARN_NO_DEPRECATED _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0)
-#   define AIL_WARN_NO_DEPRECATED _Pragma(warning(disable:4996))
+#   define AIL_WARN_NO_DEPRECATED _Pragma("warning(disable:4996)")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 2, 90, 0)
 #   define AIL_WARN_NO_DEPRECATED _Pragma("warn(disable:2241)")
 #else
@@ -443,11 +443,11 @@ typedef char*    str;
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
 #   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("warning(disable:161)")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma(warning(disable:161))
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("warning(disable:161)")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 3, 0)
 #   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("GCC diagnostic ignored \"-Wunknown-pragmas\"")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0)
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma(warning(disable:4068))
+#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("warning(disable:4068)")
 #else
 #   define AIL_WARN_NO_UNKNOWN_PRAGMAS
 #endif
@@ -467,7 +467,7 @@ typedef char*    str;
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 4, 0)
 #   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma("GCC diagnostic ignored \"-Wunknown-function\"")
 #elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 1, 0, 0)
-#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma(warning(disable:4505))
+#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma("warning(disable:4505)")
 #else
 #   define AIL_WARN_NO_UNUSED_FUNCTION
 #endif
