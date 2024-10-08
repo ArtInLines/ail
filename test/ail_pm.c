@@ -25,9 +25,9 @@ typedef struct FailTest {
 #define FAIL(pattern, err, i) { SV(pattern), { .type = err, .idx = i } }
 
 global SuccTest regex_succ_tests[] = {
-    // { SV("\\.c"),  TWICE_RES("test", ".c", "pp") },
-    // { SV("\\.c"),  TWICE_RES("", "", "testc.hc") },
-    // { SV("\\.c"),  TWICE_RES("test", ".c", "pp.cpp") },
+    { SV("\\.c"),  TWICE_RES("test", ".c", "pp") },
+    { SV("\\.c"),  TWICE_RES("", "", "testc.hc") },
+    { SV("\\.c"),  TWICE_RES("test", ".c", "pp.cpp") },
     { SV("\\.c$"), TWICE_RES("test.cpp", ".c") },
     { SV("\\.c$"), TWICE_RES("", "", "test.cpp") },
 };
