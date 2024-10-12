@@ -59,8 +59,7 @@
   * AIL_FALLTHROUGH:    Indicate that falling through is intended for this particular case of the switch-statement.
   * AIL_FLAG_ENUM:      Mark this enum as a bitfield
   *
-  * AIL_IS_DEF(macro): Check whether `macro` is defined (basically ifdef but as a runtime value)
-  * AIL_IS_EMPTY(...): Check whether the given var-arg list is empty or not (doesn't work for conditional compilation)
+  * AIL_IS_EMPTY(...):                Check whether the given var-arg list is empty or not (doesn't work for conditional compilation)
   * AIL_HAS_BUILTIN(builtin):         Check whether the given built-in function is supported by the compiler/architecture
   * AIL_HAS_ATTRIBUTE(attribute):     Check whether the given attribute is supported by the compiler.
   * AIL_HAS_CPP_ATTRIBUTE(attribute): Check whether the given c++-specific attribute is supported by the compiler
@@ -270,13 +269,6 @@ typedef char*    str;
 #define AIL_CONCAT(A, B) _AIL_CONCAT2(A, B)
 
 #define AIL_EXPAND(x) x
-
-// stolen from here (https://gcher.com/posts/2015-02-13-c-tricks/) and was originally stolen from linux kernel apparently
-#define _AIL_IS_DEF3(_, v, ...) v
-#define _AIL_IS_DEF2(comma) _AIL_IS_DEF3(comma 1, 0)
-#define _AIL_IS_DEF1(value) _AIL_IS_DEF2(_AIL_MACROTEST_##value)
-#define _AIL_MACROTEST_1 ,
-#define AIL_IS_DEF(macro) _AIL_IS_DEF1(macro)
 
 // AIL_VFUNC: To allow overloading macros based on number of arguments (taken from here: https://stackoverflow.com/a/26408195/13764271)
 #define __AIL_RSEQ_N() \
@@ -682,7 +674,7 @@ typedef char*    str;
 
 // AIL_LERP(AIL_INV_LERP(x, min, max), min, max) = x
 #define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
-#define AIL_INV_LERP(x, min, max) ((x) - (min)) / ((max) - (min))
+#define AIL_INV_LERP(x, min, max) (((double)(x) - (double)(min)) / ((double)(max) - (double)(min)))
 
 #define AIL_KB(x) (((u64)(x)) << 10)
 #define AIL_MB(x) (((u64)(x)) << 20)
@@ -717,14 +709,15 @@ typedef char*    str;
 
 #define AIL_OFFSETOF(ptr, field) (((char *) &(ptr)->field) - ((char *) (ptr)))
 
-#define AIL_IS_2POWER(x) (x && ((x & (x - 1)) == 0))
+#define AIL_IS_2POWER_POS(x) (x && ((x & (x - 1)) == 0))
+#define AIL_IS_2POWER(x)     ((x < 0) ? AIL_IS_2POWER_POS(-(x)) : AIL_IS_2POWER_POS(x))
 #define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
-        out = x;                                                                                                                              \
+        out = (x >= 0) ? (x) : -(x);                                                                                                          \
         out--;                                                                                                                                \
         for (size_t _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
             out |= out >> _ail_next_2power_shift_;                                                                                            \
-        out++;                                                                                                                                \
-        out += (out==0);                                                                                                                      \
+        out += (out+1 <= 1) + 1;                                                                                                              \
+        if (x < 0) out = -out;                                                                                                                \
     } while(0)
 
 

@@ -354,7 +354,7 @@ u64 ail_alloc_align_size(u64 size)
 {
     // @Performance: ail_alloc_align_forward should be doing the same but faster, right?
     u64 mod;
-#if AIL_IS_2POWER(AIL_ALLOC_ALIGNMENT) == true
+#if AIL_IS_2POWER_POS(AIL_ALLOC_ALIGNMENT) == 1
     // size % alignment but faster, bc alignment is a power of two
     mod = size & (AIL_ALLOC_ALIGNMENT - 1);
 #else
@@ -365,13 +365,13 @@ u64 ail_alloc_align_size(u64 size)
 
 u64 ail_alloc_align_forward(u64 n, u64 alignment)
 {
-    AIL_ASSERT(alignment > 0 && AIL_IS_2POWER(alignment));
+    AIL_ASSERT(alignment > 0 && AIL_IS_2POWER_POS(alignment));
     return ail_alloc_align_backward(n + (alignment - 1), alignment);
 }
 
 u64 ail_alloc_align_backward(u64 n, u64 alignment)
 {
-    AIL_ASSERT(alignment > 0 && AIL_IS_2POWER(alignment));
+    AIL_ASSERT(alignment > 0 && AIL_IS_2POWER_POS(alignment));
     return n & ~(alignment - 1);
 }
 
