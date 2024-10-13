@@ -284,6 +284,9 @@ AIL_SV_DEF AIL_Str ail_sv_rev_join_da_a(AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_
 // Miscellanous //
 //////////////////
 
+#define ail_sb_push_sv(sbptr, sv) ail_da_pushn(sbptr, sv.str, sv.len)
+AIL_SV_DEF AIL_Str ail_sb_to_str(AIL_SB sb);
+
 AIL_SV_DEF bool ail_sv_is_space(char c);
 AIL_SV_DEF bool ail_sv_is_alpha(char c);
 AIL_SV_DEF bool ail_sv_is_digit(char c);
@@ -299,8 +302,10 @@ AIL_SV_DEF AIL_SV ail_sv_rtrim(AIL_SV sv);
 
 // Concatenate two String-Views to a single String
 // @Important: To avoid memory leaks, make sure to free the underlying string
-AIL_SV_DEF AIL_Str ail_sv_concat_a(AIL_SV a, AIL_SV b, AIL_Allocator allocator);
-#define ail_sv_concat(a, b) ail_sv_concat_a(a, b, ail_default_allocator)
+AIL_SV_DEF AIL_Str ail_sv_concat_full_a(char *astr, u32 alen, char *bstr, u32 blen, AIL_Allocator allocator);
+#define ail_sv_concat_full(astr, alen, bstr, blen) ail_sv_concat_full_a(astr, alen, bstr, blen, ail_default_allocator)
+#define ail_sv_concat_a(a, b, allocator) ail_sv_concat_full_a((a).str, (a).len, (b).str, (b).len, allocator)
+#define ail_sv_concat(a, b) ail_sv_concat_full_a((a).str, (a).len, (b).str, (b).len, ail_default_allocator)
 
 // Receive a new SV, that has all appearances of `to_replace` replaced with `replace_with`
 // @Note: Since this only works by changing the underlying string, an allocation and copy of the original string is required
@@ -442,6 +447,12 @@ void ail_str_free_a(AIL_Str str, AIL_Allocator allocator)
 char* ail_sv_to_cstr_a(AIL_SV sv, AIL_Allocator allocator)
 {
     return ail_str_new_sv_a(sv, allocator).str;
+}
+
+AIL_Str ail_sb_to_str(AIL_SB sb)
+{
+    if (!sb.len || sb.data[sb.len-1] != 0) ail_da_push(&sb, 0);
+    return ail_str_from_parts(sb.data, sb.len - 1);
 }
 
 AIL_DA(char) _ail_da_from_unsigned_a(u64 num, AIL_Allocator allocator)
@@ -1011,16 +1022,13 @@ AIL_Str ail_sv_rev_join_da_a(AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_Allocator a
     return ail_sv_rev_join_a(list.data, list.len, joiner, allocator);
 }
 
-AIL_Str ail_sv_concat_a(AIL_SV a, AIL_SV b, AIL_Allocator allocator)
+AIL_Str ail_sv_concat_full_a(char *astr, u32 alen, char *bstr, u32 blen, AIL_Allocator allocator)
 {
-    char *s = AIL_CALL_ALLOC(allocator, a.len + b.len + 1);
-    memcpy(&s[0],     a.str, a.len);
-    memcpy(&s[a.len], b.str, b.len);
-    s[a.len + b.len] = 0;
-    return (AIL_Str) {
-        .str = s,
-        .len = a.len + b.len
-    };
+    char *s = AIL_CALL_ALLOC(allocator, alen + blen + 1);
+    memcpy(&s[0],     astr, alen);
+    memcpy(&s[alen], bstr, blen);
+    s[alen + blen] = 0;
+    return ail_str_from_parts(s, alen + blen);
 }
 
 AIL_Str ail_sv_replace_a(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with, AIL_Allocator allocator)
