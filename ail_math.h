@@ -32,6 +32,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef AIL_MATH_H_
+
 #define AIL_TYPES_IMPL
 #include "ail.h"
 
@@ -49,6 +51,11 @@ SOFTWARE.
 #define AIL_MATH_DEF_INLINE static inline
 #endif // AIL_DEF_INLINE
 #endif // AIL_MATH_DEF_INLINE
+
+
+////////////////////
+// Linear Algebra //
+////////////////////
 
 typedef union AIL_Vec2u8 {
     u8 els[2];
@@ -400,8 +407,181 @@ typedef union AIL_Vec4f64 {
     struct { f64 _11[2]; AIL_Vec2f64 ba; };
 } AIL_Vec4f64;
 
-
 typedef union AIL_Mat2u8 {
     u8 els[2][2];
-    AIL_Vec2u8 cols;
+    AIL_Vec2u8 cols[2];
 } AIL_Mat2u8;
+
+typedef union AIL_Mat2i8 {
+    i8 els[2][2];
+    AIL_Vec2i8 cols[2];
+} AIL_Mat2i8;
+
+typedef union AIL_Mat2u16 {
+    u16 els[2][2];
+    AIL_Vec2u16 cols[2];
+} AIL_Mat2u16;
+
+typedef union AIL_Mat2i16 {
+    i16 els[2][2];
+    AIL_Vec2i16 cols[2];
+} AIL_Mat2i16;
+
+typedef union AIL_Mat2u32 {
+    u32 els[2][2];
+    AIL_Vec2u32 cols[2];
+} AIL_Mat2u32;
+
+typedef union AIL_Mat2i32 {
+    i32 els[2][2];
+    AIL_Vec2i32 cols[2];
+} AIL_Mat2i32;
+
+typedef union AIL_Mat2u64 {
+    u64 els[2][2];
+    AIL_Vec2u64 cols[2];
+} AIL_Mat2u64;
+
+typedef union AIL_Mat2i64 {
+    i64 els[2][2];
+    AIL_Vec2i64 cols[2];
+} AIL_Mat2i64;
+
+typedef union AIL_Mat2f32 {
+    f32 els[2][2];
+    AIL_Vec2f32 cols[2];
+} AIL_Mat2f32;
+
+typedef union AIL_Mat2f64 {
+    f64 els[2][2];
+    AIL_Vec2f64 cols[2];
+} AIL_Mat2f64;
+
+typedef union AIL_Mat3u8 {
+    u8 els[3][3];
+    AIL_Vec3u8 cols[3];
+} AIL_Mat3u8;
+
+typedef union AIL_Mat3i8 {
+    i8 els[3][3];
+    AIL_Vec3i8 cols[3];
+} AIL_Mat3i8;
+
+typedef union AIL_Mat3u16 {
+    u16 els[3][3];
+    AIL_Vec3u16 cols[3];
+} AIL_Mat3u16;
+
+typedef union AIL_Mat3i16 {
+    i16 els[3][3];
+    AIL_Vec3i16 cols[3];
+} AIL_Mat3i16;
+
+typedef union AIL_Mat3u32 {
+    u32 els[3][3];
+    AIL_Vec3u32 cols[3];
+} AIL_Mat3u32;
+
+typedef union AIL_Mat3i32 {
+    i32 els[3][3];
+    AIL_Vec3i32 cols[3];
+} AIL_Mat3i32;
+
+typedef union AIL_Mat3u64 {
+    u64 els[3][3];
+    AIL_Vec3u64 cols[3];
+} AIL_Mat3u64;
+
+typedef union AIL_Mat3i64 {
+    i64 els[3][3];
+    AIL_Vec3i64 cols[3];
+} AIL_Mat3i64;
+
+typedef union AIL_Mat3f32 {
+    f32 els[3][3];
+    AIL_Vec3f32 cols[3];
+} AIL_Mat3f32;
+
+typedef union AIL_Mat3f64 {
+    f64 els[3][3];
+    AIL_Vec3f64 cols[3];
+} AIL_Mat3f64;
+
+typedef union AIL_Mat4u8 {
+    u8 els[4][4];
+    AIL_Vec4u8 cols[4];
+} AIL_Mat4u8;
+
+typedef union AIL_Mat4i8 {
+    i8 els[4][4];
+    AIL_Vec4i8 cols[4];
+} AIL_Mat4i8;
+
+typedef union AIL_Mat4u16 {
+    u16 els[4][4];
+    AIL_Vec4u16 cols[4];
+} AIL_Mat4u16;
+
+typedef union AIL_Mat4i16 {
+    i16 els[4][4];
+    AIL_Vec4i16 cols[4];
+} AIL_Mat4i16;
+
+typedef union AIL_Mat4u32 {
+    u32 els[4][4];
+    AIL_Vec4u32 cols[4];
+} AIL_Mat4u32;
+
+typedef union AIL_Mat4i32 {
+    i32 els[4][4];
+    AIL_Vec4i32 cols[4];
+} AIL_Mat4i32;
+
+typedef union AIL_Mat4u64 {
+    u64 els[4][4];
+    AIL_Vec4u64 cols[4];
+} AIL_Mat4u64;
+
+typedef union AIL_Mat4i64 {
+    i64 els[4][4];
+    AIL_Vec4i64 cols[4];
+} AIL_Mat4i64;
+
+typedef union AIL_Mat4f32 {
+    f32 els[4][4];
+    AIL_Vec4f32 cols[4];
+} AIL_Mat4f32;
+
+typedef union AIL_Mat4f64 {
+    f64 els[4][4];
+    AIL_Vec4f64 cols[4];
+} AIL_Mat4f64;
+
+
+#endif // AIL_MATH_H_
+
+
+////////////////////
+// IMPLEMENTATION //
+////////////////////
+
+#ifdef AIL_MATH_IMPL
+#ifndef _AIL_MATH_IMPL_GUARD_
+#define _AIL_MATH_IMPL_GUARD_
+
+
+////////////////////
+// Linear Algebra //
+////////////////////
+
+
+
+////////////////////
+// Floating Point //
+////////////////////
+
+
+
+
+#endif // _AIL_MATH_IMPL_GUARD_
+#endif // AIL_MATH_IMPL
