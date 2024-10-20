@@ -241,30 +241,34 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 #define AIL_ALLOC_LOG_ALLOC(allocator, ptr, size)          _AIL_ALLOC_LOG("Malloc   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
 #define AIL_ALLOC_LOG_CALLOC(allocator, ptr, size)         _AIL_ALLOC_LOG("Calloc   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
 #define AIL_ALLOC_LOG_REALLOC(allocator, nptr, optr, size) _AIL_ALLOC_LOG("Relloc   %4llu bytes from %p to %p in '" allocator "' allocator", (size), (optr), (nptr));
+#define AIL_ALLOC_LOG_SHRINK(allocator, ptr, osize, nsize) _AIL_ALLOC_LOG("Shrink   %4llu bytes at %p %4llu bytes '" allocator "' allocator", (osize), (ptr), (nsize));
 #define AIL_ALLOC_LOG_FREE(allocator, ptr, size)           _AIL_ALLOC_LOG("Free     %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
 #define AIL_ALLOC_LOG_CLEAR_ALL(allocator, size)           _AIL_ALLOC_LOG("ClearAll %4llu bytes in '" allocator "' allocator", (size));
 #define AIL_ALLOC_LOG_FREE_ALL(allocator, size)            _AIL_ALLOC_LOG("FreeAll  %4llu bytes in '" allocator "' allocator", (size));
-#define AIL_ALLOC_LOG(allocator, mode, ptr, size, optr) do {       \
-        switch(mode) {                                             \
-            case AIL_MEM_ALLOC:                                    \
-                AIL_ALLOC_LOG_ALLOC(allocator, ptr, size);         \
-                break;                                             \
-            case AIL_MEM_CALLOC:                                   \
-                AIL_ALLOC_LOG_CALLOC(allocator, ptr, size);        \
-                break;                                             \
-            case AIL_MEM_REALLOC:                                  \
-                AIL_ALLOC_LOG_REALLOC(allocator, ptr, optr, size); \
-                break;                                             \
-            case AIL_MEM_FREE:                                     \
-                AIL_ALLOC_LOG_FREE(allocator, optr, size);         \
-                break;                                             \
-            case AIL_MEM_CLEAR_ALL:                                \
-                AIL_ALLOC_LOG_CLEAR_ALL(allocator, size);          \
-                break;                                             \
-            case AIL_MEM_FREE_ALL:                                 \
-                AIL_ALLOC_LOG_FREE_ALL(allocator, size);           \
-                break;                                             \
-        }                                                          \
+#define AIL_ALLOC_LOG(allocator, mode, ptr, size, nsize, optr) do { \
+        switch(mode) {                                              \
+            case AIL_MEM_ALLOC:                                     \
+                AIL_ALLOC_LOG_ALLOC(allocator, ptr, size);          \
+                break;                                              \
+            case AIL_MEM_CALLOC:                                    \
+                AIL_ALLOC_LOG_CALLOC(allocator, ptr, size);         \
+                break;                                              \
+            case AIL_MEM_REALLOC:                                   \
+                AIL_ALLOC_LOG_REALLOC(allocator, ptr, optr, size);  \
+                break;                                              \
+            case AIL_MEM_SHRINK:                                    \
+                AIL_ALLOC_LOG_SHRINK(allocator, ptr, size, nsize);  \
+                break;                                              \
+            case AIL_MEM_FREE:                                      \
+                AIL_ALLOC_LOG_FREE(allocator, optr, size);          \
+                break;                                              \
+            case AIL_MEM_CLEAR_ALL:                                 \
+                AIL_ALLOC_LOG_CLEAR_ALL(allocator, size);           \
+                break;                                              \
+            case AIL_MEM_FREE_ALL:                                  \
+                AIL_ALLOC_LOG_FREE_ALL(allocator, size);            \
+                break;                                              \
+        }                                                           \
     } while(0)
 
 #define AIL_ALLOC_GET_LAST_REGION(listPtr) _ail_alloc_get_last_region_( \
@@ -415,10 +419,11 @@ void* ail_alloc_std_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *o
         case AIL_MEM_CALLOC:    res = calloc(size, 1); break;
         case AIL_MEM_REALLOC:   res = realloc(old_ptr, size); break;
         case AIL_MEM_FREE:      free(old_ptr); break;
+        case AIL_MEM_SHRINK:    break;
         case AIL_MEM_CLEAR_ALL: break;
         case AIL_MEM_FREE_ALL:  break;
     }
-    AIL_ALLOC_LOG("std", mode, res, size, old_ptr);
+    AIL_ALLOC_LOG("std", mode, res, size, size, old_ptr);
     return res;
 }
 
@@ -511,6 +516,7 @@ void* ail_alloc_page_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
         case AIL_MEM_REALLOC: {
             res = _ail_alloc_page_internal_realloc_(old_ptr, size);
         } break;
+        case AIL_MEM_SHRINK: break;
         case AIL_MEM_FREE: {
             AIL_Alloc_Page_Header *header = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Page_Header);
             size = header->size;
@@ -519,7 +525,7 @@ void* ail_alloc_page_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
         case AIL_MEM_CLEAR_ALL: break;
         case AIL_MEM_FREE_ALL:  break;
     }
-    AIL_ALLOC_LOG("page", mode, res, size, old_ptr);
+    AIL_ALLOC_LOG("page", mode, res, size, size, old_ptr);
     return res;
 }
 
@@ -571,11 +577,12 @@ void *ail_alloc_buffer_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void
                 memcpy(ptr, old_ptr, max_old_size);
             }
         } break;
+        case AIL_MEM_SHRINK: break;
         case AIL_MEM_FREE: break;
         case AIL_MEM_CLEAR_ALL:
         case AIL_MEM_FREE_ALL: buffer->idx = 0;
     }
-    AIL_ALLOC_LOG("buffer", mode, ptr, size, old_ptr);
+    AIL_ALLOC_LOG("buffer", mode, ptr, size, size, old_ptr);
     return ptr;
 }
 
@@ -627,11 +634,12 @@ void *ail_alloc_ring_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
                 memcpy(ptr, old_ptr, max_old_size); // @Bug: memcpy might not work correctly, if the new poiner wrapped around and its region overlaps with the old region
             }
         } break;
+        case AIL_MEM_SHRINK: break;
         case AIL_MEM_FREE: break;
         case AIL_MEM_CLEAR_ALL:
         case AIL_MEM_FREE_ALL: ring->idx = 0;
     }
-    AIL_ALLOC_LOG("ring", mode, ptr, size, old_ptr);
+    AIL_ALLOC_LOG("ring", mode, ptr, size, size, old_ptr);
     return ptr;
 }
 
@@ -711,7 +719,7 @@ void *_ail_alloc_arena_internal_realloc_(AIL_Alloc_Arena *arena, u64 header_size
 
 void* ail_alloc_arena_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-
+    u64 old_size = size;
     AIL_Alloc_Arena *arena = (AIL_Alloc_Arena *)data;
     u64 header_size = ail_alloc_align_size(sizeof(AIL_Alloc_Arena_Header));
     size = ail_alloc_align_size(size);
@@ -726,6 +734,15 @@ void* ail_alloc_arena_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void 
         } break;
         case AIL_MEM_REALLOC: {
             ptr = _ail_alloc_arena_internal_realloc_(arena, header_size, old_ptr, size);
+        } break;
+        case AIL_MEM_SHRINK: {
+            if (old_ptr) {
+                old_size = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Arena_Header)->size;
+                AIL_Alloc_Arena_Region *region = AIL_ALLOC_REGION_OF(arena, old_ptr);
+                if (size < old_size && (u8*)old_ptr + old_size == region->mem + region->used) {
+                    AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Arena_Header)->size = size;
+                }
+            }
         } break;
         case AIL_MEM_FREE: {
             AIL_BENCH_PROFILE_START(Arena_Free_Find_Region);
@@ -758,7 +775,7 @@ void* ail_alloc_arena_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void 
         } break;
     }
 done:
-    AIL_ALLOC_LOG("arena", mode, ptr, size, old_ptr);
+    AIL_ALLOC_LOG("arena", mode, ptr, old_size, size, old_ptr);
     return ptr;
 }
 
@@ -830,7 +847,9 @@ AIL_Allocator ail_alloc_pool_new(u64 bucket_amount, u64 el_size, AIL_Allocator *
 
 void* ail_alloc_pool_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
+    // @TODO: Allow allocation of several buckets at once
     AIL_UNUSED(size);
+    u64 old_size = size;
     AIL_Alloc_Pool *pool = (AIL_Alloc_Pool *)data;
     AIL_ASSERT(size <= pool->bucket_size);
     void *ptr = NULL;
@@ -846,6 +865,7 @@ void* ail_alloc_pool_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
             // Since all buckets are the same size, reallocating for more space doesn't make sense and becomes a no-op
             ptr = old_ptr;
         } break;
+        case AIL_MEM_SHRINK: break;
         case AIL_MEM_FREE: {
             AIL_Alloc_Pool_Region *region = AIL_ALLOC_REGION_OF(pool, old_ptr);
             if (!region) { // @Note Bounds checking failed -> crash in debug mode and just ignore it otherwise
@@ -876,7 +896,7 @@ void* ail_alloc_pool_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
         } break;
     }
 done:
-    AIL_ALLOC_LOG("pool", mode, ptr, size, old_ptr);
+    AIL_ALLOC_LOG("pool", mode, ptr, old_size, size, old_ptr);
     return ptr;
 }
 
@@ -1114,7 +1134,7 @@ AIL_Allocator ail_alloc_freelist_new(u64 cap, AIL_Allocator *backing_allocator)
 
 void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
 {
-
+    u64 old_size = size;
     void *ptr = NULL;
     AIL_Alloc_Freelist *fl = (AIL_Alloc_Freelist *)data;
     switch (mode) {
@@ -1132,9 +1152,8 @@ void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, vo
                 // @TODO: This can definitely be optimized
                 AIL_Alloc_Freelist_Header *header = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Freelist_Header);
                 if (size <= header->size + header->pad) {
-                    u64 new_pad  = header->size + header->pad - size;
                     header->size = size;
-                    header->pad  = new_pad;
+                    header->pad  = header->size + header->pad - size;
                     ptr = old_ptr;
                 } else {
                     ptr = _ail_alloc_freelist_internal_alloc_(fl, size);
@@ -1145,6 +1164,15 @@ void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, vo
                         memcpy(ptr, old_ptr, sz);
                     }
                     _ail_alloc_freelist_internal_free_(fl, (u8 *)old_ptr);
+                }
+            }
+        } break;
+        case AIL_MEM_SHRINK: {
+            if (old_ptr) {
+                AIL_Alloc_Freelist_Header *header = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Freelist_Header);
+                if (size < header->size) {
+                    header->size = size;
+                    header->pad  = header->size + header->pad - size;
                 }
             }
         } break;
@@ -1186,7 +1214,7 @@ void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, vo
         _ail_alloc_freelist_print_(fl);
     }
 #endif
-    AIL_ALLOC_LOG("freelist", mode, ptr, size, old_ptr);
+    AIL_ALLOC_LOG("freelist", mode, ptr, old_size, size, old_ptr);
     return ptr;
 }
 

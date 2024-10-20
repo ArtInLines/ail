@@ -737,22 +737,31 @@ typedef char*    str;
 #define _AIL_ALLOCATOR_SIZE_TYPE_ size_t
 #endif
 
+// Allocate a region of memory holding at least <size> bytes
 #define AIL_CALL_ALLOC(allocator, size) (allocator).alloc((allocator).data, AIL_MEM_ALLOC, (size), NULL)
 
 #define _AIL_CALL_CALLOC3(allocator, nelem, size_el) (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
 #define _AIL_CALL_CALLOC2(allocator, size)           (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (size),            NULL)
-// @Note: Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
+// Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
 #define AIL_CALL_CALLOC(...) AIL_VFUNC(_AIL_CALL_CALLOC, __VA_ARGS__)
 
-#define AIL_CALL_REALLOC(allocator, old_ptr, size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (size), (old_ptr))
+// Move a previously allocated region of memory to a new place with at least <new_size> bytes
+#define AIL_CALL_REALLOC(allocator, old_ptr, new_size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (new_size), (old_ptr))
 
-// @Note: Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
+// Provide a hint to the allocator, that the previously allocated region of memory can be shrunk to only contain <new_size> bytes.
+// The purpose of this is to reduce memory usage when finding out later that less memory than expected was needed.
+// Some allcoators treat this as a no-op
+#define AIL_CALL_SHRINK(allocator, old_ptr, new_size) (allocator).alloc((allocator).data, AIL_MEM_SHRINK, (new_size), (old_ptr))
+
+// Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
 #define AIL_CALL_FREE(allocator, old_ptr) (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr))
 
-// @Note: If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
+// If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
+// @Note: Not implemented by the default c-runtime allocator
 #define AIL_CALL_CLEAR_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_CLEAR_ALL, 0, NULL)
 
-// @Note: If the allocator holds several memory regions, it frees all of them except for one
+// If the allocator holds several memory regions, it frees all of them except for one
+// @Note: Not implemented by the default c-runtime allocator
 #define AIL_CALL_FREE_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL)
 
 // The action that should be executed when calling the allocator proc
@@ -760,6 +769,7 @@ typedef enum AIL_Allocator_Mode {
     AIL_MEM_ALLOC,
     AIL_MEM_CALLOC,
     AIL_MEM_REALLOC,
+    AIL_MEM_SHRINK,
     AIL_MEM_FREE,
     AIL_MEM_FREE_ALL,
     AIL_MEM_CLEAR_ALL,
@@ -780,6 +790,7 @@ AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCA
         case AIL_MEM_ALLOC:    return AIL_MALLOC(size);
         case AIL_MEM_CALLOC:   return AIL_CALLOC(size, 1);
         case AIL_MEM_REALLOC:  return AIL_REALLOC(old_ptr, size);
+        case AIL_MEM_SHRINK:
         case AIL_MEM_FREE:
         case AIL_MEM_CLEAR_ALL:
         case AIL_MEM_FREE_ALL: return NULL;
