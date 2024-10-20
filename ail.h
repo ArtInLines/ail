@@ -636,7 +636,7 @@ typedef char*    str;
 
 #ifndef _AIL_DBG_PRINT_
 #include <stdio.h>
-#define _AIL_DBG_PRINT_ puts
+#define _AIL_DBG_PRINT_ printf
 #endif // _AIL_DBG_PRINT_
 
 #if defined(_MSC_VER)

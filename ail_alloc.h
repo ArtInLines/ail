@@ -236,7 +236,7 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 #ifndef AIL_ALLOC_PRINT_MEM
 #define _AIL_ALLOC_LOG(...) do { if (0) printf(__VA_ARGS__); } while(0)
 #else
-#define _AIL_ALLOC_LOG(...) do { AIL_DBG_PRINT("Memory Trace: " __VA_ARGS__); AIL_DBG_PRINT("\n"); } while(0)
+#define _AIL_ALLOC_LOG(...) do { _AIL_DBG_PRINT_("Memory Trace: " __VA_ARGS__); _AIL_DBG_PRINT_("\n"); } while(0)
 #endif // AIL_ALLOC_PRINT_MEM
 #define AIL_ALLOC_LOG_ALLOC(allocator, ptr, size)          _AIL_ALLOC_LOG("Malloc   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
 #define AIL_ALLOC_LOG_CALLOC(allocator, ptr, size)         _AIL_ALLOC_LOG("Calloc   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
@@ -245,30 +245,30 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 #define AIL_ALLOC_LOG_FREE(allocator, ptr, size)           _AIL_ALLOC_LOG("Free     %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
 #define AIL_ALLOC_LOG_CLEAR_ALL(allocator, size)           _AIL_ALLOC_LOG("ClearAll %4llu bytes in '" allocator "' allocator", (size));
 #define AIL_ALLOC_LOG_FREE_ALL(allocator, size)            _AIL_ALLOC_LOG("FreeAll  %4llu bytes in '" allocator "' allocator", (size));
-#define AIL_ALLOC_LOG(allocator, mode, ptr, size, nsize, optr) do { \
-        switch(mode) {                                              \
-            case AIL_MEM_ALLOC:                                     \
-                AIL_ALLOC_LOG_ALLOC(allocator, ptr, size);          \
-                break;                                              \
-            case AIL_MEM_CALLOC:                                    \
-                AIL_ALLOC_LOG_CALLOC(allocator, ptr, size);         \
-                break;                                              \
-            case AIL_MEM_REALLOC:                                   \
-                AIL_ALLOC_LOG_REALLOC(allocator, ptr, optr, size);  \
-                break;                                              \
-            case AIL_MEM_SHRINK:                                    \
-                AIL_ALLOC_LOG_SHRINK(allocator, ptr, size, nsize);  \
-                break;                                              \
-            case AIL_MEM_FREE:                                      \
-                AIL_ALLOC_LOG_FREE(allocator, optr, size);          \
-                break;                                              \
-            case AIL_MEM_CLEAR_ALL:                                 \
-                AIL_ALLOC_LOG_CLEAR_ALL(allocator, size);           \
-                break;                                              \
-            case AIL_MEM_FREE_ALL:                                  \
-                AIL_ALLOC_LOG_FREE_ALL(allocator, size);            \
-                break;                                              \
-        }                                                           \
+#define AIL_ALLOC_LOG(allocator, mode, ptr, osize, nsize, optr) do { \
+        switch(mode) {                                               \
+            case AIL_MEM_ALLOC:                                      \
+                AIL_ALLOC_LOG_ALLOC(allocator, ptr, osize);          \
+                break;                                               \
+            case AIL_MEM_CALLOC:                                     \
+                AIL_ALLOC_LOG_CALLOC(allocator, ptr, osize);         \
+                break;                                               \
+            case AIL_MEM_REALLOC:                                    \
+                AIL_ALLOC_LOG_REALLOC(allocator, ptr, optr, osize);  \
+                break;                                               \
+            case AIL_MEM_SHRINK:                                     \
+                AIL_ALLOC_LOG_SHRINK(allocator, ptr, osize, nsize);  \
+                break;                                               \
+            case AIL_MEM_FREE:                                       \
+                AIL_ALLOC_LOG_FREE(allocator, optr, osize);          \
+                break;                                               \
+            case AIL_MEM_CLEAR_ALL:                                  \
+                AIL_ALLOC_LOG_CLEAR_ALL(allocator, osize);           \
+                break;                                               \
+            case AIL_MEM_FREE_ALL:                                   \
+                AIL_ALLOC_LOG_FREE_ALL(allocator, osize);            \
+                break;                                               \
+        }                                                            \
     } while(0)
 
 #define AIL_ALLOC_GET_LAST_REGION(listPtr) _ail_alloc_get_last_region_( \
