@@ -248,8 +248,8 @@ AIL_GUI_DEF AIL_Gui_Drawable_Text ail_gui_prepTextForDrawing(const char *text, R
     AIL_Gui_Drawable_Text out = {0};
     out.text = text;
     out.y    = y;
-    out.lineOffsets = ail_da_new_with_alloc(u16, 16, &ail_gui_allocator);
-    out.lineXs      = ail_da_new_with_alloc(i32, 17, &ail_gui_allocator);
+    out.lineOffsets = ail_da_new_with_alloc_t(u16, 16, ail_gui_allocator);
+    out.lineXs      = ail_da_new_with_alloc_t(i32, 17, ail_gui_allocator);
 
     float scaleFactor = style.font_size / (float)style.font.baseSize; // Character quad scaling factor
     float lineWidth   = 0.0f;
@@ -389,10 +389,10 @@ AIL_GUI_DEF void ail_gui_drawTextCodepointOuterBounds(Font font, i32 codepoint, 
     i32 p2x = AIL_MIN(outer.x + outer.width,  d2x);
     i32 p2y = AIL_MIN(outer.y + outer.height, d2y);
 
-    f32 t1x = AIL_REV_LERP(p1x, d1x, d2x);
-    f32 t1y = AIL_REV_LERP(p1y, d1y, d2y);
-    f32 t2x = AIL_REV_LERP(p2x, d1x, d2x);
-    f32 t2y = AIL_REV_LERP(p2y, d1y, d2y);
+    f32 t1x = AIL_INV_LERP(p1x, d1x, d2x);
+    f32 t1y = AIL_INV_LERP(p1y, d1y, d2y);
+    f32 t2x = AIL_INV_LERP(p2x, d1x, d2x);
+    f32 t2y = AIL_INV_LERP(p2y, d1y, d2y);
 
     i32 q1x = AIL_LERP(t1x, s1x, s2x);
     i32 q1y = AIL_LERP(t1y, s1y, s2y);
@@ -545,7 +545,7 @@ AIL_GUI_DEF Vector2* ail_gui_drawSizedEx(AIL_Gui_Drawable_Text text, Rectangle b
 AIL_GUI_DEF AIL_Gui_Label ail_gui_newLabel(Rectangle bounds, char *text, AIL_Gui_Style defaultStyle, AIL_Gui_Style hovered)
 {
     i32 text_len = text == NULL ? 0 : TextLength(text);
-    AIL_DA(char) arrList = ail_da_new_with_alloc(char, text_len + 1, &ail_gui_allocator);
+    AIL_DA(char) arrList = ail_da_new_with_alloc(char, text_len + 1, ail_gui_allocator);
     arrList.len = text_len + 1;
     if (text_len > 0) memcpy(arrList.data, text, text_len);
     arrList.data[text_len] = 0;
