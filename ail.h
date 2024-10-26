@@ -262,13 +262,6 @@ typedef char*    str;
 /////////////////////////
 #include <stdlib.h> // For exit
 
-#define _AIL_STRINGIFY2(x) #x
-#define AIL_STRINGIFY(x) _AIL_STRINGIFY2(x)
-#define AIL_STR_LINE AIL_STRINGIFY(__LINE__)
-
-#define _AIL_CONCAT2(A, B) A##B
-#define AIL_CONCAT(A, B) _AIL_CONCAT2(A, B)
-
 #define AIL_EXPAND(x) x
 
 // AIL_VFUNC: To allow overloading macros based on number of arguments (taken from here: https://stackoverflow.com/a/26408195/13764271)
