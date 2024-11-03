@@ -86,6 +86,7 @@
   * AIL_STR_LINE:     The current line (via __LINE__) as a string
   * AIL_CONCAT(a, b): Concatenate two tokens to a single token (mainly useful for macros)
   * AIL_EXPAND(x):    Expand a token given to a macro (mainly useful for macros)
+  * AIL_VA_LEN(...):  Get the amount of arguments provided to AIL_VA_LEN - useful for finding the amount of VA_ARGS
   * AIL_VFUNC(name, ...): Overload a macro on the amount of its arguments
     * only works if there's 64 or fewer arguments
     * every overloaded version of the macro must be named '<name><number_of_arguments>'
@@ -261,13 +262,6 @@ typedef char*    str;
 /////////////////////////
 #include <stdlib.h> // For exit
 
-#define _AIL_STRINGIFY2(x) #x
-#define AIL_STRINGIFY(x) _AIL_STRINGIFY2(x)
-#define AIL_STR_LINE AIL_STRINGIFY(__LINE__)
-
-#define _AIL_CONCAT2(A, B) A##B
-#define AIL_CONCAT(A, B) _AIL_CONCAT2(A, B)
-
 #define AIL_EXPAND(x) x
 
 // AIL_VFUNC: To allow overloading macros based on number of arguments (taken from here: https://stackoverflow.com/a/26408195/13764271)
@@ -288,11 +282,29 @@ typedef char*    str;
     _51,_52,_53,_54,_55,_56,_57,_58,_59,_60, \
     _61,_62,_63,N,...) N
 #define __AIL_NARG_I_(...) AIL_EXPAND(__AIL_ARG_N(__VA_ARGS__))
-#define __AIL_NARG__(...)  __AIL_NARG_I_(__VA_ARGS__,__AIL_RSEQ_N())
-#define AIL_VFUNC(func, ...) AIL_EXPAND(AIL_CONCAT(func, __AIL_NARG__(__VA_ARGS__))(__VA_ARGS__))
+#define AIL_VA_LEN(...)  __AIL_NARG_I_(__VA_ARGS__,__AIL_RSEQ_N())
+
+#define __AIL_CONCAT__1(A, B) A##B
+#define __AIL_CONCAT__(A, B) __AIL_CONCAT__1(A, B)
+#define AIL_VFUNC(func, ...) AIL_EXPAND(__AIL_CONCAT__(func, AIL_VA_LEN(__VA_ARGS__))(__VA_ARGS__))
 
 // Implementation taken from here: https://stackoverflow.com/a/55420185
 #define AIL_IS_EMPTY(...) (sizeof((char[]){#__VA_ARGS__}) == 1)
+
+#define _AIL_STRINGIFY2(x) #x
+#define AIL_STRINGIFY(x) _AIL_STRINGIFY2(x)
+#define AIL_STR_LINE AIL_STRINGIFY(__LINE__)
+
+#define _AIL_CONCAT_0()
+#define _AIL_CONCAT_1(X) A
+#define _AIL_CONCAT_2(A, B) A##B
+#define _AIL_CONCAT_3(A, B, C)  A##B##C
+#define _AIL_CONCAT_4(A, B, C, D)  A##B##C##D
+#define _AIL_CONCAT_5(A, B, C, D, E) A##B##C##D##E
+#define _AIL_CONCAT_6(A, B, C, D, E, F) A##B##C##D##E##F
+#define _AIL_CONCAT_7(A, B, C, D, E, F, G) A##B##C##D##E##F##G
+#define _AIL_CONCAT_8(A, B, C, D, E, F, G, H) A##B##C##D##E##F##G##H
+#define AIL_CONCAT(...) AIL_VFUNC(_AIL_CONCAT_, __VA_ARGS__)
 
 // Most of the following macros that deal with providing a unified interface for compiler extensions across compilers, have been adapted from Hedley:
 // https://github.com/nemequ/hedley
@@ -835,6 +847,7 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #define AIL_DA_INIT_CAP 256
 #endif
 
+// @TODO: Rename AIL_ARR
 #ifdef AIL_TYPES_IMPL
 #   define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; u32 len; } AIL_SLICE_##T
 #   define AIL_SLICE(T) AIL_SLICE_##T

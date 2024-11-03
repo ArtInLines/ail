@@ -50,13 +50,16 @@ endif
 
 C ?= $(COMP)
 
-all: da macros sv fs hm alloc buf ring pm
+all: da macros math sv fs hm alloc buf ring pm
 
 da: ail_da.c
 	$(C) $(CFLAGS) -o ail_da ail_da.c
 
 macros: ail_macros.c
 	$(C) $(CFLAGS) -o ail_macros ail_macros.c
+
+math: ail_math.c
+	$(C) $(CFLAGS) -o ail_math ail_math.c
 
 sv: ail_sv.c
 	$(C) $(CFLAGS) -o ail_sv ail_sv.c

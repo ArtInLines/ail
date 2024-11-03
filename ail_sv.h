@@ -128,11 +128,12 @@ AIL_SV_DEF AIL_Str ail_str_new_da_a(AIL_DA(char) str, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_unsigned_a(u64 num, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_signed_a  (i64 num, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_float_a   (f64 num, AIL_Allocator allocator);
-#define ail_str_new_sv(sv)        ail_str_new_sv_a(sv,  ail_default_allocator)
-#define ail_str_new_da(str)       ail_str_new_da_a(str, ail_default_allocator)
+#define ail_str_new_sv(sv)        ail_str_new_sv_a(sv,    ail_default_allocator)
+#define ail_str_new_cstr(str)     ail_str_new_cstr_a(str, ail_default_allocator)
+#define ail_str_new_da(str)       ail_str_new_da_a(str,   ail_default_allocator)
 #define ail_str_new_unsigned(num) ail_str_new_unsigned_a(num, ail_default_allocator)
-#define ail_str_new_signed(num)   ail_str_new_signed_a(num, ail_default_allocator)
-#define ail_str_new_float(num)    ail_str_new_float_a(num, ail_default_allocator)
+#define ail_str_new_signed(num)   ail_str_new_signed_a(num,   ail_default_allocator)
+#define ail_str_new_float(num)    ail_str_new_float_a(num,    ail_default_allocator)
 
 AIL_SV_DEF void ail_str_free_a(AIL_Str str, AIL_Allocator allocator);
 #define ail_str_free(str) ail_str_free_a(str, ail_default_allocator)
@@ -159,7 +160,7 @@ AIL_SV_DEF_INLINE AIL_SV ail_sv_new_float_a   (f64 num, AIL_Allocator allocator)
 // Creating a SB //
 ///////////////////
 
-AIL_SV_DEF_INLINE AIL_SB ail_sb_from_parts(char *data, u32 len, u32 cap, AIL_Allocator allocator);
+AIL_SV_DEF_INLINE AIL_SB ail_sb_from_parts(char *data, u64 len, u64 cap, AIL_Allocator allocator);
 AIL_SV_DEF_INLINE AIL_SB ail_sb_from_da(AIL_DA(char) da);
 AIL_SV_DEF_INLINE AIL_SB ail_sb_new_a(AIL_Allocator allocator);
 AIL_SV_DEF_INLINE AIL_SB ail_sb_new_cap_a(u64 initial_cap, AIL_Allocator allocator);
@@ -284,6 +285,9 @@ AIL_SV_DEF AIL_Str ail_sv_rev_join_da_a(AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_
 // Miscellanous //
 //////////////////
 
+#define ail_sb_push_sv(sbptr, sv) ail_da_pushn(sbptr, sv.str, sv.len)
+AIL_SV_DEF AIL_Str ail_sb_to_str(AIL_SB sb);
+
 AIL_SV_DEF bool ail_sv_is_space(char c);
 AIL_SV_DEF bool ail_sv_is_alpha(char c);
 AIL_SV_DEF bool ail_sv_is_digit(char c);
@@ -299,8 +303,24 @@ AIL_SV_DEF AIL_SV ail_sv_rtrim(AIL_SV sv);
 
 // Concatenate two String-Views to a single String
 // @Important: To avoid memory leaks, make sure to free the underlying string
-AIL_SV_DEF AIL_Str ail_sv_concat_a(AIL_SV a, AIL_SV b, AIL_Allocator allocator);
-#define ail_sv_concat(a, b) ail_sv_concat_a(a, b, ail_default_allocator)
+AIL_SV_DEF AIL_Str ail_sv_concat2_full_a(char *str1, u64 len1, char *str2, u64 len2, AIL_Allocator allocator);
+#define ail_sv_concat2_full(str1, len1, str2, len2) ail_sv_concat2_full_a(str1, len1, str2, len2, ail_default_allocator)
+#define ail_sv_concat2_a(sv1, sv2, allocator) ail_sv_concat2_full_a((sv1).str, (sv1).len, (sv2).str, (sv2).len, allocator)
+#define ail_sv_concat2(sv1, sv2) ail_sv_concat2_full_a((sv1).str, (sv1).len, (sv2).str, (sv2).len, ail_default_allocator)
+
+// Concatenate an arbitrary amount of String-Views to a single String
+// @Important: To avoid memory leaks, make sure to free the underlying string
+// @Note: `sv_count` refers to the amount of string-length pairs that follow. So you must supply 2*n further arguments after n
+AIL_SV_DEF AIL_Str ail_sv_concat_full_a(AIL_Allocator allocator, u32 sv_count, ...);
+#define ail_sv_concat_full(str1, len1, str2, len2, ...) ail_sv_concat_full_a(ail_default_allocator, 2 + (AIL_VA_LEN(__VA_ARGS__)/2), (str1), (len1), (str2), (len2), __VA_ARGS__)
+
+AIL_SV_DEF AIL_Str ail_sv_concat_list_full_a(AIL_Allocator allocator, u32 sv_count, AIL_SV *svs);
+#define ail_sv_concat_list_full(sv_count, svs) ail_sv_concat_list_full_a(ail_default_allocator, (sv_count), (svs))
+#define ail_sv_concat_list_a(allocator, sv_list) ail_sv_concat_list_full_a((allocator), (sv_list).len, (sv_list).data)
+#define ail_sv_concat_list(sv_list) ail_sv_concat_list_full_a(ail_default_allocator, (sv_list).len, (sv_list).data)
+
+AIL_SV_DEF AIL_Str ail_sv_concat_a(AIL_Allocator allocator, u32 sv_count, ...);
+#define ail_sv_concat(sv1, sv2, ...) ail_sv_concat_a(ail_default_allocator, 2 + AIL_VA_LEN(__VA_ARGS__), (sv1), (sv2), __VA_ARGS__)
 
 // Receive a new SV, that has all appearances of `to_replace` replaced with `replace_with`
 // @Note: Since this only works by changing the underlying string, an allocation and copy of the original string is required
@@ -335,6 +355,7 @@ AIL_SV_DEF AIL_Str ail_sv_replace_a(AIL_SV sv, AIL_SV to_replace, AIL_SV replace
 #ifdef AIL_SV_IMPL
 #ifndef _AIL_SV_IMPL_GUARD_
 #define _AIL_SV_IMPL_GUARD_
+#include <stdarg.h> // For va_<>
 
 AIL_SLICE(u8) ail_slice_from_sv(AIL_SV sv)
 {
@@ -444,6 +465,12 @@ char* ail_sv_to_cstr_a(AIL_SV sv, AIL_Allocator allocator)
     return ail_str_new_sv_a(sv, allocator).str;
 }
 
+AIL_Str ail_sb_to_str(AIL_SB sb)
+{
+    if (!sb.len || sb.data[sb.len-1] != 0) ail_da_push(&sb, 0);
+    return ail_str_from_parts(sb.data, sb.len - 1);
+}
+
 AIL_DA(char) _ail_da_from_unsigned_a(u64 num, AIL_Allocator allocator)
 {
     AIL_DA(char) da = ail_da_new_with_alloc(char, 24, allocator);
@@ -541,7 +568,7 @@ AIL_SV ail_sv_new_float_a(f64 num, AIL_Allocator allocator)
     return ail_sv_from_str(ail_str_new_float_a(num, allocator));
 }
 
-AIL_SB ail_sb_from_parts(char *data, u32 len, u32 cap, AIL_Allocator allocator)
+AIL_SB ail_sb_from_parts(char *data, u64 len, u64 cap, AIL_Allocator allocator)
 {
     return ail_da_from_parts_t(char, data, len, cap, allocator);
 }
@@ -650,7 +677,7 @@ f64 ail_sv_parse_float(AIL_SV sv, u32 *len)
 bool ail_sv_full_eq(char *astr, u64 alen, char *bstr, u64 blen)
 {
     if (alen != blen) return false;
-    for (u32 i = 0; i < alen; i++) {
+    for (u64 i = 0; i < alen; i++) {
         if (astr[i] != bstr[i]) return false;
     }
     return true;
@@ -669,7 +696,7 @@ i32  ail_sv_full_cmp(char *astr, u64 alen, char *bstr, u64 blen)
 bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
 {
     if (prefix.len > str.len) return false;
-    for (u32 i = 0; i < prefix.len; i++) {
+    for (u64 i = 0; i < prefix.len; i++) {
         if (str.str[i] != prefix.str[i]) return false;
     }
     return true;
@@ -683,7 +710,7 @@ bool ail_sv_starts_with_char(AIL_SV str, char prefix)
 bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
 {
     if (suffix.len > str.len) return false;
-    for (u32 i = suffix.len; i > 0; i--) {
+    for (u64 i = suffix.len; i > 0; i--) {
         if (str.str[str.len - i] != suffix.str[suffix.len - i]) return false;
     }
     return true;
@@ -1011,16 +1038,79 @@ AIL_Str ail_sv_rev_join_da_a(AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_Allocator a
     return ail_sv_rev_join_a(list.data, list.len, joiner, allocator);
 }
 
-AIL_Str ail_sv_concat_a(AIL_SV a, AIL_SV b, AIL_Allocator allocator)
+AIL_Str ail_sv_concat2_full_a(char *astr, u64 alen, char *bstr, u64 blen, AIL_Allocator allocator)
 {
-    char *s = AIL_CALL_ALLOC(allocator, a.len + b.len + 1);
-    memcpy(&s[0],     a.str, a.len);
-    memcpy(&s[a.len], b.str, b.len);
-    s[a.len + b.len] = 0;
-    return (AIL_Str) {
-        .str = s,
-        .len = a.len + b.len
-    };
+    char *s = AIL_CALL_ALLOC(allocator, alen + blen + 1);
+    memcpy(&s[0],     astr, alen);
+    memcpy(&s[alen], bstr, blen);
+    s[alen + blen] = 0;
+    return ail_str_from_parts(s, alen + blen);
+}
+
+AIL_Str ail_sv_concat_list_full_a(AIL_Allocator allocator, u32 sv_count, AIL_SV *svs)
+{
+    u64 size = 0;
+    for (u32 i = 0; i < sv_count; i++) {
+        size += svs[i].len;
+    }
+    char *s = AIL_CALL_ALLOC(allocator, size + 1);
+    u64 filled_count = 0;
+    for (u32 i = 0; i < sv_count; i++) {
+        memcpy(s + filled_count, svs[i].str, svs[i].len);
+        filled_count += svs[i].len;
+    }
+    AIL_ASSERT(filled_count == size);
+    s[filled_count] = 0;
+    return ail_str_from_parts(s, filled_count);
+}
+
+AIL_Str ail_sv_concat_full_a(AIL_Allocator allocator, u32 sv_count, ...)
+{
+    va_list args;
+    va_start(args, sv_count);
+    u64 size = 0;
+    for (u32 i = 0; i < sv_count; i++) {
+        va_arg(args, char*);
+        size += va_arg(args, u64);
+    }
+    va_end(args);
+    char *s = AIL_CALL_ALLOC(allocator, size + 1);
+    u64 filled_count = 0;
+    va_start(args, sv_count);
+    for (u32 i = 0; i < sv_count; i++) {
+        char *str = va_arg(args, char*);
+        u64   len = va_arg(args, u64);
+        memcpy(s + filled_count, str, len);
+        filled_count += len;
+    }
+    va_end(args);
+    AIL_ASSERT(filled_count == size);
+    s[filled_count] = 0;
+    return ail_str_from_parts(s, filled_count);
+}
+
+AIL_Str ail_sv_concat_a(AIL_Allocator allocator, u32 sv_count, ...)
+{
+    va_list args;
+    va_start(args, sv_count);
+    u64 size = 0;
+    for (u32 i = 0; i < sv_count; i++) {
+        AIL_SV sv = va_arg(args, AIL_SV);
+        size += sv.len;
+    }
+    va_end(args);
+    char *s = AIL_CALL_ALLOC(allocator, size + 1);
+    u64 filled_count = 0;
+    va_start(args, sv_count);
+    for (u32 i = 0; i < sv_count; i++) {
+        AIL_SV sv = va_arg(args, AIL_SV);
+        memcpy(s + filled_count, sv.str, sv.len);
+        filled_count += sv.len;
+    }
+    va_end(args);
+    AIL_ASSERT(filled_count == size);
+    s[filled_count] = 0;
+    return ail_str_from_parts(s, filled_count);
 }
 
 AIL_Str ail_sv_replace_a(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with, AIL_Allocator allocator)
