@@ -128,11 +128,12 @@ AIL_SV_DEF AIL_Str ail_str_new_da_a(AIL_DA(char) str, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_unsigned_a(u64 num, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_signed_a  (i64 num, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_str_new_float_a   (f64 num, AIL_Allocator allocator);
-#define ail_str_new_sv(sv)        ail_str_new_sv_a(sv,  ail_default_allocator)
-#define ail_str_new_da(str)       ail_str_new_da_a(str, ail_default_allocator)
+#define ail_str_new_sv(sv)        ail_str_new_sv_a(sv,    ail_default_allocator)
+#define ail_str_new_cstr(str)     ail_str_new_cstr_a(str, ail_default_allocator)
+#define ail_str_new_da(str)       ail_str_new_da_a(str,   ail_default_allocator)
 #define ail_str_new_unsigned(num) ail_str_new_unsigned_a(num, ail_default_allocator)
-#define ail_str_new_signed(num)   ail_str_new_signed_a(num, ail_default_allocator)
-#define ail_str_new_float(num)    ail_str_new_float_a(num, ail_default_allocator)
+#define ail_str_new_signed(num)   ail_str_new_signed_a(num,   ail_default_allocator)
+#define ail_str_new_float(num)    ail_str_new_float_a(num,    ail_default_allocator)
 
 AIL_SV_DEF void ail_str_free_a(AIL_Str str, AIL_Allocator allocator);
 #define ail_str_free(str) ail_str_free_a(str, ail_default_allocator)
@@ -1056,7 +1057,7 @@ AIL_Str ail_sv_concat_list_full_a(AIL_Allocator allocator, u32 sv_count, AIL_SV 
     u64 filled_count = 0;
     for (u32 i = 0; i < sv_count; i++) {
         memcpy(s + filled_count, svs[i].str, svs[i].len);
-        filled_count += len;
+        filled_count += svs[i].len;
     }
     AIL_ASSERT(filled_count == size);
     s[filled_count] = 0;
