@@ -723,14 +723,13 @@ typedef char*    str;
 
 #define AIL_IS_2POWER_POS(x) (x && ((x & (x - 1)) == 0))
 #define AIL_IS_2POWER(x)     ((x < 0) ? AIL_IS_2POWER_POS(-(x)) : AIL_IS_2POWER_POS(x))
-#define AIL_NEXT_2POWER(x, out) do {                                                                                                          \
-        out = (x >= 0) ? (x) : -(x);                                                                                                          \
-        out--;                                                                                                                                \
+#define AIL_NEXT_2POWER_POS(x, out) do {                                                                                                      \
+        out = (x) - 1;                                                                                                                        \
         for (size_t _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
             out |= out >> _ail_next_2power_shift_;                                                                                            \
         out += (out+1 <= 1) + 1;                                                                                                              \
-        if (x < 0) out = -out;                                                                                                                \
     } while(0)
+#define AIL_NEXT_2POWER(x, out) ((x >= 0) ? AIL_NEXT_2POWER_POS(x, out) : -AIL_NEXT_2POWER_POS(-(x), out))
 
 
 

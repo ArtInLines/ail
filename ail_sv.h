@@ -596,7 +596,7 @@ AIL_SB ail_sb_new_cstr_a(char *str, AIL_Allocator allocator)
 AIL_SB ail_sb_new_str_a(AIL_Str str, AIL_Allocator allocator)
 {
     u64 cap;
-    if (str.len < 2048) AIL_NEXT_2POWER(str.len, cap);
+    if (str.len < 2048) AIL_NEXT_2POWER_POS(str.len, cap);
     else cap = str.len;
     AIL_SB res = ail_sb_new_cap_a(cap, allocator);
     res.len = str.len;
