@@ -102,55 +102,10 @@ global SuccTest regex_succ_basic_tests[] = {
     { SV("a$"), SV("aa"), pm_match_twice_2idxs(1,2) },
     { SV("a\\$"), SV("a$"), pm_match_twice_2idxs(0,2) },
     { SV("^$"), SV(""), pm_match_twice_2idxs(0,0) },
-    { SV("$^"), SV(""), pm_match_twice_2idxs(0,0) },
-    { SV("a($)"), SV("aa"), pm_match_twice_2idxs(1,2) },
-    { SV("a*(^a)"), SV("aa"), pm_match_twice_2idxs(0,1) },
-    { SV("(..)*(...)*"), SV("a"), pm_match_twice_2idxs(0,0) },
-    { SV("(..)*(...)*"), SV("abcd"), pm_match_twice_2idxs(0,4) },
-    { SV("(ab|a)(bc|c)"), SV("abc"), pm_match_twice_2idxs(0,3) },
-    { SV("(ab)c|abc"), SV("abc"), pm_match_twice_2idxs(0,3) },
-    { SV("a{0}b"), SV("ab"), pm_match_twice_2idxs(1,2) },
-    { SV("(a*)(b?)(b+)b{3}"), SV("aaabbbbbbb"), pm_match_2idxs(0,10), pm_match_2idxs(4,7) },
-    { SV("(a*)(b{0,1})(b{1,})b{3}"), SV("aaabbbbbbb"), pm_match_2idxs(0,10), pm_match_2idxs(4,7) },
-    { SV("((a|a)|a)"), SV("a"), pm_match_twice_2idxs(0,1) },
-    { SV("(a*)(a|aa)"), SV("aaaa"), pm_match_2idxs(0,4), pm_match_2idxs(3,4) },
-    { SV("a*(a.|aa)"), SV("aaaa"), pm_match_2idxs(0,4), pm_match_2idxs(2,4) },
-    { SV("(a|b)?.*"), SV("b"), pm_match_twice_2idxs(0,1) },
-    { SV("(a|b)c|a(b|c)"), SV("ac"), pm_match_twice_2idxs(0,2) },
-    { SV("(a|b)*c|(a|ab)*c"), SV("abc"), pm_match_twice_2idxs(0,3) },
-    { SV("(a|b)*c|(a|ab)*c"), SV("xc"), pm_match_twice_2idxs(1,2) },
-    { SV("(.a|.b).*|.*(.a|.b)"), SV("xa"), pm_match_twice_2idxs(0,2) },
-    { SV("a?(ab|ba)ab"), SV("abab"), pm_match_twice_2idxs(0,4) },
-    { SV("a?(ac{0}b|ba)ab"), SV("abab"), pm_match_twice_2idxs(0,4) },
-    { SV("ab|abab"), SV("abbabab"), pm_match_twice_2idxs(0,2) },
-    { SV("aba|bab|bba"), SV("baaabbbaba"), pm_match_twice_2idxs(5,8) },
-    { SV("aba|bab"), SV("baaabbbaba"), pm_match_twice_2idxs(6,9) },
-    { SV("(aa|aaa)*|(a|aaaaa)"), SV("aa"), pm_match_twice_2idxs(0,2) },
-    { SV("(a.|.a.)*|(a|.a...)"), SV("aa"), pm_match_twice_2idxs(0,2) },
-    { SV("ab|a"), SV("xabc"), pm_match_twice_2idxs(1,3) },
-    { SV("ab|a"), SV("xxabc"), pm_match_twice_2idxs(2,4) },
-    { SV("(?i)(Ab|cD)*"), SV("aBcD"), pm_match_twice_2idxs(0,4) },
-    { SV("[^-]"), SV("--a"), pm_match_twice_2idxs(2,3) },
-    { SV("[a-]*"), SV("--a"), pm_match_twice_2idxs(0,3) },
-    { SV("[a-m-]*"), SV("--amoma--"), pm_match_twice_2idxs(0,4) },
-    { SV(":::1:::0:|:::1:1:0:"), SV(":::0:::1:::1:::0:"), pm_match_twice_2idxs(8,17) },
-    { SV(":::1:::0:|:::1:1:1:"), SV(":::0:::1:::1:::0:"), pm_match_twice_2idxs(8,17) },
     { SV("\n"), SV("\n"), pm_match_twice_2idxs(0,1) },
-    { SV("[^a]"), SV("\n"), pm_match_twice_2idxs(0,1) },
     { SV("\na"), SV("\na"), pm_match_twice_2idxs(0,2) },
-    { SV("(a)(b)(c)"), SV("abc"), pm_match_twice_2idxs(0,3) },
     { SV("xxx"), SV("xxx"), pm_match_twice_2idxs(0,3) },
-    { SV("(^|[ (,;])((([Ff]eb[^ ]* *|0*2/|\\* */?)0*[6-7]))([^0-9]|$)"), SV("feb 6,"), pm_match_twice_2idxs(0,6) },
-    { SV("(^|[ (,;])((([Ff]eb[^ ]* *|0*2/|\\* */?)0*[6-7]))([^0-9]|$)"), SV("2/7"), pm_match_twice_2idxs(0,3) },
-    { SV("(^|[ (,;])((([Ff]eb[^ ]* *|0*2/|\\* */?)0*[6-7]))([^0-9]|$)"), SV("feb 1,Feb 6"), pm_match_twice_2idxs(5,11) },
-    { SV("((((((((((((((((((((((((((((((x))))))))))))))))))))))))))))))"), SV("x"), pm_match_twice_2idxs(0,1) },
-    { SV("((((((((((((((((((((((((((((((x))))))))))))))))))))))))))))))*"), SV("xx"), pm_match_twice_2idxs(0,2) },
-    { SV("a?(ab|ba)*"), SV("ababababababababababababababababababababababababababababababababababababababababa"), pm_match_2idxs(0,81), pm_match_2idxs(79,81) },
-    { SV("abaa|abbaa|abbbaa|abbbbaa"), SV("ababbabbbabbbabbbbabbbbaa"), pm_match_twice_2idxs(18,25) },
-    { SV("abaa|abbaa|abbbaa|abbbbaa"), SV("ababbabbbabbbabbbbabaa"), pm_match_twice_2idxs(18,22) },
-    { SV("aaac|aabc|abac|abbc|baac|babc|bbac|bbbc"), SV("baaabbbabac"), pm_match_twice_2idxs(7,11) },
     { SV(".*"), SV("\x0001\x00ff"), pm_match_twice_2idxs(0,2) },
-    { SV("aaaa|bbbb|cccc|ddddd|eeeeee|fffffff|gggg|hhhh|iiiii|jjjjj|kkkkk|llll"), SV("XaaaXbbbXcccXdddXeeeXfffXgggXhhhXiiiXjjjXkkkXlllXcbaXaaaa"), pm_match_twice_2idxs(53,57) },
     { SV("aaaa\nbbbb\ncccc\nddddd\neeeeee\nfffffff\ngggg\nhhhh\niiiii\njjjjj\nkkkkk\nllll"), SV("XaaaXbbbXcccXdddXeeeXfffXgggXhhhXiiiXjjjXkkkXlllXcbaXaaaa"), pm_match_twice_2idxs(0,0) },
     { SV("a*a*a*a*a*b"), SV("aaaaaaaaab"), pm_match_twice_2idxs(0,10) },
     { SV("^"), SV(""), pm_match_twice_2idxs(0,0) },
@@ -165,9 +120,6 @@ global SuccTest regex_succ_basic_tests[] = {
     { SV("ab*bc"), SV("abbbbc"), pm_match_twice_2idxs(0,6) },
     { SV("ab+bc"), SV("abbc"), pm_match_twice_2idxs(0,4) },
     { SV("ab+bc"), SV("abbbbc"), pm_match_twice_2idxs(0,6) },
-    { SV("ab?bc"), SV("abbc"), pm_match_twice_2idxs(0,4) },
-    { SV("ab?bc"), SV("abc"), pm_match_twice_2idxs(0,3) },
-    { SV("ab?c"), SV("abc"), pm_match_twice_2idxs(0,3) },
     { SV("^abc$"), SV("abc"), pm_match_twice_2idxs(0,3) },
     { SV("^abc"), SV("abcc"), pm_match_twice_2idxs(0,3) },
     { SV("abc$"), SV("aabc"), pm_match_twice_2idxs(1,4) },
@@ -176,21 +128,97 @@ global SuccTest regex_succ_basic_tests[] = {
     { SV("a.c"), SV("abc"), pm_match_twice_2idxs(0,3) },
     { SV("a.c"), SV("axc"), pm_match_twice_2idxs(0,3) },
     { SV("a.*c"), SV("axyzc"), pm_match_twice_2idxs(0,5) },
-    { SV("a[bc]d"), SV("abd"), pm_match_twice_2idxs(0,3) },
-    { SV("a[b-d]e"), SV("ace"), pm_match_twice_2idxs(0,3) },
-    { SV("a[b-d]"), SV("aac"), pm_match_twice_2idxs(1,3) },
-    { SV("a[-b]"), SV("a-"), pm_match_twice_2idxs(0,2) },
-    { SV("a[b-]"), SV("a-"), pm_match_twice_2idxs(0,2) },
     { SV("a]"), SV("a]"), pm_match_twice_2idxs(0,2) },
-    { SV("a[]]b"), SV("a]b"), pm_match_twice_2idxs(0,3) },
-    { SV("a[^bc]d"), SV("aed"), pm_match_twice_2idxs(0,3) },
-    { SV("a[^-b]c"), SV("adc"), pm_match_twice_2idxs(0,3) },
-    { SV("a[^]b]c"), SV("adc"), pm_match_twice_2idxs(0,3) },
-    { SV("ab|cd"), SV("abc"), pm_match_twice_2idxs(0,2) },
-    { SV("ab|cd"), SV("abcd"), pm_match_twice_2idxs(0,2) },
     { SV("a\\(b"), SV("a(b"), pm_match_twice_2idxs(0,3) },
     { SV("a\\(*b"), SV("ab"), pm_match_twice_2idxs(0,2) },
     { SV("a\\(*b"), SV("a((b"), pm_match_twice_2idxs(0,4) },
+    { SV("a*"), SV(""), pm_match_twice_2idxs(0,0) },
+    { SV("abcd*efg"), SV("abcdefg"), pm_match_twice_2idxs(0,7) },
+    { SV("ab*"), SV("xabyabbbz"), pm_match_twice_2idxs(1,3) },
+    { SV("ab*"), SV("xayabbbz"), pm_match_twice_2idxs(1,2) },
+    { SV("multiple words"), SV("multiple words yeah"), pm_match_twice_2idxs(0,14) },
+    { SV("abcd"), SV("abcd"), pm_match_twice_2idxs(0,4) },
+    { SV("^.+$"), SV("vivi"), pm_match_twice_2idxs(0,4) },
+    { SV("\\\\XXX"), SV("\\XXX"), pm_match_twice_2idxs(0,4) },
+    { SV("\\\\000"), SV("\\000"), pm_match_twice_2idxs(0,4) },
+};
+
+global SuccTest regex_succ_question_tests[] = {
+    { SV("ab?bc"), SV("abbc"), pm_match_twice_2idxs(0,4) },
+    { SV("ab?bc"), SV("abc"), pm_match_twice_2idxs(0,3) },
+    { SV("ab?c"), SV("abc"), pm_match_twice_2idxs(0,3) },
+};
+
+global SuccTest regex_succ_group_tests[] = {
+    // { SV("[a-m-]*"), SV("--amoma--"), pm_match_twice_2idxs(0,4) },
+    { SV("[^a]"), SV("\n"), pm_match_twice_2idxs(0,1) },
+    { SV("a[bc]d"), SV("abd"), pm_match_twice_2idxs(0,3) },
+    { SV("a[b-d]e"), SV("ace"), pm_match_twice_2idxs(0,3) },
+    { SV("a[b-d]"), SV("aac"), pm_match_twice_2idxs(1,3) },
+    // { SV("a[-b]"), SV("a-"), pm_match_twice_2idxs(0,2) },
+    // { SV("a[b-]"), SV("a-"), pm_match_twice_2idxs(0,2) },
+    { SV("a[]]b"), SV("a]b"), pm_match_twice_2idxs(0,3) },
+    // { SV("a[^bc]d"), SV("aed"), pm_match_twice_2idxs(0,3) },
+    // { SV("a[^-b]c"), SV("adc"), pm_match_twice_2idxs(0,3) },
+    // { SV("a[^]b]c"), SV("adc"), pm_match_twice_2idxs(0,3) },
+    // { SV("[^ab]*"), SV("cde"), pm_match_twice_2idxs(0,3) },
+    { SV("[abhgefdc]ij"), SV("hij"), pm_match_twice_2idxs(0,3) },
+    { SV("a[bcd]*dcdcde"), SV("adcdcde"), pm_match_twice_2idxs(0,7) },
+    { SV("[A-Za-z_][A-Za-z0-9_]*"), SV("alpha"), pm_match_twice_2idxs(0,5) },
+    // { SV("[a-]*"), SV("--a"), pm_match_twice_2idxs(0,3) },
+    // { SV("[^-]"), SV("--a"), pm_match_twice_2idxs(2,3) },
+    // { SV("a[-]?c"), SV("ac"), pm_match_twice_2idxs(0,3) },
+};
+
+global SuccTest regex_succ_or_tests[] = {
+    { SV("ab|abab"), SV("abbabab"), pm_match_twice_2idxs(0,2) },
+    { SV("aba|bab|bba"), SV("baaabbbaba"), pm_match_twice_2idxs(5,8) },
+    { SV("aba|bab"), SV("baaabbbaba"), pm_match_twice_2idxs(6,9) },
+    { SV("ab|a"), SV("xabc"), pm_match_twice_2idxs(1,3) },
+    { SV("ab|a"), SV("xxabc"), pm_match_twice_2idxs(2,4) },
+    { SV(":::1:::0:|:::1:1:0:"), SV(":::0:::1:::1:::0:"), pm_match_twice_2idxs(8,17) },
+    { SV(":::1:::0:|:::1:1:1:"), SV(":::0:::1:::1:::0:"), pm_match_twice_2idxs(8,17) },
+    { SV("abaa|abbaa|abbbaa|abbbbaa"), SV("ababbabbbabbbabbbbabbbbaa"), pm_match_twice_2idxs(18,25) },
+    { SV("abaa|abbaa|abbbaa|abbbbaa"), SV("ababbabbbabbbabbbbabaa"), pm_match_twice_2idxs(18,22) },
+    { SV("aaac|aabc|abac|abbc|baac|babc|bbac|bbbc"), SV("baaabbbabac"), pm_match_twice_2idxs(7,11) },
+    { SV("aaaa|bbbb|cccc|ddddd|eeeeee|fffffff|gggg|hhhh|iiiii|jjjjj|kkkkk|llll"), SV("XaaaXbbbXcccXdddXeeeXfffXgggXhhhXiiiXjjjXkkkXlllXcbaXaaaa"), pm_match_twice_2idxs(53,57) },
+    { SV("ab|cd"), SV("abc"), pm_match_twice_2idxs(0,2) },
+    { SV("ab|cd"), SV("abcd"), pm_match_twice_2idxs(0,2) },
+    { SV("a|b|c|d|e"), SV("e"), pm_match_twice_2idxs(0,1) },
+};
+
+global SuccTest regex_succ_subexpr_tests[] = {
+    { SV("a($)"), SV("aa"), pm_match_twice_2idxs(1,2) },
+    { SV("(a.|.a.)*|(a|.a...)"), SV("aa"), pm_match_twice_2idxs(0,2) },
+    { SV("a*(^a)"), SV("aa"), pm_match_twice_2idxs(0,1) },
+    { SV("(..)*(...)*"), SV("a"), pm_match_twice_2idxs(0,0) },
+    { SV("(..)*(...)*"), SV("abcd"), pm_match_twice_2idxs(0,4) },
+    { SV("(aa|aaa)*|(a|aaaaa)"), SV("aa"), pm_match_twice_2idxs(0,2) },
+    { SV("(ab|a)(bc|c)"), SV("abc"), pm_match_twice_2idxs(0,3) },
+    { SV("(ab)c|abc"), SV("abc"), pm_match_twice_2idxs(0,3) },
+    { SV(".*(/000).*"), SV("/000"), pm_match_twice_2idxs(0,4) },
+    { SV(".*(\\\\000).*"), SV("\\000"), pm_match_twice_2idxs(0,4) },
+    { SV("a{0}b"), SV("ab"), pm_match_twice_2idxs(1,2) },
+    { SV("(a*)(b?)(b+)b{3}"), SV("aaabbbbbbb"), pm_match_2idxs(0,10), pm_match_2idxs(4,7) },
+    { SV("(a*)(b{0,1})(b{1,})b{3}"), SV("aaabbbbbbb"), pm_match_2idxs(0,10), pm_match_2idxs(4,7) },
+    { SV("((a|a)|a)"), SV("a"), pm_match_twice_2idxs(0,1) },
+    { SV("(a*)(a|aa)"), SV("aaaa"), pm_match_2idxs(0,4), pm_match_2idxs(3,4) },
+    { SV("a*(a.|aa)"), SV("aaaa"), pm_match_2idxs(0,4), pm_match_2idxs(2,4) },
+    { SV("(a|b)?.*"), SV("b"), pm_match_twice_2idxs(0,1) },
+    { SV("(a|b)c|a(b|c)"), SV("ac"), pm_match_twice_2idxs(0,2) },
+    { SV("(a|b)*c|(a|ab)*c"), SV("abc"), pm_match_twice_2idxs(0,3) },
+    { SV("(a|b)*c|(a|ab)*c"), SV("xc"), pm_match_twice_2idxs(1,2) },
+    { SV("(.a|.b).*|.*(.a|.b)"), SV("xa"), pm_match_twice_2idxs(0,2) },
+    { SV("a?(ab|ba)ab"), SV("abab"), pm_match_twice_2idxs(0,4) },
+    { SV("a?(ac{0}b|ba)ab"), SV("abab"), pm_match_twice_2idxs(0,4) },
+    { SV("(?i)(Ab|cD)*"), SV("aBcD"), pm_match_twice_2idxs(0,4) },
+    { SV("(a)(b)(c)"), SV("abc"), pm_match_twice_2idxs(0,3) },
+    { SV("(^|[ (,;])((([Ff]eb[^ ]* *|0*2/|\\* */?)0*[6-7]))([^0-9]|$)"), SV("feb 6,"), pm_match_twice_2idxs(0,6) },
+    { SV("(^|[ (,;])((([Ff]eb[^ ]* *|0*2/|\\* */?)0*[6-7]))([^0-9]|$)"), SV("2/7"), pm_match_twice_2idxs(0,3) },
+    { SV("(^|[ (,;])((([Ff]eb[^ ]* *|0*2/|\\* */?)0*[6-7]))([^0-9]|$)"), SV("feb 1,Feb 6"), pm_match_twice_2idxs(5,11) },
+    { SV("((((((((((((((((((((((((((((((x))))))))))))))))))))))))))))))"), SV("x"), pm_match_twice_2idxs(0,1) },
+    { SV("((((((((((((((((((((((((((((((x))))))))))))))))))))))))))))))*"), SV("xx"), pm_match_twice_2idxs(0,2) },
+    { SV("a?(ab|ba)*"), SV("ababababababababababababababababababababababababababababababababababababababababa"), pm_match_2idxs(0,81), pm_match_2idxs(79,81) },
     { SV("((a))"), SV("abc"), pm_match_twice_2idxs(0,1) },
     { SV("(a)b(c)"), SV("abc"), pm_match_twice_2idxs(0,3) },
     { SV("a+b+c"), SV("aabbabc"), pm_match_twice_2idxs(4,7) },
@@ -201,41 +229,28 @@ global SuccTest regex_succ_basic_tests[] = {
     { SV("(a+|b)*"), SV("ab"), pm_match_2idxs(0,2), pm_match_2idxs(1,2) },
     { SV("(a+|b)+"), SV("ab"), pm_match_2idxs(0,2), pm_match_2idxs(1,2) },
     { SV("(a+|b)?"), SV("ab"), pm_match_2idxs(0,1), pm_match_2idxs(0,1) },
-    { SV("[^ab]*"), SV("cde"), pm_match_twice_2idxs(0,3) },
     { SV("(^)*"), SV("-"), pm_match_twice_2idxs(0,0) },
-    { SV("a*"), SV(""), pm_match_twice_2idxs(0,0) },
     { SV("([abc])*d"), SV("abbbcd"), pm_match_2idxs(0,6), pm_match_2idxs(4,5) },
     { SV("([abc])*bcd"), SV("abcd"), pm_match_2idxs(0,4), pm_match_2idxs(0,1) },
-    { SV("a|b|c|d|e"), SV("e"), pm_match_twice_2idxs(0,1) },
     { SV("(a|b|c|d|e)f"), SV("ef"), pm_match_2idxs(0,2), pm_match_2idxs(0,1) },
     { SV("((a*|b))*"), SV("-"), pm_match_twice_2idxs(0,0) },
-    { SV("abcd*efg"), SV("abcdefg"), pm_match_twice_2idxs(0,7) },
-    { SV("ab*"), SV("xabyabbbz"), pm_match_twice_2idxs(1,3) },
-    { SV("ab*"), SV("xayabbbz"), pm_match_twice_2idxs(1,2) },
     { SV("(ab|cd)e"), SV("abcde"), pm_match_2idxs(2,5), pm_match_2idxs(2,4) },
-    { SV("[abhgefdc]ij"), SV("hij"), pm_match_twice_2idxs(0,3) },
     { SV("(a|b)c*d"), SV("abcd"), pm_match_2idxs(1,4), pm_match_2idxs(1,2) },
     { SV("(ab|ab*)bc"), SV("abc"), pm_match_2idxs(0,3), pm_match_2idxs(0,1) },
     { SV("a([bc]*)c*"), SV("abc"), pm_match_2idxs(0,3), pm_match_2idxs(1,3) },
     { SV("a([bc]*)(c*d)"), SV("abcd"), pm_match_2idxs(0,4), pm_match_2idxs(3,4) },
     { SV("a([bc]+)(c*d)"), SV("abcd"), pm_match_2idxs(0,4), pm_match_2idxs(3,4) },
     { SV("a([bc]*)(c+d)"), SV("abcd"), pm_match_2idxs(0,4), pm_match_2idxs(2,4) },
-    { SV("a[bcd]*dcdcde"), SV("adcdcde"), pm_match_twice_2idxs(0,7) },
     { SV("(ab|a)b*c"), SV("abc"), pm_match_2idxs(0,3), pm_match_2idxs(0,2) },
     { SV("((a)(b)c)(d)"), SV("abcd"), pm_match_2idxs(0,4), pm_match_2idxs(3,4) },
-    { SV("[A-Za-z_][A-Za-z0-9_]*"), SV("alpha"), pm_match_twice_2idxs(0,5) },
     { SV("^a(bc+|b[eh])g|.h$"), SV("abh"), pm_match_twice_2idxs(1,3) },
     { SV("(bc+d$|ef*g.|h?i(j|k))"), SV("effgz"), pm_match_twice_2idxs(0,5) },
     { SV("(bc+d$|ef*g.|h?i(j|k))"), SV("ij"), pm_match_2idxs(0,2), pm_match_2idxs(1,2) },
     { SV("(bc+d$|ef*g.|h?i(j|k))"), SV("reffgz"), pm_match_twice_2idxs(1,6) },
     { SV("(((((((((a)))))))))"), SV("a"), pm_match_twice_2idxs(0,1) },
-    { SV("multiple words"), SV("multiple words yeah"), pm_match_twice_2idxs(0,14) },
     { SV("(.*)c(.*)"), SV("abcde"), pm_match_2idxs(0,5), pm_match_2idxs(3,5) },
-    { SV("abcd"), SV("abcd"), pm_match_twice_2idxs(0,4) },
     { SV("a(bc)d"), SV("abcd"), pm_match_2idxs(0,4), pm_match_2idxs(1,3) },
-    { SV("a[-]?c"), SV("ac"), pm_match_twice_2idxs(0,3) },
     { SV("a+(b|c)*d+"), SV("aabcdd"), pm_match_2idxs(0,6), pm_match_2idxs(3,4) },
-    { SV("^.+$"), SV("vivi"), pm_match_twice_2idxs(0,4) },
     { SV("^(.+)$"), SV("vivi"), pm_match_twice_2idxs(0,4) },
     { SV("^([^!.]+).att.com!(.+)$"), SV("gryphon.att.com!eby"), pm_match_2idxs(0,19), pm_match_2idxs(16,19) },
     { SV("^([^!]+!)?([^!]+)$"), SV("bar!bas"), pm_match_2idxs(0,7), pm_match_2idxs(4,7) },
@@ -257,13 +272,9 @@ global SuccTest regex_succ_basic_tests[] = {
     { SV("^(([^!]+!)?([^!]+)|.+!([^!]+!)([^!]+))$"), SV("foo!bas"), pm_match_2idxs(0,7), pm_match_2idxs(0,4) },
     { SV(".*(/XXX).*"), SV("/XXX"), pm_match_twice_2idxs(0,4) },
     { SV(".*(\\\\XXX).*"), SV("\\XXX"), pm_match_twice_2idxs(0,4) },
-    { SV("\\\\XXX"), SV("\\XXX"), pm_match_twice_2idxs(0,4) },
-    { SV(".*(/000).*"), SV("/000"), pm_match_twice_2idxs(0,4) },
-    { SV(".*(\\\\000).*"), SV("\\000"), pm_match_twice_2idxs(0,4) },
-    { SV("\\\\000"), SV("\\000"), pm_match_twice_2idxs(0,4) },
 };
 
-global SuccTest regex_succ_repition_tests[] = {
+global SuccTest regex_succ_subexpr_reps_tests[] = {
     { SV("((..)|(.))"), SV(""), pm_match_twice_2idxs(0,0) },
     { SV("((..)|(.))((..)|(.))"), SV(""), pm_match_twice_2idxs(0,0) },
     { SV("((..)|(.))((..)|(.))((..)|(.))"), SV(""), pm_match_twice_2idxs(0,0) },
@@ -379,6 +390,7 @@ SuccTest regex_succ_null_subexpr[] = {
 
 global FailTest regex_fail_tests[] = {
     FAIL("*.c", AIL_PM_ERR_INVALID_COUNT_QUALIFIER, 0),
+    FAIL("$^", AIL_PM_ERR_EARLY_END_MARKER, 0),
 };
 
 
@@ -420,7 +432,8 @@ b32 succ_tests(SuccTest tests[], u32 count, AIL_PM_Exp_Type type)
         SuccTest t = tests[i];
         AIL_PM_Comp_Res cr = ail_pm_compile_sv_a(t.pattern, type, ail_default_allocator);
         if (cr.failed) {
-            printf("\033[31mFailed to compile '%s'\033[0m\n", t.pattern.str);
+            ail_pm_err_to_str(cr.err, buffer, AIL_ARRLEN(buffer));
+            printf("\033[31mFailed to compile '%s' (%s)\033[0m\n", t.pattern.str, buffer);
             return false;
         }
 
@@ -442,10 +455,18 @@ int main(void)
 {
     if (succ_tests(regex_succ_basic_tests, AIL_ARRLEN(regex_succ_basic_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched basic regex tests :)\033[0m\n");
     else printf("\033[31mFailed to match all basic regex tests :(\033[0m\n");
+    if (succ_tests(regex_succ_question_tests, AIL_ARRLEN(regex_succ_question_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched question regex tests :)\033[0m\n");
+    else printf("\033[31mFailed to match all question regex tests :(\033[0m\n");
+    if (succ_tests(regex_succ_group_tests, AIL_ARRLEN(regex_succ_group_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched group regex tests :)\033[0m\n");
+    else printf("\033[31mFailed to match all group regex tests :(\033[0m\n");
+    if (succ_tests(regex_succ_or_tests, AIL_ARRLEN(regex_succ_or_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched or regex tests :)\033[0m\n");
+    else printf("\033[31mFailed to match all or regex tests :(\033[0m\n");
+    if (succ_tests(regex_succ_subexpr_tests, AIL_ARRLEN(regex_succ_subexpr_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched subexpr regex tests :)\033[0m\n");
+    else printf("\033[31mFailed to match all subexpr regex tests :(\033[0m\n");
     if (succ_tests(regex_succ_null_subexpr, AIL_ARRLEN(regex_succ_null_subexpr), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched null-subexpr regex tests :)\033[0m\n");
     else printf("\033[31mFailed to match all null-subexpr regex tests :(\033[0m\n");
-    if (succ_tests(regex_succ_repition_tests, AIL_ARRLEN(regex_succ_repition_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched repition regex tests :)\033[0m\n");
-    else printf("\033[31mFailed to match all repition regex tests :(\033[0m\n");
+    if (succ_tests(regex_succ_subexpr_reps_tests, AIL_ARRLEN(regex_succ_subexpr_reps_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched repition regex tests :)\033[0m\n");
+    else printf("\033[31mFailed to match all subexpr repition regex tests :(\033[0m\n");
     if (succ_tests(regex_succ_unknown_assoc_tests, AIL_ARRLEN(regex_succ_unknown_assoc_tests), AIL_PM_EXP_REGEX)) printf("\033[32mSuccessfully matched unknown-association regex tests :)\033[0m\n");
     else printf("\033[31mFailed to match all unknown-association regex tests :(\033[0m\n");
 

@@ -112,6 +112,7 @@ typedef enum AIL_PM_El_Type {
     AIL_PM_EL_RANGE,
     AIL_PM_EL_ONE_OF_CHAR,
     AIL_PM_EL_ONE_OF_RANGE,
+    AIL_PM_EL_GROUP,
     AIL_PM_EL_ANY,
     AIL_PM_EL_DIGIT,
     AIL_PM_EL_ALPHA,
@@ -124,6 +125,7 @@ global const char *ail_pm_el_type_strs[] = {
     [AIL_PM_EL_RANGE]        = "RANGE",
     [AIL_PM_EL_ONE_OF_CHAR]  = "ONE_OF_CHAR",
     [AIL_PM_EL_ONE_OF_RANGE] = "ONE_OF_RANGE",
+    [AIL_PM_EL_GROUP]        = "GROUP",
     [AIL_PM_EL_ANY]          = "ANY",
     [AIL_PM_EL_DIGIT]        = "DIGIT",
     [AIL_PM_EL_ALPHA]        = "ALPHA",
@@ -143,11 +145,11 @@ AIL_SLICE_INIT(AIL_PM_Range);
 // @Note: The implementation uses the assumption that the 0-value for AIL_PM_El means that exactly one non-inverted character with c=='\0'
 // @TODO: anonymous unions require C11, the rest of the ail libraries usually only require C99... is this a good enough reason to switch to C11?
 typedef struct AIL_PM_El {
-    AIL_PM_El_Type    type;
+    AIL_PM_El_Type type;
     AIL_PM_Count_Type count;
-    b32           inverted;
+    b32 inverted;
     union {
-        char     c;
+        char c;
         AIL_PM_Range r;
         AIL_SLICE(char) cs;
         AIL_SLICE(AIL_PM_Range) rs;
@@ -167,8 +169,8 @@ global const char *ail_pm_attr_strs[] = {
 };
 
 typedef struct AIL_PM_Pattern {
-    AIL_PM_El          *els;
-    u32             len;
+    AIL_PM_El *els;
+    u32 len;
     AIL_PM_Pattern_Attr attrs;
 } AIL_PM_Pattern;
 
@@ -252,6 +254,7 @@ AIL_PM_DEF AIL_PM_Match ail_pm_match (AIL_PM_Pattern pattern, const char *s, u32
 AIL_PM_DEF AIL_PM_Match ail_pm_match_lazy  (AIL_PM_Pattern pattern, const char *s, u32 len);
 AIL_PM_DEF AIL_PM_Match ail_pm_match_greedy(AIL_PM_Pattern pattern, const char *s, u32 len);
 AIL_PM_DEF b32          ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u32 slen);
+AIL_PM_DEF_INLINE b32   ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b);
 #define ail_pm_compile(p, plen, exp_type) ail_pm_compile_a(p, plen, exp_type, ail_default_allocator)
 #define ail_pm_free(pattern)              ail_pm_free_a(pattern, ail_default_allocator)
 
@@ -264,8 +267,8 @@ AIL_PM_DEF b32          ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u3
 #   define ail_pm_compile_sv(pattern, type) ail_pm_compile_sv_a(pattern, type, ail_default_allocator)
 #endif
 
-AIL_PM_DEF AIL_PM_Comp_Char_Res _ail_pm_comp_group_char(const char *p, u32 plen, u32 *idx);
-AIL_PM_DEF AIL_PM_Comp_El_Res _ail_pm_comp_group(const char *p, u32 plen, u32 *idx, AIL_Allocator allocator);
+AIL_PM_DEF AIL_PM_Comp_Char_Res _ail_pm_comp_range_char(const char *p, u32 plen, u32 *idx);
+AIL_PM_DEF AIL_PM_Comp_El_Res   _ail_pm_comp_range(const char *p, u32 plen, u32 *idx, AIL_Allocator allocator);
 AIL_PM_DEF b32 _ail_pm_match_el(AIL_PM_El el, char c);
 AIL_PM_DEF u32 _ail_pm_match_immediate_greedy(AIL_PM_El *els, u32 ellen, const char *s, u32 slen);
 
@@ -308,9 +311,18 @@ u32 ail_pm_el_to_str(AIL_PM_El el, char *buf, u32 buflen)
             n += snprintf(buf + n, buflen - n, " %c-%c", el.r.start, el.r.end);
             break;
         case AIL_PM_EL_ONE_OF_CHAR:
+            AIL_ASSERT(el.cs.len > 0);
             n += snprintf(buf + n, buflen - n, " %c", el.cs.data[0]);
             for (u32 i = 1; i < el.cs.len; i++) {
                 n += snprintf(buf + n, buflen - n, " %c", el.cs.data[i]);
+            }
+            break;
+        case AIL_PM_EL_GROUP:
+            if (el.cs.len) {
+                n += snprintf(buf + n, buflen - n, " %c", el.cs.data[0]);
+                for (u32 i = 1; i < el.cs.len; i++) {
+                    n += snprintf(buf + n, buflen - n, "%c", el.cs.data[i]);
+                }
             }
             break;
         case AIL_PM_EL_ONE_OF_RANGE:
@@ -347,7 +359,7 @@ u32 ail_pm_pattern_to_str(AIL_PM_Pattern pattern, char *buf, u32 buflen)
     return n;
 }
 
-AIL_PM_Comp_Char_Res _ail_pm_comp_group_char(const char *p, u32 plen, u32 *idx)
+AIL_PM_Comp_Char_Res _ail_pm_comp_range_char(const char *p, u32 plen, u32 *idx)
 {
     AIL_PM_Comp_Char_Res res = {0};
     u32 i = *idx;
@@ -362,7 +374,7 @@ AIL_PM_Comp_Char_Res _ail_pm_comp_group_char(const char *p, u32 plen, u32 *idx)
     return res;
 }
 
-AIL_PM_Comp_El_Res _ail_pm_comp_group(const char *p, u32 plen, u32 *idx, AIL_Allocator allocator)
+AIL_PM_Comp_El_Res _ail_pm_comp_range(const char *p, u32 plen, u32 *idx, AIL_Allocator allocator)
 {
     u32 i = *idx;
     AIL_PM_El el = {0};
@@ -377,7 +389,7 @@ AIL_PM_Comp_El_Res _ail_pm_comp_group(const char *p, u32 plen, u32 *idx, AIL_All
         for (; i < plen && p[i] != ']'; i += 3) {
             AIL_PM_Err_Type err_type = AIL_PM_ERR_COUNT;
             AIL_PM_Range r;
-            AIL_PM_Comp_Char_Res x = _ail_pm_comp_group_char(p, plen, &i);
+            AIL_PM_Comp_Char_Res x = _ail_pm_comp_range_char(p, plen, &i);
             if (x.e != AIL_PM_ERR_COUNT) { err_type = x.e; goto report_err; }
             r.start = x.c;
 
@@ -385,7 +397,7 @@ AIL_PM_Comp_El_Res _ail_pm_comp_group(const char *p, u32 plen, u32 *idx, AIL_All
             if (p[++i] != '-') { err_type = AIL_PM_ERR_INVALID_RANGE_SYNTAX; goto report_err; }
             ++i;
 
-            x = _ail_pm_comp_group_char(p, plen, &i);
+            x = _ail_pm_comp_range_char(p, plen, &i);
             if (x.e != AIL_PM_ERR_COUNT) { err_type = x.e; goto report_err; }
             r.end = x.c;
 
@@ -408,7 +420,7 @@ report_err:
     else {
         AIL_DA(char) chars = ail_da_new_with_alloc(char, 16, allocator);
         for (; i < plen && p[i] != ']'; i++) {
-            AIL_PM_Comp_Char_Res x = _ail_pm_comp_group_char(p, plen, &i);
+            AIL_PM_Comp_Char_Res x = _ail_pm_comp_range_char(p, plen, &i);
             if (x.e != AIL_PM_ERR_COUNT) return (AIL_PM_Comp_El_Res) {.failed=1, .err={.type=x.e, .idx=i}};
             ail_da_push(&chars, x.c);
         }
@@ -437,7 +449,7 @@ missing_bracket:
 
 AIL_PM_Comp_Res ail_pm_compile_a(const char *p, u32 plen, AIL_PM_Exp_Type exp_type, AIL_Allocator allocator)
 {
-    AIL_DA(AIL_PM_El) els     = ail_da_new_with_alloc(AIL_PM_El, 32, allocator);
+    AIL_DA(AIL_PM_El)   els   = ail_da_new_with_alloc(AIL_PM_El, 32, allocator);
     AIL_PM_Pattern_Attr attrs = 0;
     if (exp_type >= AIL_PM_EXP_COUNT) return (AIL_PM_Comp_Res){.failed=1, .err={.type=AIL_PM_ERR_UNKNOWN_EXP_TYPE}};
     for (u32 i = 0; i < plen; i++) {
@@ -467,10 +479,10 @@ AIL_PM_Comp_Res ail_pm_compile_a(const char *p, u32 plen, AIL_PM_Exp_Type exp_ty
                     if (els.len == 0 || els.data[els.len-1].count) return (AIL_PM_Comp_Res){.failed=1, .err={.type=AIL_PM_ERR_INVALID_COUNT_QUALIFIER, .idx=i}};
                     els.data[els.len-1].count = AIL_PM_COUNT_ONE_OR_NONE;
                     break;
-                case ']':
-                    return (AIL_PM_Comp_Res){.failed=1, .err={.type=AIL_PM_ERR_INVALID_BRACKET, .idx=1}};
+                // case ']':
+                //     return (AIL_PM_Comp_Res){.failed=1, .err={.type=AIL_PM_ERR_INVALID_BRACKET, .idx=1}};
                 case '[': {
-                    AIL_PM_Comp_El_Res x = _ail_pm_comp_group(p, plen, &i, allocator);
+                    AIL_PM_Comp_El_Res x = _ail_pm_comp_range(p, plen, &i, allocator);
                     if (x.failed) return (AIL_PM_Comp_Res){.failed=1, .err=x.err};
                     else ail_da_push(&els, x.el);
                 } break;
@@ -510,7 +522,7 @@ AIL_PM_Comp_Res ail_pm_compile_a(const char *p, u32 plen, AIL_PM_Exp_Type exp_ty
                 case ']':
                     return (AIL_PM_Comp_Res){.failed=1, .err={.type=AIL_PM_ERR_INVALID_BRACKET, .idx=1}};
                 case '[': {
-                    AIL_PM_Comp_El_Res x = _ail_pm_comp_group(p, plen, &i, allocator);
+                    AIL_PM_Comp_El_Res x = _ail_pm_comp_range(p, plen, &i, allocator);
                     if (x.failed) return (AIL_PM_Comp_Res){.failed=1, .err=x.err};
                     else ail_da_push(&els, x.el);
                 } break;
@@ -682,6 +694,12 @@ b32 ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u32 slen)
 b32 ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv)
 {
     return ail_pm_match(pattern, sv.str, sv.len).len > 0;
+}
+
+b32 ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b)
+{
+    AIL_STATIC_ASSERT(sizeof(AIL_PM_Match) == 8);
+    return a.len == b.len && (!a.len || a.idx == b.idx);
 }
 
 #endif // _AIL_PM_IMPL_GUARD_
