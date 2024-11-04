@@ -87,8 +87,8 @@ typedef enum AIL_PM_Exp_Type {
     AIL_PM_EXP_COUNT,
 } AIL_PM_Exp_Type;
 global const char *ail_pm_exp_type_strs[] = {
-    [AIL_PM_EXP_REGEX] = "REGEX",
-    [AIL_PM_EXP_GLOB]  = "GLOB",
+    [AIL_PM_EXP_REGEX] = "Regular Expression",
+    [AIL_PM_EXP_GLOB]  = "Glob",
     [AIL_PM_EXP_COUNT] = "",
 };
 
@@ -175,6 +175,7 @@ typedef struct AIL_PM_Pattern {
 } AIL_PM_Pattern;
 
 typedef enum AIL_PM_Err_Type {
+    AIL_PM_ERR_NONE = 0,
     AIL_PM_ERR_UNKNOWN_EXP_TYPE,
     AIL_PM_ERR_LATE_START_MARKER,
     AIL_PM_ERR_EARLY_END_MARKER,
@@ -190,6 +191,7 @@ typedef enum AIL_PM_Err_Type {
     AIL_PM_ERR_COUNT,
 } AIL_PM_Err_Type;
 global const char *ail_pm_err_type_strs[] = {
+    [AIL_PM_ERR_NONE]                    = "No Error",
     [AIL_PM_ERR_UNKNOWN_EXP_TYPE]        = "UNKNOWN_EXP_TYPE",
     [AIL_PM_ERR_LATE_START_MARKER]       = "LATE_START_MARKER",
     [AIL_PM_ERR_EARLY_END_MARKER]        = "EARLY_END_MARKER",
@@ -212,7 +214,7 @@ typedef struct AIL_PM_Err {
 
 typedef struct AIL_PM_Comp_Char_Res {
     char c;
-    AIL_PM_Err_Type e; // No error occured, if this is equal to AIL_PM_ERR_COUNT
+    AIL_PM_Err_Type e; // No error occured, if this is 0 (== AIL_PM_ERR_NONE)
 } AIL_PM_Comp_Char_Res;
 
 typedef struct AIL_PM_Comp_El_Res {
@@ -243,7 +245,7 @@ global AIL_Allocator ail_pm_tmp_allocator = {
 };
 
 
-AIL_PM_DEF char* ail_pm_exp_to_str(AIL_PM_Exp_Type type);
+AIL_PM_DEF const char* ail_pm_exp_to_str(AIL_PM_Exp_Type type);
 AIL_PM_DEF u32   ail_pm_err_to_str(AIL_PM_Err err, char *buf, u32 buflen);
 AIL_PM_DEF u32   ail_pm_el_to_str (AIL_PM_El  el,  char *buf, u32 buflen);
 AIL_PM_DEF u32   ail_pm_pattern_to_str(AIL_PM_Pattern pattern, char *buf, u32 buflen);
@@ -283,15 +285,14 @@ AIL_PM_DEF u32 _ail_pm_match_immediate_greedy(AIL_PM_El *els, u32 ellen, const c
 #ifndef _AIL_PM_IMPL_GUARD_
 #define _AIL_PM_IMPL_GUARD_
 
-char* ail_pm_exp_to_str(AIL_PM_Exp_Type type)
+const char* ail_pm_exp_to_str(AIL_PM_Exp_Type type)
 {
-    char *s = "";
-    switch (type) {
-        case AIL_PM_EXP_GLOB:  s = "Glob"; break;
-        case AIL_PM_EXP_REGEX: s = "Regular Expression"; break;
-        case AIL_PM_EXP_COUNT: AIL_UNREACHABLE();
+    if (type < AIL_PM_EXP_COUNT) {
+        return ail_pm_exp_type_strs[type];
+    } else {
+        AIL_UNREACHABLE();
+        return "<Unknown PM-Expression Type>";
     }
-    return s;
 }
 
 u32 ail_pm_err_to_str(AIL_PM_Err err, char *buf, u32 buflen)
@@ -387,10 +388,10 @@ AIL_PM_Comp_El_Res _ail_pm_comp_range(const char *p, u32 plen, u32 *idx, AIL_All
     if (p[i+1] == '-') {
         AIL_DA(AIL_PM_Range) ranges = ail_da_new_with_alloc(AIL_PM_Range, 4, allocator);
         for (; i < plen && p[i] != ']'; i += 3) {
-            AIL_PM_Err_Type err_type = AIL_PM_ERR_COUNT;
+            AIL_PM_Err_Type err_type = AIL_PM_ERR_NONE;
             AIL_PM_Range r;
             AIL_PM_Comp_Char_Res x = _ail_pm_comp_range_char(p, plen, &i);
-            if (x.e != AIL_PM_ERR_COUNT) { err_type = x.e; goto report_err; }
+            if (x.e) { err_type = x.e; goto report_err; }
             r.start = x.c;
 
             if (i+2 >= plen)   { err_type = AIL_PM_ERR_INCOMPLETE_RANGE;     goto report_err; }
@@ -398,11 +399,12 @@ AIL_PM_Comp_El_Res _ail_pm_comp_range(const char *p, u32 plen, u32 *idx, AIL_All
             ++i;
 
             x = _ail_pm_comp_range_char(p, plen, &i);
-            if (x.e != AIL_PM_ERR_COUNT) { err_type = x.e; goto report_err; }
+            if (x.e) { err_type = x.e; goto report_err; }
             r.end = x.c;
+            if (r.end >= r.start) err_type = AIL_PM_ERR_INVALID_RANGE;
 
 report_err:
-            if (err_type != AIL_PM_ERR_COUNT) return (AIL_PM_Comp_El_Res){.failed=1, .err={.type=err_type, .idx=i}};
+            if (err_type) return (AIL_PM_Comp_El_Res){.failed=1, .err={.type=err_type, .idx=i}};
             ail_da_push(&ranges, r);
         }
 
@@ -421,7 +423,7 @@ report_err:
         AIL_DA(char) chars = ail_da_new_with_alloc(char, 16, allocator);
         for (; i < plen && p[i] != ']'; i++) {
             AIL_PM_Comp_Char_Res x = _ail_pm_comp_range_char(p, plen, &i);
-            if (x.e != AIL_PM_ERR_COUNT) return (AIL_PM_Comp_El_Res) {.failed=1, .err={.type=x.e, .idx=i}};
+            if (x.e) return (AIL_PM_Comp_El_Res) {.failed=1, .err={.type=x.e, .idx=i}};
             ail_da_push(&chars, x.c);
         }
 
@@ -610,11 +612,10 @@ done:
     return n;
 backtrack:
     for (i32 i = el_idx; i >= 0; i--) {
-        if (els[i].count == AIL_PM_COUNT_ONCE)    continue;
-        if (i == 0 && !stack[i])              continue;
-        if (i > 0  && stack[i] == stack[i-1]) continue;
-
-        n      = --stack[i];
+        if (els[i].count == AIL_PM_COUNT_ONCE) continue;
+        if (i == 0 && !stack[i])               continue;
+        if (i > 0  && stack[i] == stack[i-1])  continue;
+        n = --stack[i];
         el_idx = i + 1;
         goto match;
     }
