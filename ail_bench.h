@@ -83,6 +83,8 @@ typedef struct AIL_Bench_Profile_Block {
 } AIL_Bench_Profile_Block;
 
 AIL_BENCH_DEF void ail_bench_begin_profile(void);
+AIL_BENCH_DEF void ail_bench_end_profile(void);
+AIL_BENCH_DEF void ail_bench_print_profile(b32 clear_anchors);
 AIL_BENCH_DEF void ail_bench_end_and_print_profile(b32 clear_anchors);
 AIL_BENCH_DEF AIL_Bench_Profile_Block ail_bench_profile_block_start(const char *label, u32 anchor_idx);
 AIL_BENCH_DEF void ail_bench_profile_block_end(AIL_Bench_Profile_Block *block);
@@ -113,15 +115,25 @@ void ail_bench_begin_profile(void)
     ail_bench_global_profiler.start_tsc = ail_bench_cpu_timer();
 }
 
-void ail_bench_end_and_print_profile(b32 clear_anchors)
+void ail_bench_end_profile(void)
 {
     ail_bench_global_profiler.end_tsc = ail_bench_cpu_timer();
+}
+
+void ail_bench_print_profile(b32 clear_anchors)
+{
     u64 cpu_freq = ail_bench_cpu_timer_freq();
     u64 total_tsc_elapsed = ail_bench_global_profiler.end_tsc - ail_bench_global_profiler.start_tsc;
     if (cpu_freq) {
         printf("Total time: %0.4fms (CPU frequency %0.3fMHz)\n", ail_bench_cpu_elapsed_to_ms_fast(total_tsc_elapsed, cpu_freq), (f64)cpu_freq / 1e6);
     }
     ail_bench_profile_print_anchors(total_tsc_elapsed, clear_anchors);
+}
+
+void ail_bench_end_and_print_profile(b32 clear_anchors)
+{
+    ail_bench_end_profile();
+    ail_bench_print_profile(clear_anchors);
 }
 
 AIL_Bench_Profile_Block ail_bench_profile_block_start(const char *label, u32 anchor_idx)
@@ -239,9 +251,12 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, b32 clear_anchors)
             printf("\n");
 
             if (clear_anchors) {
-                anchor->hit_count = 0;
-                anchor->elapsed_wo_children = 0;
-                anchor->elapsed_with_children = 0;
+                anchor->hit_count               = 0;
+                anchor->elapsed_wo_children     = 0;
+                anchor->elapsed_with_children   = 0;
+                anchor->min_wo_children         = 0;
+                anchor->min_with_children       = 0;
+                anchor->old_elapsed_wo_children = 0;
             }
         }
     }
