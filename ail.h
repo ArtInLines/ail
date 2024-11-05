@@ -222,7 +222,7 @@ SOFTWARE.
 // Implement all functionalities with `#define AIL_ALL_IMPL`
 #ifdef  AIL_ALL_IMPL
 #define AIL_TYPES_IMPL
-#define AIL_ALLOCATOR_IMPL
+#define AIL_ALLOC_IMPL
 #define AIL_DA_IMPL
 #endif // AIL_ALL_IMPL
 
@@ -735,10 +735,10 @@ typedef char*    str;
 
 /////////////////////////
 // General Allocator Interface
-// enable implementaton with `#define AIL_ALLOCATOR_IMPL`
+// enable implementaton with `#define AIL_ALLOC_IMPL`
 // automatically enabled when, AIL_DA is also enabled
 /////////////////////////
-#if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
+#if defined(AIL_ALLOC_IMPL) || defined(AIL_DA_IMPL)
 #ifndef _AIL_ALLOCATOR_GUARD_
 #define _AIL_ALLOCATOR_GUARD_
 
@@ -822,7 +822,7 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 }
 
 #endif // _AIL_ALLOCATOR_GUARD_
-#endif // AIL_ALLOCATOR_IMPL
+#endif // AIL_ALLOC_IMPL
 
 
 /////////////////////////
