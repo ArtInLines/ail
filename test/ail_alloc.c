@@ -204,7 +204,7 @@ bool aligning_test(void)
                 u64 backward = ail_alloc_align_backward(x, alignment);
                 u64 fpad = ail_alloc_size_aligned_forward_pad(x, alignment);
                 u64 bpad = ail_alloc_size_aligned_backward_pad(x, alignment);
-                // printf("bpad: %lld, j: %lld, x: %lld\n", bpad, j, x);
+                // printf("bpad: %zd, j: %zd, x: %zd\n", bpad, j, x);
                 ASSERT(bpad == j);
                 if (j==0) {
                     ASSERT(forward == i*alignment);

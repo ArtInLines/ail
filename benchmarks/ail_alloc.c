@@ -115,7 +115,7 @@ static void print_and_clear_max_page_sizes(void)
             while (len_diff--) printf(" ");
             len_diff = max_size_len - u32_str_len(max_size_len);
             while (len_diff--) printf(" ");
-            printf("%llu pages\n", anchor->size);
+            printf("%zu pages\n", anchor->size);
             anchor->size  = 0;
             anchor->label = NULL;
         }
@@ -310,7 +310,7 @@ int main(void)
     u64 start_cap = AIL_ALLOC_PAGE_SIZE - sizeof(AIL_Alloc_Page_Header);
     u64 mem_max   = (AIL_ALLOC_PAGE_SIZE - sizeof(AIL_Alloc_Page_Header))*64;
     u64 n         = 1000;
-    printf("Every test is iterated %lld times\n", n);
+    printf("Every test is iterated %zd times\n", n);
     printf("The memory allocated by an allocator is not freed in-between these iterations\n");
     printf("This way we measure for the optimal case\n");
     printf("Then we're also comparable with std malloc, which doesn't let us free all its memory anyways\n");
@@ -320,7 +320,7 @@ int main(void)
         u64 el_size = 64;
         u64 el_count = mem_max/(el_size + 16); // +16 for some header sizes
         AIL_ASSERT(el_size * el_count <= mem_max);
-        printf("%lld fixed-size allocations (with randomly ordered frees) of size %lld:\n", el_count, el_size);
+        printf("%zd fixed-size allocations (with randomly ordered frees) of size %zd:\n", el_count, el_size);
         #define X(name, macro, allocator) macro(name, n, fixed_size_allocs_arb_frees(allocator, el_size, el_count));
             ALLOCATORS_WO_PAGER
         #undef X
@@ -333,7 +333,7 @@ int main(void)
         u64 el_size  = 1024;
         u64 el_count = mem_max/(el_size + 16); // +16 for some header sizes
         AIL_ASSERT(el_size * el_count <= mem_max);
-        printf("%lld fixed-size allocations (with immediate frees) of size %lld:\n", el_count, el_size);
+        printf("%zd fixed-size allocations (with immediate frees) of size %zd:\n", el_count, el_size);
         #define X(name, macro, allocator) macro(name, n, fixed_size_allocs_imm_frees(allocator, el_size, el_count));
             ALLOCATORS
         #undef X
@@ -346,7 +346,7 @@ int main(void)
         u64 el_size  = 15;
         u64 el_count = mem_max/(el_size + 16); // +16 for some header sizes
         AIL_ASSERT(el_size * el_count <= mem_max);
-        printf("%lld fixed-size allocations (with immediate frees) of size %lld:\n", el_count, el_size);
+        printf("%zd fixed-size allocations (with immediate frees) of size %zd:\n", el_count, el_size);
         #define X(name, macro, allocator) macro(name, n, fixed_size_allocs_imm_frees(allocator, el_size, el_count));
             ALLOCATORS_WO_PAGER
         #undef X
@@ -359,7 +359,7 @@ int main(void)
         u64 el_size = 256;
         u64 el_count = mem_max/(el_size + 16); // +16 for some header sizes
         AIL_ASSERT(el_size * el_count <= mem_max);
-        printf("%lld steadily increasing reallocations of initial size %lld:\n", el_count, el_size);
+        printf("%zd steadily increasing reallocations of initial size %zd:\n", el_count, el_size);
         #define X(name, macro, allocator) macro(name, n, steadily_increasing_reallocs(allocator, el_size, el_count));
             GROWING_ARB_SIZE_ALLOCATORS
         #undef X

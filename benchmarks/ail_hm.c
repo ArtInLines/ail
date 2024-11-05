@@ -94,7 +94,7 @@ void txtFileTest(const char *fpath)
     char *expTopTenKeys[] = { "the",  "I",  "and", "to",   "of", "a",   "my", "in", "you", "is" };
     u32   expTopTenVals[] = { 23242, 19540, 18297, 15623, 15544, 12532, 10824, 9576, 9081, 7851 };
 
-    printf("Textfile: %s (size: %llu)\n", fpath, fsize);
+    printf("Textfile: %s (size: %zu)\n", fpath, fsize);
 
     if (tokenCount == 901326) printf("\033[32m");
     else printf("\033[31m");
