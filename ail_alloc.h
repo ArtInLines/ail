@@ -268,10 +268,10 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
     )
 #define AIL_ALLOC_REGION_OF(listPtr, ptr) _ail_alloc_region_of_( \
         (u8 *)(listPtr),                                         \
-        AIL_OFFSETOF(listPtr, region_head),                      \
-        AIL_OFFSETOF(&(listPtr)->region_head, region_next),      \
-        AIL_OFFSETOF(&(listPtr)->region_head, mem),              \
-        AIL_OFFSETOF(&(listPtr)->region_head, region_size),      \
+        (u32)AIL_OFFSETOF(listPtr, region_head),                 \
+        (u32)AIL_OFFSETOF(&(listPtr)->region_head, region_next), \
+        (u32)AIL_OFFSETOF(&(listPtr)->region_head, mem),         \
+        (u32)AIL_OFFSETOF(&(listPtr)->region_head, region_size), \
         ptr                                                      \
     )
 
@@ -457,15 +457,16 @@ static inline void _ail_alloc_internal_free_pages_(void *ptr, u64 size)
 
 static void* _ail_alloc_page_internal_alloc_(void *addr, u64 size)
 {
-    u64 aligned_size = ail_alloc_align_forward(size + sizeof(AIL_Alloc_Page_Header), AIL_ALLOC_PAGE_SIZE);
-    size = aligned_size - sizeof(AIL_Alloc_Page_Header);
+    u64 header_size  = ail_alloc_align_size(sizeof(AIL_Alloc_Page_Header));
+    u64 aligned_size = ail_alloc_align_forward(size + header_size, AIL_ALLOC_PAGE_SIZE);
+    size = aligned_size - header_size;
 #if defined(_WIN32)
     void *ptr = VirtualAlloc(addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 #else
     void *ptr = mmap(addr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
 #endif
-    ((AIL_Alloc_Page_Header *)ptr)->size = aligned_size - sizeof(AIL_Alloc_Page_Header);
-    return (u8 *)ptr + sizeof(AIL_Alloc_Page_Header);
+    ((AIL_Alloc_Page_Header *)ptr)->size = aligned_size - header_size;
+    return (u8 *)ptr + header_size;
 }
 
 static void* _ail_alloc_page_internal_realloc_(void *old_ptr, u64 size)
