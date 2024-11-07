@@ -25,7 +25,34 @@
 * 'internal', 'persist', 'global'
 *
 *
-*** Useful macros ***
+*** Platform Identification Macros ***
+* Operating System (several can be defined simultaneously):
+  * AIL_OS_WIN32
+  * AIL_OS_WIN64
+  * AIL_OS_LINUX
+  * AIL_OS_UNIX
+  * AIL_OS_POSIX
+  * AIL_OS_GNU
+  * AIL_OS_MAC
+  * AIL_OS_IOS
+  * AIL_OS_ANDROID
+  * AIL_OS_WEB
+  * AIL_OS_BSD
+  * AIL_OS_MINGW32
+  * AIL_OS_MINGW64
+  * AIL_OS_CYGWIN
+  * AIL_OS_SPARC
+* CPU Architecture (several can be defined simultaneously)
+  * AIL_ARCH_X86
+  * AIL_ARCH_X64
+  * AIL_ARCH_ARM
+  * AIL_ARCH_ARM64
+  * AIL_ARCH_MIPS
+  * AIL_ARCH_RISCV
+  * AIL_ARCH_RISCV64
+*
+*
+*** Useful Macros ***
 * The following list only contains the public API of macros, but none of the internally used macros (which are always prefixed with an underscore)
 * None of these macros guarantuee safety in regards to side-effects, so be aware to avoid something like AIL_MIN(x++, --y);
   * AIL_ARRLEN(arr): Get the size of a fixed-sized, stack-allocated array
@@ -218,7 +245,7 @@ SOFTWARE.
 // Implement all functionalities with `#define AIL_ALL_IMPL`
 #ifdef  AIL_ALL_IMPL
 #define AIL_TYPES_IMPL
-#define AIL_ALLOCATOR_IMPL
+#define AIL_ALLOC_IMPL
 #define AIL_DA_IMPL
 #endif // AIL_ALL_IMPL
 
@@ -250,6 +277,80 @@ typedef char*    str;
 #define global   static
 #endif // _AIL_TYPES_GUARD_
 #endif // AIL_TYPES_IMPL
+
+
+/////////////////////////
+// Platform Identification Macros
+// always enabled
+/////////////////////////
+
+#if defined(_WIN32) || defined(__WIN32__)
+#	define AIL_OS_WIN32 1
+#endif
+#if defined(_WIN64)
+#	define AIL_OS_WIN64 1
+#endif
+#if defined(__linux__)
+#	define AIL_OS_LINUX 1
+#endif
+#if defined(__unix)
+#	define AIL_OS_UNIX 1
+#endif
+#if defined(__posix)
+#	define AIL_OS_POSIX 1
+#endif
+#if defined(__GNU__)
+#	define AIL_OS_GNU 1
+#endif
+#if defined(__APPLE__) && defined(__MACH__)
+#	define AIL_OS_MAC 1
+#endif
+#if defined(AIL_OS_IOS) // @TODO
+#	define AIL_OS_IOS 1
+#endif
+#if defined(__ANDROID__)
+#	define AIL_OS_ANDROID 1
+#endif
+#if defined(AIL_OS_WEB) // @TODO
+#	define AIL_OS_WEB 1
+#endif
+#if defined(BSD)
+#	define AIL_OS_BSD 1
+#endif
+#if defined(__MINGW32__)
+#	define AIL_OS_MINGW32 1
+#endif
+#if defined(__MINGW64__)
+#	define AIL_OS_MINGW64 1
+#endif
+#if defined(__CYGWIN__)
+#	define AIL_OS_CYGWIN 1
+#endif
+#if defined(__sparc__) || defined(__sparc)
+#	define AIL_OS_SPARC 1
+#endif
+
+#if defined(__i386) || defined(_M_IX86) || defined(_X86_)
+#	define AIL_ARCH_X86 1
+#endif
+#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(_M_AMD64)
+#	define AIL_ARCH_X64 1
+#endif
+#if defined(__arm__) || defined(_M_ARM)
+#	define AIL_ARCH_ARM 1
+#endif
+#if defined(__aarch64__)
+#	define AIL_ARCH_ARM64 1
+#endif
+#if defined(__mips) || defined(__mips__)
+#	define AIL_ARCH_MIPS 1
+#endif
+#if defined(__riscv)
+#	define AIL_ARCH_RISCV 1
+#endif
+#if defined(__riscv64)
+#	define AIL_ARCH_RISCV64 1
+#endif
 
 
 /////////////////////////
@@ -689,7 +790,7 @@ typedef char*    str;
 #define AIL_GB(x) (((u64)(x)) << 30)
 #define AIL_TB(x) (((u64)(x)) << 40)
 
-#define _AIL_DBG_EXIT_()               do { int *X = 0; *X = 0; exit(1); } while(0)
+#define _AIL_DBG_EXIT_()               do { exit(1); } while(0)
 #define _AIL_ASSERT_COMMON_(expr, msg) do { if (!(expr)) { _AIL_DBG_PRINT_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); _AIL_DBG_EXIT_(); } } while(0)
 #define _AIL_ASSERT_2(expr, msg)       _AIL_ASSERT_COMMON_(expr, "with message '" msg "'")
 #define _AIL_ASSERT_1(expr)            _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" AIL_STRINGIFY(expr) ")'")
@@ -731,10 +832,10 @@ typedef char*    str;
 
 /////////////////////////
 // General Allocator Interface
-// enable implementaton with `#define AIL_ALLOCATOR_IMPL`
+// enable implementaton with `#define AIL_ALLOC_IMPL`
 // automatically enabled when, AIL_DA is also enabled
 /////////////////////////
-#if defined(AIL_ALLOCATOR_IMPL) || defined(AIL_DA_IMPL)
+#if defined(AIL_ALLOC_IMPL) || defined(AIL_DA_IMPL)
 #ifndef _AIL_ALLOCATOR_GUARD_
 #define _AIL_ALLOCATOR_GUARD_
 
@@ -818,7 +919,7 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 }
 
 #endif // _AIL_ALLOCATOR_GUARD_
-#endif // AIL_ALLOCATOR_IMPL
+#endif // AIL_ALLOC_IMPL
 
 
 /////////////////////////

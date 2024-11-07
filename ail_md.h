@@ -247,7 +247,7 @@ void ail_md_add(void *pointer, u64 size, char *file, u32 line)
             ail_md_alloc_lines[i].allocs = realloc(ail_md_alloc_lines[i].allocs, (sizeof *ail_md_alloc_lines[i].allocs) * ail_md_alloc_lines[i].alloc_alocated);
             if(ail_md_alloc_lines[i].allocs == NULL)
             {
-                printf("MEM ERROR: Realloc returns NULL when trying to allocate %llu bytes at line %u in file %s\n", size, line, file);
+                printf("MEM ERROR: Realloc returns NULL when trying to allocate %zu bytes at line %u in file %s\n", size, line, file);
                 exit(0);
             }
         }
@@ -300,7 +300,7 @@ void *ail_md_malloc(u64 size, char *file, u32 line)
 #endif
     if(pointer == NULL)
     {
-        printf("MEM ERROR: Malloc returns NULL when trying to allocate %llu bytes at line %u in file %s\n", size, line, file);
+        printf("MEM ERROR: Malloc returns NULL when trying to allocate %zu bytes at line %u in file %s\n", size, line, file);
         if(ail_md_alloc_mutex != NULL)
             ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);
         ail_md_print(0);
@@ -326,11 +326,11 @@ void *ail_md_calloc(u64 nelem, u64 elsize, char *file, u32 line)
     pointer = malloc(size + AIL_MD_OVER_ALLOC);
 
 #ifdef AIL_MD_MEM_PRINT
-    printf("Calloc %llu bytes at pointer %p at %s line %u\n", size, pointer, file, line);
+    printf("Calloc %zu bytes at pointer %p at %s line %u\n", size, pointer, file, line);
 #endif
     if(pointer == NULL)
     {
-        printf("MEM ERROR: Calloc returns NULL when trying to allocate %llu bytes at line %u in file %s\n", size, line, file);
+        printf("MEM ERROR: Calloc returns NULL when trying to allocate %zu bytes at line %u in file %s\n", size, line, file);
         if(ail_md_alloc_mutex != NULL)
             ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);
         ail_md_print(0);
@@ -400,9 +400,9 @@ bool ail_md_remove(void *buf, char *file, u32 line, bool realloc, u64 *size)
         if(f != &ail_md_freed_memory[i] && buf == ail_md_freed_memory[i].pointer)
         {
             if(f->realloc)
-                printf("MEM ERROR: Pointer %p in file is freed twice! if was freed one line %u in %s, was reallocated to %llu bytes long one line %u in file %s\n", f->pointer, f->free_line, f->free_file, f->size, f->alloc_line, f->alloc_file);
+                printf("MEM ERROR: Pointer %p in file is freed twice! if was freed one line %u in %s, was reallocated to %zu bytes long one line %u in file %s\n", f->pointer, f->free_line, f->free_file, f->size, f->alloc_line, f->alloc_file);
             else
-                printf("MEM ERROR: Pointer %p in file is freed twice! if was freed one line %u in %s, was allocated to %llu bytes long one line %u in file %s\n", f->pointer, f->free_line, f->free_file, f->size, f->alloc_line, f->alloc_file);
+                printf("MEM ERROR: Pointer %p in file is freed twice! if was freed one line %u in %s, was allocated to %zu bytes long one line %u in file %s\n", f->pointer, f->free_line, f->free_file, f->size, f->alloc_line, f->alloc_file);
 
             return false;
         }
@@ -487,7 +487,7 @@ void *ail_md_realloc(void *pointer, u64 size, char *file, u32 line)
                 {
                     if(&buf[k] == pointer)
                     {
-                        printf("Trying to reallocate pointer %llu bytes (out of %u) in to allocation made in %s on line %u.\n", k, ail_md_alloc_lines[i].allocs[j].size, ail_md_alloc_lines[i].file, ail_md_alloc_lines[i].line);
+                        printf("Trying to reallocate pointer %zu bytes (out of %u) in to allocation made in %s on line %u.\n", k, ail_md_alloc_lines[i].allocs[j].size, ail_md_alloc_lines[i].file, ail_md_alloc_lines[i].line);
                     }
                 }
             }
@@ -502,7 +502,7 @@ void *ail_md_realloc(void *pointer, u64 size, char *file, u32 line)
     pointer2 = malloc(size + AIL_MD_OVER_ALLOC);
     if(pointer2 == NULL)
     {
-        printf("MEM ERROR: Realloc returns NULL when trying to allocate %llu bytes at line %u in file %s\n", size, line, file);
+        printf("MEM ERROR: Realloc returns NULL when trying to allocate %zu bytes at line %u in file %s\n", size, line, file);
         if(ail_md_alloc_mutex != NULL)
             ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);
         ail_md_print(0);
@@ -516,7 +516,7 @@ void *ail_md_realloc(void *pointer, u64 size, char *file, u32 line)
     move = 0;
     ail_md_remove(pointer, file, line, true, &move);
 #ifdef AIL_MD_MEM_PRINT
-    printf("Relloc %6llu bytes at pointer %p to %llu bytes at pointer %p at %s line %u\n", move, pointer, size, pointer2, file, line);
+    printf("Relloc %6llu bytes at pointer %p to %zu bytes at pointer %p at %s line %u\n", move, pointer, size, pointer2, file, line);
 #endif
     free(pointer);
 
@@ -536,7 +536,7 @@ void ail_md_print(u32 min_allocs)
         if(min_allocs < ail_md_alloc_lines[i].alocated - ail_md_alloc_lines[i].freed)
         {
             printf("%s line: %u\n",ail_md_alloc_lines[i].file, ail_md_alloc_lines[i].line);
-            printf(" - Bytes allocated: %llu\n - Allocations: %llu\n - Frees: %llu\n\n", ail_md_alloc_lines[i].size, ail_md_alloc_lines[i].alocated, ail_md_alloc_lines[i].freed);
+            printf(" - Bytes allocated: %zu\n - Allocations: %zu\n - Frees: %zu\n\n", ail_md_alloc_lines[i].size, ail_md_alloc_lines[i].alocated, ail_md_alloc_lines[i].freed);
             for(j = 0; j < ail_md_alloc_lines[i].alloc_count; j++)
                 if(ail_md_alloc_lines[i].allocs[j].comment != NULL)
                     printf("\t\t comment %p : %s\n", ail_md_alloc_lines[i].allocs[j].buf, ail_md_alloc_lines[i].allocs[j].comment);
@@ -603,7 +603,7 @@ bool ail_md_test(void *pointer, u64 size, bool ignore_not_found)
             {
                 if(((u8 *)ail_md_alloc_lines[i].allocs[j].buf) + ail_md_alloc_lines[i].allocs[j].size < ((u8 *)pointer) + size)
                 {
-                    printf("MEM ERROR: Not enough memory to access pointer %p, %llu bytes missing\n", pointer, (u64)(((u8 *)ail_md_alloc_lines[i].allocs[j].buf) + ail_md_alloc_lines[i].allocs[j].size) - (u64)(((u8 *)pointer) + size));
+                    printf("MEM ERROR: Not enough memory to access pointer %p, %zu bytes missing\n", pointer, (u64)(((u8 *)ail_md_alloc_lines[i].allocs[j].buf) + ail_md_alloc_lines[i].allocs[j].size) - (u64)(((u8 *)pointer) + size));
                     if(ail_md_alloc_mutex != NULL)
                         ail_md_alloc_mutex_unlock(ail_md_alloc_mutex);
                     return true;
