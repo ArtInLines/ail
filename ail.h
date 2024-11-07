@@ -194,10 +194,6 @@ SOFTWARE.
 #ifndef AIL_H_
 #define AIL_H_
 
-#if !((defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)) || (defined(__cplusplus) && (__cplusplus >= 199711L)))
-#   error "The ail.h library only works for C99 or C++97. Support for C++ has barely been tested, but any version of C from C99 onwards should work. See the README for requirements on using this library."
-#endif
-
 #if   !defined(AIL_MALLOC) && !defined(AIL_REALLOC) && !defined(AIL_CALLOC) && !defined(AIL_FREE)
 #   include <stdlib.h>
 #   define AIL_MALLOC(sz)          malloc(sz)
