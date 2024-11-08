@@ -26,7 +26,9 @@
 *
 *
 *** Platform Identification Macros ***
-* Operating System (several can be defined simultaneously):
+* Heavily inspired by https://sourceforge.net/p/predef/wiki/Home/ and https://github.com/nemequ/hedley
+* Each of the following macros is defined to be either 1 or 0
+* Operating System (several can be true at once):
   * AIL_OS_WIN32
   * AIL_OS_WIN64
   * AIL_OS_LINUX
@@ -42,7 +44,7 @@
   * AIL_OS_MINGW64
   * AIL_OS_CYGWIN
   * AIL_OS_SPARC
-* CPU Architecture (several can be defined simultaneously)
+* CPU Architecture (several can be true at once):
   * AIL_ARCH_X86
   * AIL_ARCH_X64
   * AIL_ARCH_ARM
@@ -50,6 +52,18 @@
   * AIL_ARCH_MIPS
   * AIL_ARCH_RISCV
   * AIL_ARCH_RISCV64
+* Compiler (at most one is true):
+  * AIL_COMP_CLANG - https://clang.llvm.org/
+  * AIL_COMP_MSVC - https://learn.microsoft.com/en-us/cpp/build/reference/compiling-a-c-cpp-program
+  * AIL_COMP_GCC - https://gcc.gnu.org/
+  * AIL_COMP_TCC - https://www.bellard.org/tcc/
+  * AIL_COMP_PELLES - http://www.smorgasbordet.com/pellesc/
+  * AIL_COMP_DIGITAL_MARS - https://digitalmars.com/
+  * AIL_COMP_INTEL - https://www.intel.com/content/www/us/en/developer/tools/oneapi/dpc-compiler.html
+  * AIL_COMP_EMSCRIPTEN - https://emscripten.org/
+* Language (exactly one is true):
+  * AIL_LANG_CPP
+  * AIL_LANG_C
 *
 *
 *** Useful Macros ***
@@ -286,70 +300,163 @@ typedef char*    str;
 
 #if defined(_WIN32) || defined(__WIN32__)
 #	define AIL_OS_WIN32 1
+#else
+#   define AIL_OS_WIN32 0
 #endif
 #if defined(_WIN64)
 #	define AIL_OS_WIN64 1
+#else
+#   define AIL_OS_WIN64 0
 #endif
 #if defined(__linux__)
 #	define AIL_OS_LINUX 1
+#else
+#   define AIL_OS_LINUX 0
 #endif
 #if defined(__unix)
 #	define AIL_OS_UNIX 1
+#else
+#   define AIL_OS_UNIX 0
 #endif
 #if defined(__posix)
 #	define AIL_OS_POSIX 1
+#else
+#   define AIL_OS_POSIX 0
 #endif
 #if defined(__GNU__)
 #	define AIL_OS_GNU 1
+#else
+#   define AIL_OS_GNU 0
 #endif
 #if defined(__APPLE__) && defined(__MACH__)
 #	define AIL_OS_MAC 1
+#else
+#   define AIL_OS_MAC 0
 #endif
 #if defined(AIL_OS_IOS) // @TODO
 #	define AIL_OS_IOS 1
+#else
+#   define AIL_OS_IOS 0
 #endif
 #if defined(__ANDROID__)
 #	define AIL_OS_ANDROID 1
+#else
+#   define AIL_OS_ANDROID 0
 #endif
 #if defined(AIL_OS_WEB) // @TODO
 #	define AIL_OS_WEB 1
+#else
+#   define AIL_OS_WEB 0
 #endif
 #if defined(BSD)
 #	define AIL_OS_BSD 1
+#else
+#   define AIL_OS_BSD 0
 #endif
 #if defined(__MINGW32__)
 #	define AIL_OS_MINGW32 1
+#else
+#   define AIL_OS_MINGW32 0
 #endif
 #if defined(__MINGW64__)
 #	define AIL_OS_MINGW64 1
+#else
+#   define AIL_OS_MINGW64 0
 #endif
 #if defined(__CYGWIN__)
 #	define AIL_OS_CYGWIN 1
+#else
+#   define AIL_OS_CYGWIN 0
 #endif
 #if defined(__sparc__) || defined(__sparc)
 #	define AIL_OS_SPARC 1
+#else
+#   define AIL_OS_SPARC 0
 #endif
 
-#if defined(__i386) || defined(_M_IX86) || defined(_X86_)
+#if defined(__i386) || defined(_M_IX86) || defined(_X86_) || defined(__X86__) || defined(__I86__)
 #	define AIL_ARCH_X86 1
+#else
+#   define AIL_ARCH_X86 0
 #endif
-#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(_M_AMD64)
+#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(__amd64) || defined(_M_AMD64) || defined(_M_X64)
 #	define AIL_ARCH_X64 1
+#else
+#   define AIL_ARCH_X64 0
 #endif
-#if defined(__arm__) || defined(_M_ARM)
+#if defined(__arm__) || defined(_M_ARM) || defined(_ARM)
 #	define AIL_ARCH_ARM 1
+#else
+#   define AIL_ARCH_ARM 0
 #endif
 #if defined(__aarch64__)
 #	define AIL_ARCH_ARM64 1
+#else
+#   define AIL_ARCH_ARM64 0
 #endif
-#if defined(__mips) || defined(__mips__)
+#if defined(__mips) || defined(__mips__) || defined(__MIPS__)
 #	define AIL_ARCH_MIPS 1
+#else
+#   define AIL_ARCH_MIPS 0
 #endif
 #if defined(__riscv)
 #	define AIL_ARCH_RISCV 1
+#else
+#   define AIL_ARCH_RISCV 0
 #endif
 #if defined(__riscv64)
 #	define AIL_ARCH_RISCV64 1
+#else
+#   define AIL_ARCH_RISCV64 0
+#endif
+
+#if defined(__clang__)
+#   define AIL_COMP_CLANG 1
+#else
+#   define AIL_COMP_CLANG 0
+#endif
+#if defined(_MSC_VER)
+#   define AIL_COMP_MSVC 1
+#else
+#   define AIL_COMP_MSVC 0
+#endif
+#if defined(__GNUC__) && !AIL_COMP_CLANG
+#   define AIL_COMP_GCC 1
+#else
+#   define AIL_COMP_GCC 0
+#endif
+#if defined(__TINYC__)
+#   define AIL_COMP_TCC 1
+#else
+#   define AIL_COMP_TCC 0
+#endif
+#if defined(__POCC__)
+#   define AIL_COMP_PELLES 1
+#else
+#   define AIL_COMP_PELLES 0
+#endif
+#if defined(__DMC__)
+#   define AIL_COMP_DIGITAL_MARS 1
+#else
+#   define AIL_COMP_DIGITAL_MARS 0
+#endif
+#if defined(__INTEL_COMPILER)
+#   define AIL_COMP_INTEL 1
+#else
+#   define AIL_COMP_INTEL 0
+#endif
+#if defined(__EMSCRIPTEN__)
+#   define AIL_COMP_EMSCRIPTEN 1
+#else
+#   define AIL_COMP_EMSCRIPTEN 0
+#endif
+
+#if defined(__cplusplus)
+#   define AIL_LANG_CPP 1
+#   define AIL_LANG_C   0
+#else
+#   define AIL_LANG_CPP 0
+#   define AIL_LANG_C   1
 #endif
 
 

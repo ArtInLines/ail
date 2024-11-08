@@ -44,7 +44,7 @@ SOFTWARE.
 #define AIL_BENCH_DEF_INLINE AIL_DEF_INLINE
 #endif // AIL_BENCH_DEF_INLINE
 
-#ifdef AIL_OS_WIN32
+#if AIL_OS_WIN32
 #   include <windows.h>
     typedef struct AIL_Bench_Global_Info {
         u64 cpu_timer_freq;
@@ -320,7 +320,7 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, b32 clear
 #endif // AIL_BENCH_PROFILE
 
 
-#ifdef AIL_OS_WIN32
+#if AIL_OS_WIN32
 #include <intrin.h>  // For __rdtsc
 #include <windows.h> // For QueryPerformanceCounter, OpenProcess, LARGE_INTEGER
 #include <psapi.h>   // For PROCESS_MEMORY_COUNTERS_EX, GetProcessMemoryInfo
@@ -380,7 +380,7 @@ u64 ail_bench_count_page_faults(void)
 void ail_bench_init(void)
 {
     ail_bench_global_info.cpu_timer_freq = ail_bench_calc_cpu_timer_freq();
-#ifdef AIL_OS_WIN32
+#if AIL_OS_WIN32
     ail_bench_global_info.proc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, GetCurrentProcessId());
 #endif
 }
