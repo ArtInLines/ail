@@ -23,9 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#define AIL_ALL_IMPL
-#define AIL_SV_IMPL
-#define AIL_FS_IMPL
 #include "../ail.h"
 #include "../ail_sv.h"
 #include "../ail_fs.h"
@@ -94,13 +91,13 @@ global AIL_Str HEADER_BEGIN = STR_LIT(
 );
 global AIL_Str HEADER_END = STR_LIT("#endif // AIL_MATH_H_\n");
 global AIL_Str IMPL_BEGIN = STR_LIT(
-    "#ifdef AIL_MATH_IMPL\n"
+    "#if !defined(AIL_NO_MATH_IMPL) && !defined(AIL_NO_IMPL)\n"
     "#ifndef _AIL_MATH_IMPL_GUARD_\n"
     "#define _AIL_MATH_IMPL_GUARD_\n"
 );
 global AIL_Str IMPL_END = STR_LIT(
     "#endif // _AIL_MATH_IMPL_GUARD_\n"
-    "#endif // AIL_MATH_IMPL\n"
+    "#endif // AIL_NO_MATH_IMPL\n"
 );
 
 global AIL_Str MATH_GENERIC_MACRO = STR_LIT(
@@ -116,7 +113,7 @@ global AIL_Str MATH_GENERIC_MACRO = STR_LIT(
     "    signed long int:        AIL_CONCAT(pre, i64, post), \\\n"
     "    unsigned long long int: AIL_CONCAT(pre, u64, post), \\\n"
     "    signed long long int:   AIL_CONCAT(pre, i64, post)  \\\n"
-    ") ((arg0), __VA_ARGS__)\n"
+    ")\n"
     "\n"
     "#define AIL_MATH_GENERIC(pre, post, arg0, ...) _Generic((arg0), \\\n"
     "    u8:  AIL_CONCAT(pre, u8, post),  \\\n"
@@ -177,7 +174,7 @@ AIL_Str get_title_comment(AIL_SV text, u32 newlines_count)
 {
     u32 len = text.len + 16;
     char buf[512];
-    snprintf(buf, AIL_ARRLEN(buf), "%s%.*s\n//%*.s//\n//      %.*s      //\n//%*.s//\n%.*s%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, len - 4, " ", (u32)text.len, text.str, len - 4, " ", len, COMMENT_STRING, get_newlines(newlines_count).str);
+    snprintf(buf, AIL_ARRLEN(buf), "%s%.*s\n//%.*s//\n//      %.*s      //\n//%.*s//\n%.*s%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, len - 4, " ", (u32)text.len, text.str, len - 4, " ", len, COMMENT_STRING, get_newlines(newlines_count).str);
     return ail_str_new_cstr(buf);
 }
 
@@ -218,13 +215,16 @@ void vec_typedefs(AIL_SB *sb)
                         for (u32 m = 0; m + l <= i; m++) {
                             ail_sb_push_sv(sb, ail_sv_from_cstr("    struct { "));
                             if (m > 0) {
-                                snprintf(buf, AIL_ARRLEN(buf), "%s _%d[%d]; ", inner.str, counter++, m);
+                                if (m > 1) snprintf(buf, AIL_ARRLEN(buf), "%s _%d[%d]; ", inner.str, counter++, m);
+                                else       snprintf(buf, AIL_ARRLEN(buf), "%s _%d; ",     inner.str, counter++);
                                 ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
                             }
                             snprintf(buf, AIL_ARRLEN(buf), "%s %s; ", get_container_name(SV_LIT_T("Vec"), l, inner).str, ail_sv_join(vec_attrs[k].data + m, l, SV_LIT_T("")).str);
                             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
-                            if (i - l - m > 0) {
-                                snprintf(buf, AIL_ARRLEN(buf), "%s _%d[%d]; ", inner.str, counter++, i - l - m);
+                            i32 count = i - l - m;
+                            if (count > 0) {
+                                if (count > 1) snprintf(buf, AIL_ARRLEN(buf), "%s _%d[%d]; ", inner.str, counter++, count);
+                                else           snprintf(buf, AIL_ARRLEN(buf), "%s _%d; ",     inner.str, counter++);
                                 ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
                             }
                             ail_sb_push_sv(sb, ail_sv_from_cstr("};\n"));
@@ -257,6 +257,40 @@ void mat_typedefs(AIL_SB *sb)
             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
         }
     }
+}
+
+void vec_constructor(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb)
+{
+    char buf[1024];
+    for (u32 i = 2; i < 5; i++) {
+        AIL_SLICE(AIL_SV) attrs = ail_slice_from_parts(vec_attrs_xy, i);
+        AIL_Str untyped_input   = ail_sv_join_da(attrs, ail_sv_from_cstr(", "));
+        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d(%s) AIL_MATH_GENERIC(ail_vec%d, , %s)\n", i, untyped_input.str, i, untyped_input.str);
+        ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
+
+        for (u32 j = 0; j < AIL_ARRLEN(num_type_names); j++) {
+            AIL_SV inner = ail_sv_from_str(num_type_names[j]);
+            AIL_Str type = get_container_name(SV_LIT_T("Vec"), i, inner);
+            AIL_SB op_sb = ail_sb_new();
+            for (u32 k = 0; k < i; k++) {
+                snprintf(buf, AIL_ARRLEN(buf), "%s.%s = %s", (k ? ", " : ""), vec_attrs_xy[k].str, attrs.data[k].str);
+                ail_sb_push_sv(&op_sb, ail_sv_from_cstr(buf));
+            }
+            snprintf(buf, AIL_ARRLEN(buf), "%s ail_vec%d%s(", type.str, i, inner.str);
+            for (u32 k = 0; k < i; k++) {
+                snprintf(buf, AIL_ARRLEN(buf), "%s%s%s %s", buf, (k ? ", " : ""), inner.str, attrs.data[k].str);
+            }
+            snprintf(buf, AIL_ARRLEN(buf), "%s)", buf);
+            ail_sb_push_sv(decl_sb, ail_sv_from_cstr(buf));
+            ail_sb_push_sv(decl_sb, ail_sv_from_cstr(";\n"));
+
+            snprintf(buf, AIL_ARRLEN(buf), "%s\n{\n    return (%s) { %s };\n}\n\n", buf, type.str, ail_sb_to_str(op_sb).str);
+            ail_sb_push_sv(impl_sb, ail_sv_from_cstr(buf));
+        }
+    }
+    ail_sb_push_sv(generic_sb, get_newlines(1));
+    ail_sb_push_sv(decl_sb,    get_newlines(1));
+    ail_sb_push_sv(impl_sb,    get_newlines(1));
 }
 
 void vec_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb, AIL_Str op_name, AIL_Str op)
@@ -366,6 +400,7 @@ int main(void)
     vec_typedefs(&type_sb);
     mat_typedefs(&type_sb);
 
+    vec_constructor(&generic_sb, &decl_sb, &impl_sb);
     vec_element_wise_binop(&generic_sb, &decl_sb, &impl_sb, STR_LIT_T("add"), STR_LIT_T("+"));
     vec_element_wise_binop(&generic_sb, &decl_sb, &impl_sb, STR_LIT_T("sub"), STR_LIT_T("-"));
     vec_element_wise_connected_binop(&generic_sb, &decl_sb, &impl_sb, STR_LIT_T("eq"), STR_LIT_T("=="), STR_LIT_T("&&"), STR_LIT_T("b32"));
