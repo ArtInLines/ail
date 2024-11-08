@@ -2,13 +2,17 @@
 
 [stb](https://github.com/nothings/stb)-[style](https://github.com/nothings/stb/blob/master/docs/stb_howto.txt) single-file MIT licensed libraries for C/C++.
 
+The goal is to create an actually useful and well-designed Standard Library to C, that is both portable and performant.
+
 ## Disclaimer
 
-These libraries are still heavily under development as I experiment with using them in my own projects. There is not any documentation yet and breaking changes might be introduced at any point.
+These libraries are still heavily under development as I experiment with using them in my own projects. There is very little documentation as of yet and breaking changes might be introduced at any point.
+
+Most libraries are currently also not fully functional yet. There are probably a host of bugs and lots of missing features. It is not recommended to use this library for production development yet.
 
 Unlike the original stb-libraries, all libraries here depend on the [ail.h](./ail.h) file, so you should always include that file along with all other libraries you want from here.
 
-All libraries are written in C99.
+All libraries are written in C11 (often even C99). C++ portability is not a high priority right now.
 
 I'm writing these libraries primarily for myself. I will thus add features that I find useful in a design-style that I like. Alternative usecases are secondary to me.
 
@@ -16,19 +20,22 @@ The file [Predefined_Macros.md](./Predefined_Macros.md) also contains a list of 
 
 ## Libraries
 
-| Library                      | Description                                                                                          |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [ail.h](./ail.h)             | Common definitions used by all other libraries. This file should always be included                  |
-| [ail_hm.h](./ail_hm.h)       | Generic Hashmap implementation, where keys and values can be of any type                             |
-| [ail_bench.h](./ail_bench.h) | Benchmarking                                                                                         |
-| [ail_alloc.h](./ail_alloc.h) | Custom Allocators                                                                                    |
-| [ail_sv.h](./ail_sv.h)       | Simple String-View                                                                                   |
-| [ail_md.h](./ail_md.h)       | Memory Debugging Utility (slightly modified version of Eskil Steenberg's Forge)                      |
-| [ail_buf.h](./ail_buf.h)     | Simple Read-Write Buffer implementation                                                              |
-| [ail_ring.h](./ail_ring.h)   | Simple Ring-Buffer implementation                                                                    |
-| [ail_fs.h](./ail_fs.h)       | Cross-Platform File-System Functions                                                                 |
-| [ail_time.h](./ail_time.h)   | Cross-Platform Time functions                                                                        |
-| [ail_gui.h](./ail_gui.h)     | DEPRECATED: GUI-Library for use with Raylib (can only be compiled when raylib.h is already included) |
+| Library                      | Description                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [ail.h](./ail.h)             | Common definitions used by all other libraries. This file should always be included                              |
+| [ail_hm.h](./ail_hm.h)       | Generic Hashmap implementation, where keys and values can be of any type                                         |
+| [ail_bench.h](./ail_bench.h) | Benchmarking                                                                                                     |
+| [ail_alloc.h](./ail_alloc.h) | Custom Allocators                                                                                                |
+| [ail_sv.h](./ail_sv.h)       | Simple String-View                                                                                               |
+| [ail_md.h](./ail_md.h)       | Memory Debugging Utility (slightly modified version of Eskil Steenberg's Forge)                                  |
+| [ail_buf.h](./ail_buf.h)     | Simple Read-Write Buffer implementation                                                                          |
+| [ail_ring.h](./ail_ring.h)   | Simple Ring-Buffer implementation                                                                                |
+| [ail_fs.h](./ail_fs.h)       | Cross-Platform File-System Functions                                                                             |
+| [ail_time.h](./ail_time.h)   | Cross-Platform Time functions                                                                                    |
+| [ail_build.h](./ail_build.h) | A library for building C programs in C itself                                                                    |
+| [ail_math.h](./ail_math.h)   | Mathematical functions. The file itself is generated (but readable) code by [./gen/math_gen.c](./gen/math_gen.c) |
+| [ail_pm.h](./ail_pm.h)       | Pattern Matching Library. Currently supports Regex & Glob Patterns                                               |
+| [ail_gui.h](./ail_gui.h)     | DEPRECATED: GUI-Library for use with Raylib (can only be compiled when raylib.h is already included)             |
 
 ## Conventions
 

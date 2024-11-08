@@ -1,4 +1,4 @@
-all: la_gen.c
+all: math_gen.c
 
-la_gen.c:
-	clang -o la_gen.exe la_gen.c -Wall -Wextra -Wpedantic -Wno-unused-function -std=c11
+math_gen.c:
+	clang -o math_gen.exe math_gen.c -Wall -Wextra -Wpedantic -Wno-unused-function -std=c11
