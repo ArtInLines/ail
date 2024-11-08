@@ -1,4 +1,3 @@
-#define AIL_TYPES_IMPL
 #include "../ail.h"
 #include "./test_assert.h"
 #include <string.h>
@@ -33,7 +32,7 @@ bool test_typeof(void)
 
 bool test_offsetof(void)
 {
-    struct T { f64 f; b32 b; str s; };
+    struct T { f64 f; b32 b; pchar s; };
     struct T t;
     ASSERT(sizeof(t) == 24);
     ASSERT(AIL_OFFSETOF(&t, f) == 0);
@@ -53,7 +52,7 @@ bool test_offsetof(void)
 
 bool test_swap(void)
 {
-    struct T { i16 a; str b; };
+    struct T { i16 a; pchar b; };
     f64 fa_og = 0.69;
     f64 fb_og = 4.20;
     f64 fa = fa_og;
@@ -68,7 +67,7 @@ bool test_swap(void)
     AIL_SWAP_PORTABLE(struct T, ta, tb);
     ASSERT(ta.a == tb_og.a && ta.b == tb_og.b);
     ASSERT(tb.a == ta_og.a && tb.b == ta_og.b);
-#ifdef AIL_SWAP
+#ifdef AIL_TYPEOF
     AIL_SWAP(fa, fb);
     ASSERT(fa == fa_og);
     ASSERT(fb == fb_og);
@@ -157,17 +156,17 @@ bool test_is2power(void)
 bool test_next2Power(void)
 {
     u64 u;
-    AIL_NEXT_2POWER(0x7BA42ACD251B7129, u);
+    AIL_NEXT_2POWER_POS(0x7BA42ACD251B7129, u);
     ASSERT(u == 0x8000000000000000);
-    AIL_NEXT_2POWER(0xf2, u);
+    AIL_NEXT_2POWER_POS(0xf2, u);
     ASSERT(u == 0x100);
-    AIL_NEXT_2POWER(0, u);
+    AIL_NEXT_2POWER_POS(0, u);
     ASSERT(u == 1);
-    AIL_NEXT_2POWER(1, u);
+    AIL_NEXT_2POWER_POS(1, u);
     ASSERT(u == 2);
-    AIL_NEXT_2POWER(12, u);
+    AIL_NEXT_2POWER_POS(12, u);
     ASSERT(u == 16);
-    AIL_NEXT_2POWER(10, u);
+    AIL_NEXT_2POWER_POS(10, u);
     ASSERT(u == 16);
     i64 i;
     AIL_NEXT_2POWER(-1, i);

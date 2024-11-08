@@ -26,9 +26,6 @@ SOFTWARE.
 #ifndef AIL_BUF_H_
 #define AIL_BUF_H_
 
-#ifndef AIL_TYPES_IMPL
-#define AIL_TYPES_IMPL
-#endif // AIL_TYPES_IMPL
 #include "ail.h"
 
 #ifndef AIL_BUF_DEF

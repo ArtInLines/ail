@@ -29,8 +29,7 @@ SOFTWARE.
 #ifndef AIL_HM_H_
 #define AIL_HM_H_
 
-#define AIL_TYPES_IMPL
-#define AIL_ALLOCATOR_IMPL
+#define AIL_ALLOC_IMPL
 #include "ail.h"
 
 #ifndef AIL_HM_DEF

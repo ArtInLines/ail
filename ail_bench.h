@@ -34,7 +34,6 @@ SOFTWARE.
 #ifndef AIL_BENCH_H_
 #define AIL_BENCH_H_
 
-#define AIL_TYPES_IMPL
 #include "ail.h"
 
 #ifndef AIL_BENCH_DEF

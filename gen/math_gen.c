@@ -75,7 +75,6 @@ global AIL_Str LICENSE_COMMENT = STR_LIT(
 global AIL_Str HEADER_BEGIN = STR_LIT(
     "#ifndef AIL_MATH_H_\n"
     "\n"
-    "#define AIL_TYPES_IMPL\n"
     "#include \"ail.h\"\n"
     "\n"
     "#ifndef AIL_MATH_DEF\n"

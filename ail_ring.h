@@ -26,9 +26,6 @@ SOFTWARE.
 #ifndef AIL_RING_H_
 #define AIL_RING_H_
 
-#ifndef AIL_TYPES_IMPL
-#define AIL_TYPES_IMPL
-#endif // AIL_TYPES_IMPL
 #include "ail.h"
 
 #ifndef AIL_RING_ASSERT

@@ -66,13 +66,13 @@ bool structTest(void)
     return strEq(x, val);
 }
 
-AIL_HM_INIT(str, u32);
-bool miniTestEq(str a, str b)
+AIL_HM_INIT(pchar, u32);
+bool miniTestEq(pchar a, pchar b)
 {
     return strcmp(a, b) == 0;
 }
 
-u32 miniTestHash(str k)
+u32 miniTestHash(pchar k)
 {
     uint32_t hash = 5381;
     while (*k)
@@ -83,9 +83,9 @@ u32 miniTestHash(str k)
 bool miniTest(void)
 {
 #define MINI_MAGIC 8
-    AIL_HM(str, u32) hm = ail_hm_new_with_cap(str, u32, 0, &miniTestHash, &miniTestEq);
+    AIL_HM(pchar, u32) hm = ail_hm_new_with_cap(pchar, u32, 0, &miniTestHash, &miniTestEq);
     for (u32 i = 0; i < MINI_MAGIC*16; i++) {
-        str k = malloc(8);
+        pchar k = malloc(8);
         sprintf(k, "hi-%d", i%16);
         u32 *val;
         ail_hm_get_ptr(&hm, k, val);

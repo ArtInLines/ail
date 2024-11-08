@@ -68,7 +68,6 @@ SOFTWARE.
 #ifndef AIL_MD_H_
 #define AIL_MD_H_
 
-#define AIL_TYPES_IMPL
 #include "ail.h"
 
 #ifndef AIL_MD_DEF

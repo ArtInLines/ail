@@ -3,7 +3,6 @@
 *
 * By default this file only includes a bunch of useful macros (see list below), other features can be included by defining the following:
   * AIL_ALL_IMPL:     shorthand to define all the following features
-  * AIL_TYPES_IMPL:   include shortform type names
   * AIL_ALLOC_IMPL:   include the AIL_Allocator struct for custom allocators
   * AIL_DA_IMPL:      include macro-template for dynamic arrays (automatically enables AIL_ALLOC_IMPL as well)
 * For the documentation of each of these, see below
@@ -20,7 +19,6 @@
 * Integers: u8, u16, u32, u64, i8, i16, i32, i64
 * Floats:   f32, f64
 * Boolean:  b32
-* char*:    str
 * Furthermore, aliases for the static keyword are defined, that make the keyword's usage clearer:
 * 'internal', 'persist', 'global'
 *
@@ -256,21 +254,11 @@ SOFTWARE.
 
 // @TODO: Add support for short names via AIL_SHORT_NAMES macro
 
-// Implement all functionalities with `#define AIL_ALL_IMPL`
-#ifdef  AIL_ALL_IMPL
-#define AIL_TYPES_IMPL
-#define AIL_ALLOC_IMPL
-#define AIL_DA_IMPL
-#endif // AIL_ALL_IMPL
-
 
 /////////////////////////
 // Custom Typedefs
-// enable with `#define AIL_TYPES_IMPL`
+// always enabled
 /////////////////////////
-#ifdef  AIL_TYPES_IMPL
-#ifndef _AIL_TYPES_GUARD_
-#define _AIL_TYPES_GUARD_
 #include <stdint.h>
 #include <stdbool.h>
 typedef uint8_t  u8;
@@ -284,13 +272,11 @@ typedef int32_t  i32;
 typedef int64_t  i64;
 typedef float    f32;
 typedef double   f64;
-typedef char*    str;
+typedef char*    pchar;
 
 #define internal static
 #define persist  static
 #define global   static
-#endif // _AIL_TYPES_GUARD_
-#endif // AIL_TYPES_IMPL
 
 
 /////////////////////////
@@ -844,7 +830,7 @@ typedef char*    str;
 #   define AIL_TYPEOF(x) typeof_unqual(x)
 #elif defined(__cplusplus)
 #   define AIL_TYPEOF(x) decltype(x)
-#elif defined(__GNUC__) || defined(_MINGW)
+#elif defined(__GNUC__) || defined(_MINGW) || defined(__clang__)
 #   define AIL_TYPEOF(x) __typeof__(x)
 #else
 // No typeof possible
@@ -933,7 +919,7 @@ typedef char*    str;
             out |= out >> _ail_next_2power_shift_;                                                                                            \
         out += (out+1 <= 1) + 1;                                                                                                              \
     } while(0)
-#define AIL_NEXT_2POWER(x, out) ((x >= 0) ? AIL_NEXT_2POWER_POS(x, out) : -AIL_NEXT_2POWER_POS(-(x), out))
+#define AIL_NEXT_2POWER(x, out) do { if (x >= 0) AIL_NEXT_2POWER_POS(x, out); else { AIL_NEXT_2POWER_POS(-(x), out); out = -out; } } while(0)
 
 
 
@@ -942,15 +928,11 @@ typedef char*    str;
 // enable implementaton with `#define AIL_ALLOC_IMPL`
 // automatically enabled when, AIL_DA is also enabled
 /////////////////////////
-#if defined(AIL_ALLOC_IMPL) || defined(AIL_DA_IMPL)
+#if defined(AIL_ALLOC_IMPL) || defined(AIL_DA_IMPL) || defined(AIL_ALL_IMPL)
 #ifndef _AIL_ALLOCATOR_GUARD_
 #define _AIL_ALLOCATOR_GUARD_
 
-#ifdef AIL_TYPES_IMPL
 #define _AIL_ALLOCATOR_SIZE_TYPE_ u64
-#else
-#define _AIL_ALLOCATOR_SIZE_TYPE_ size_t
-#endif
 
 // Allocate a region of memory holding at least <size> bytes
 #define AIL_CALL_ALLOC(allocator, size) (allocator).alloc((allocator).data, AIL_MEM_ALLOC, (size), NULL)
@@ -1036,7 +1018,7 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 // - nob.h (https://github.com/tsoding/musializer/blob/master/src/nob.h)
 // - stb_ds.h (https://github.com/nothings/stb/blob/master/stb_ds.h)
 /////////////////////////
-#ifdef AIL_DA_IMPL
+#if defined(AIL_DA_IMPL) || defined(AIL_ALL_IMPL)
 #ifndef _AIL_DA_GUARD_
 #define _AIL_DA_GUARD_
 
@@ -1051,41 +1033,25 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #endif
 
 // @TODO: Rename AIL_ARR
-#ifdef AIL_TYPES_IMPL
-#   define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; u32 len; } AIL_SLICE_##T
-#   define AIL_SLICE(T) AIL_SLICE_##T
-#   define AIL_ARR_INIT(T) typedef struct AIL_ARR_##T { T *data; u32 len; u32 cap; } AIL_ARR_##T
-#   define AIL_ARR(T) AIL_ARR_##T
-#   define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator allocator; } AIL_DA_##T
-#   define AIL_DA(T) AIL_DA_##T
-    AIL_DA_INIT(u8);   AIL_SLICE_INIT(u8);   AIL_ARR_INIT(u8);
-    AIL_DA_INIT(u16);  AIL_SLICE_INIT(u16);  AIL_ARR_INIT(u16);
-    AIL_DA_INIT(u32);  AIL_SLICE_INIT(u32);  AIL_ARR_INIT(u32);
-    AIL_DA_INIT(u64);  AIL_SLICE_INIT(u64);  AIL_ARR_INIT(u64);
-    AIL_DA_INIT(i8);   AIL_SLICE_INIT(i8);   AIL_ARR_INIT(i8);
-    AIL_DA_INIT(i16);  AIL_SLICE_INIT(i16);  AIL_ARR_INIT(i16);
-    AIL_DA_INIT(i32);  AIL_SLICE_INIT(i32);  AIL_ARR_INIT(i32);
-    AIL_DA_INIT(i64);  AIL_SLICE_INIT(i64);  AIL_ARR_INIT(i64);
-    AIL_DA_INIT(f32);  AIL_SLICE_INIT(f32);  AIL_ARR_INIT(f32);
-    AIL_DA_INIT(f64);  AIL_SLICE_INIT(f64);  AIL_ARR_INIT(f64);
-    AIL_DA_INIT(str);  AIL_SLICE_INIT(str);  AIL_ARR_INIT(str);
-#else
-#   define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; unsigned int len; } AIL_SLICE_##T
-#   define AIL_SLICE(T) AIL_SLICE_##T
-#   define AIL_ARR_INIT(T) typedef struct AIL_ARR_##T { T *data; unsigned int len; } AIL_ARR_##T
-#   define AIL_ARR(T) AIL_ARR_##T
-#   define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; unsigned int len; unsigned int cap; AIL_Allocator *allocator; } AIL_DA_##T
-#   define AIL_DA(T) AIL_DA_##T
-    AIL_DA_INIT(char);    AIL_SLICE_INIT(char);    AIL_ARR_INIT(char);
-    AIL_DA_INIT(short);   AIL_SLICE_INIT(short);   AIL_ARR_INIT(short);
-    AIL_DA_INIT(int);     AIL_SLICE_INIT(int);     AIL_ARR_INIT(short);
-    AIL_DA_INIT(long);    AIL_SLICE_INIT(long);    AIL_ARR_INIT(short);
-    AIL_DA_INIT(float);   AIL_SLICE_INIT(float);   AIL_ARR_INIT(float);
-    AIL_DA_INIT(double);  AIL_SLICE_INIT(double);  AIL_ARR_INIT(double);
-#endif
-
-AIL_DA_INIT(void);    AIL_SLICE_INIT(void);    AIL_ARR_INIT(void);
-AIL_DA_INIT(char);    AIL_SLICE_INIT(char);    AIL_ARR_INIT(char);
+#define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; u32 len; } AIL_SLICE_##T
+#define AIL_SLICE(T) AIL_SLICE_##T
+#define AIL_ARR_INIT(T) typedef struct AIL_ARR_##T { T *data; u32 len; u32 cap; } AIL_ARR_##T
+#define AIL_ARR(T) AIL_ARR_##T
+#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator allocator; } AIL_DA_##T
+#define AIL_DA(T) AIL_DA_##T
+AIL_DA_INIT(u8);    AIL_SLICE_INIT(u8);    AIL_ARR_INIT(u8);
+AIL_DA_INIT(u16);   AIL_SLICE_INIT(u16);   AIL_ARR_INIT(u16);
+AIL_DA_INIT(u32);   AIL_SLICE_INIT(u32);   AIL_ARR_INIT(u32);
+AIL_DA_INIT(u64);   AIL_SLICE_INIT(u64);   AIL_ARR_INIT(u64);
+AIL_DA_INIT(i8);    AIL_SLICE_INIT(i8);    AIL_ARR_INIT(i8);
+AIL_DA_INIT(i16);   AIL_SLICE_INIT(i16);   AIL_ARR_INIT(i16);
+AIL_DA_INIT(i32);   AIL_SLICE_INIT(i32);   AIL_ARR_INIT(i32);
+AIL_DA_INIT(i64);   AIL_SLICE_INIT(i64);   AIL_ARR_INIT(i64);
+AIL_DA_INIT(f32);   AIL_SLICE_INIT(f32);   AIL_ARR_INIT(f32);
+AIL_DA_INIT(f64);   AIL_SLICE_INIT(f64);   AIL_ARR_INIT(f64);
+AIL_DA_INIT(pchar); AIL_SLICE_INIT(pchar); AIL_ARR_INIT(pchar);
+AIL_DA_INIT(void);  AIL_SLICE_INIT(void);  AIL_ARR_INIT(void);
+AIL_DA_INIT(char);  AIL_SLICE_INIT(char);  AIL_ARR_INIT(char);
 
 
 #define ail_slice_from_parts(d, l) { .data = (d),       .len = (l) }

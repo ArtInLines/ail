@@ -26,7 +26,6 @@ SOFTWARE.
 #ifndef AIL_TIME_H_
 #define AIL_TIME_H_
 
-#define AIL_TYPES_IMPL
 #include "ail.h"
 
 #include <time.h> // For clock

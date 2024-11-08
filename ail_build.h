@@ -130,7 +130,7 @@ typedef struct {
 
 AIL_BUILD_DEF void  ail_build_rebuild_urself(i32 argc, char **argv);
 AIL_BUILD_DEF char* ail_build_get_exe_name(const char *s, u32 n, AIL_Allocator allocator);
-AIL_BUILD_DEF AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(str) *argv, AIL_Allocator allocator);
+AIL_BUILD_DEF AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(pchar) *argv, AIL_Allocator allocator);
 AIL_BUILD_DEF void  ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *fpath, AIL_Allocator allocator);
 AIL_BUILD_DEF AIL_Build_Comp ail_build_comp_from_str(char *str);
 
@@ -205,7 +205,7 @@ char* ail_build_get_exe_name(const char *s, u32 n, AIL_Allocator allocator)
 }
 
 // @Note: Code taken almost 1-to-1 from tsoding's nob.h (https://github.com/tsoding/musializer/blob/master/nob.h)
-char* ail_build_cmd_to_str(AIL_DA(str) cmd)
+char* ail_build_cmd_to_str(AIL_DA(pchar) cmd)
 {
     AIL_ASSERT(cmd.len);
     AIL_DA(char) str = ail_da_new_with_alloc(char, 256, cmd.allocator);
@@ -226,7 +226,7 @@ char* ail_build_cmd_to_str(AIL_DA(str) cmd)
     return str.data;
 }
 
-AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(str) *argv, AIL_Allocator allocator)
+AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(pchar) *argv, AIL_Allocator allocator)
 {
     AIL_Build_Proc_Res res = {
         .out  = "",
@@ -337,7 +337,7 @@ AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(str) *argv, AIL_Allocator allocato
 
 void ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *fpath, AIL_Allocator allocator)
 {
-    AIL_DA(str) argv = ail_da_new_with_alloc(str, 256, allocator);
+    AIL_DA(pchar) argv = ail_da_new_with_alloc(pchar, 256, allocator);
     switch (cc.type) {
         case AIL_BUILD_COMP_DEFAULT: {
             AIL_TODO(); // Pick compiler based on current platform and availability of compilers (how do I check that?)

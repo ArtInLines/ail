@@ -26,7 +26,6 @@ SOFTWARE.
 #ifndef AIL_FS_H_
 #define AIL_FS_H_
 
-#define AIL_TYPES_IMPL
 #include "ail.h"      // For type-definitions
 #include <stdlib.h>   // For memcpy (and malloc if not overwritten)
 #include <fcntl.h>    // For file access flags
@@ -154,7 +153,7 @@ AIL_FS_DEF b32  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
 
 #ifdef AIL_DA_IMPL
 // @Important: Not yet implemented
-AIL_FS_DEF AIL_DA(str) ail_fs_get_files_in_dir(const char *dirpath);
+AIL_FS_DEF AIL_DA(pchar) ail_fs_get_files_in_dir(const char *dirpath);
 #endif
 
 AIL_FS_DEF_INLINE b32 ail_fs_dir_exists(const char *dirpath);
@@ -415,10 +414,10 @@ b32 ail_fs_write_file(const char *fpath, const char *buf, u64 size)
 //////////////////
 
 #ifdef AIL_DA_IMPL
-AIL_DA(str) ail_fs_get_files_in_dir(const char *dirpath)
+AIL_DA(pchar) ail_fs_get_files_in_dir(const char *dirpath)
 {
     AIL_UNUSED(dirpath);
-    AIL_DA(str) files = ail_da_new_with_cap(str, 16);
+    AIL_DA(pchar) files = ail_da_new_with_cap(pchar, 16);
     AIL_TODO();
     return files;
 }
