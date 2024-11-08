@@ -1,7 +1,6 @@
 // Test ail_fs.h
 
 #include "test_assert.h"
-#define AIL_FS_IMPL
 #include "../ail_fs.h"
 #include <stdio.h>
 
