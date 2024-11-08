@@ -1,5 +1,4 @@
 #include "./test_assert.h"
-#define AIL_SV_IMPL
 #include "../ail_sv.h"
 #include <stdbool.h>
 #include <string.h>

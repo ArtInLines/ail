@@ -114,7 +114,7 @@ AIL_RING_DEF void ail_ring_writen   (AIL_RingBuffer *rb, u64 n, u8 *buf);
 #endif // AIL_RING_H_
 
 
-#ifdef  AIL_RING_IMPL
+#if !defined(AIL_NO_RING_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_RING_IMPL_GUARD_
 #define _AIL_RING_IMPL_GUARD_
 
@@ -348,4 +348,4 @@ void ail_ring_writen(AIL_RingBuffer *rb, u64 n, u8 *buf)
 
 
 #endif // _AIL_RING_IMPL_GUARD_
-#endif // AIL_RING_IMPL
+#endif // AIL_NO_RING_IMPL

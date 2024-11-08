@@ -1,10 +1,9 @@
 /*
 * This header contains general utilities used throughout the other ail.h libraries
 *
-* By default this file only includes a bunch of useful macros (see list below), other features can be included by defining the following:
-  * AIL_ALL_IMPL:     shorthand to define all the following features
-  * AIL_ALLOC_IMPL:   include the AIL_Allocator struct for custom allocators
-  * AIL_DA_IMPL:      include macro-template for dynamic arrays (automatically enables AIL_ALLOC_IMPL as well)
+* By default this file includes all implementation alongside the declarations. To not include any implementation, define the following before including this file
+  * AIL_NO_IMPL:       include no implementations from any of the ail_* libraries included
+  * AIL_NO_ALLOC_IMPL: include no implementation for allocators
 * For the documentation of each of these, see below
 *
 * Define AIL_DEF (defaults to `static`), AIL_DEF_INLINE (defaults to `static inline`) if you want different function declarations as a default for all ail.h libraries
@@ -16,9 +15,10 @@
 *** Type Definitions ***
 * stdint.h & stdbool.h are included for specifically sized integer types and boolean types
 * via typedefs, the following types are declared as shortened forms of the original
-* Integers: u8, u16, u32, u64, i8, i16, i32, i64
-* Floats:   f32, f64
-* Boolean:  b32
+* Integers:  u8, u16, u32, u64, i8, i16, i32, i64
+* Floats:    f32, f64
+* Boolean:   b32
+* C-Strings: pchar
 * Furthermore, aliases for the static keyword are defined, that make the keyword's usage clearer:
 * 'internal', 'persist', 'global'
 *
@@ -257,7 +257,6 @@ SOFTWARE.
 
 /////////////////////////
 // Custom Typedefs
-// always enabled
 /////////////////////////
 #include <stdint.h>
 #include <stdbool.h>
@@ -281,7 +280,6 @@ typedef char*    pchar;
 
 /////////////////////////
 // Platform Identification Macros
-// always enabled
 /////////////////////////
 
 #if defined(_WIN32) || defined(__WIN32__)
@@ -448,7 +446,6 @@ typedef char*    pchar;
 
 /////////////////////////
 // Custom Utility Macros
-// always enabled
 /////////////////////////
 #include <stdlib.h> // For exit
 
@@ -925,13 +922,8 @@ typedef char*    pchar;
 
 /////////////////////////
 // General Allocator Interface
-// enable implementaton with `#define AIL_ALLOC_IMPL`
-// automatically enabled when, AIL_DA is also enabled
+// implementation is at bottom of file
 /////////////////////////
-#if defined(AIL_ALLOC_IMPL) || defined(AIL_DA_IMPL) || defined(AIL_ALL_IMPL)
-#ifndef _AIL_ALLOCATOR_GUARD_
-#define _AIL_ALLOCATOR_GUARD_
-
 #define _AIL_ALLOCATOR_SIZE_TYPE_ u64
 
 // Allocate a region of memory holding at least <size> bytes
@@ -980,35 +972,7 @@ typedef struct AIL_Allocator {
     AIL_Allocator_Func_Ptr alloc;
 } AIL_Allocator;
 
-AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr)
-{
-    AIL_UNUSED(data);
-    switch (mode) {
-        case AIL_MEM_ALLOC:    return AIL_MALLOC(size);
-        case AIL_MEM_CALLOC:   return AIL_CALLOC(size, 1);
-        case AIL_MEM_REALLOC:  return AIL_REALLOC(old_ptr, size);
-        case AIL_MEM_SHRINK:
-        case AIL_MEM_FREE:
-        case AIL_MEM_CLEAR_ALL:
-        case AIL_MEM_FREE_ALL: return NULL;
-    }
-    AIL_UNREACHABLE();
-    return NULL;
-}
-
-global AIL_Allocator ail_default_allocator = {
-    .data  = NULL,
-    .alloc = &ail_default_alloc,
-};
-
-// Function just exists to suppress of potential "unused ail_default_allocator" warning
-AIL_DEF void __ail_default_allocator_unused__(void)
-{
-    AIL_UNUSED(ail_default_allocator);
-}
-
-#endif // _AIL_ALLOCATOR_GUARD_
-#endif // AIL_ALLOC_IMPL
+AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr);
 
 
 /////////////////////////
@@ -1018,10 +982,6 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 // - nob.h (https://github.com/tsoding/musializer/blob/master/src/nob.h)
 // - stb_ds.h (https://github.com/nothings/stb/blob/master/stb_ds.h)
 /////////////////////////
-#if defined(AIL_DA_IMPL) || defined(AIL_ALL_IMPL)
-#ifndef _AIL_DA_GUARD_
-#define _AIL_DA_GUARD_
-
 #include <string.h> // For memcpy
 #ifndef AIL_DA_PRINT
 #include <stdio.h> // For printf
@@ -1033,11 +993,11 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 #endif
 
 // @TODO: Rename AIL_ARR
-#define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; u32 len; } AIL_SLICE_##T
+#define AIL_SLICE_INIT(T) typedef struct AIL_SLICE_##T { T *data; u64 len; } AIL_SLICE_##T
 #define AIL_SLICE(T) AIL_SLICE_##T
-#define AIL_ARR_INIT(T) typedef struct AIL_ARR_##T { T *data; u32 len; u32 cap; } AIL_ARR_##T
+#define AIL_ARR_INIT(T) typedef struct AIL_ARR_##T { T *data; u64 len; u64 cap; } AIL_ARR_##T
 #define AIL_ARR(T) AIL_ARR_##T
-#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u32 len; u32 cap; AIL_Allocator allocator; } AIL_DA_##T
+#define AIL_DA_INIT(T) typedef struct AIL_DA_##T { T *data; u64 len; u64 cap; AIL_Allocator allocator; } AIL_DA_##T
 #define AIL_DA(T) AIL_DA_##T
 AIL_DA_INIT(u8);    AIL_SLICE_INIT(u8);    AIL_ARR_INIT(u8);
 AIL_DA_INIT(u16);   AIL_SLICE_INIT(u16);   AIL_ARR_INIT(u16);
@@ -1174,7 +1134,42 @@ AIL_DA_INIT(char);  AIL_SLICE_INIT(char);  AIL_ARR_INIT(char);
 
 #define ail_da_rm_swap(daPtr, idx) (daPtr)->data[(idx)] = (daPtr)->data[--(daPtr)->len]
 
-#endif // _AIL_DA_GUARD_
-#endif // AIL_DA_IMPL
 
 #endif // AIL_H_
+
+
+
+#if !defined(AIL_NO_ALLOC_IMPL) && !defined(AIL_NO_IMPL)
+#ifndef _AIL_ALLOCATOR_GUARD_
+#define _AIL_ALLOCATOR_GUARD_
+
+AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr)
+{
+    AIL_UNUSED(data);
+    switch (mode) {
+        case AIL_MEM_ALLOC:    return AIL_MALLOC(size);
+        case AIL_MEM_CALLOC:   return AIL_CALLOC(size, 1);
+        case AIL_MEM_REALLOC:  return AIL_REALLOC(old_ptr, size);
+        case AIL_MEM_SHRINK:
+        case AIL_MEM_FREE:
+        case AIL_MEM_CLEAR_ALL:
+        case AIL_MEM_FREE_ALL: return NULL;
+    }
+    AIL_UNREACHABLE();
+    return NULL;
+}
+
+global AIL_Allocator ail_default_allocator = {
+    .data  = NULL,
+    .alloc = &ail_default_alloc,
+};
+
+// Function just exists to suppress of potential "unused ail_default_allocator" warning
+AIL_DEF void __ail_default_allocator_unused__(void)
+{
+    AIL_UNUSED(ail_default_allocator);
+}
+
+#endif // _AIL_ALLOCATOR_GUARD_
+#endif // AIL_NO_ALLOC_IMPL
+

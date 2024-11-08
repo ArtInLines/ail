@@ -1,6 +1,6 @@
 // Different types of Allocators
 //
-// Define AIL_ALLOC_IMPL in some file, to include the function bodies
+// Define AIL_NO_ALLOC_IMPL in some file, to not include any implementations
 // Define AIL_ALLOC_ALIGNMENT to change the alignment used by all custom allocators
 // Define AIL_ALLOC_PRINT_MEM to track (all) allocations
 //
@@ -12,6 +12,7 @@
 // @TODO: Add a way to only track allocations of a single allocator / allocator-type (?)
 // @TODO: Add a way to track amount of used memory
 // @TODO: Change the semantics of alloc/calloc to mean that if `old_ptr` is unequal to 0, it should try to allocate there (like mmap & VirtualAlloc do too)
+// @TODO: Add "mark()" and "reset()" function for (temporary) allocators (could this be added to general purpose allocators like the freelist too?)
 //
 // LICENSE
 /*
@@ -40,7 +41,6 @@ SOFTWARE.
 #ifndef AIL_ALLOC_H_
 #define AIL_ALLOC_H_
 
-#define AIL_ALL_IMPL
 #include "ail.h"
 #include <string.h> // For memcpy
 
@@ -204,11 +204,10 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_pool_alloc;
 AIL_ALLOC_DEF AIL_Allocator ail_alloc_freelist_new(u64 cap, AIL_Allocator *backing_allocator);
 AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 
-
 #endif // AIL_ALLOC_H_
 
-#define AIL_ALLOC_IMPL
-#ifdef AIL_ALLOC_IMPL
+
+#if !defined(AIL_NO_ALLOC_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_ALLOC_IMPL_GUARD_
 #define _AIL_ALLOC_IMPL_GUARD_
 
@@ -216,7 +215,7 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 
 // @TODO: Provide reserve/committ capacities for allocators instead of just one capacity
 // @TODO: Implement Page Allocations for OSes other than WINDOWS and UNIX
-#if defined(_WIN32)
+#if AIL_OS_WIN32
 #include <Windows.h> // For VirtualAlloc, VirtualFree
 #else
 #include <sys/mman.h> // For mmap, munmap
@@ -1211,4 +1210,4 @@ void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, vo
 
 
 #endif // _AIL_ALLOC_IMPL_GUARD_
-#endif // AIL_ALLOC_IMPL
+#endif // AIL_NO_ALLOC_IMPL

@@ -1,8 +1,6 @@
 # ail
 
-[stb](https://github.com/nothings/stb)-[style](https://github.com/nothings/stb/blob/master/docs/stb_howto.txt) single-file MIT licensed libraries for C/C++.
-
-The goal is to create an actually useful and well-designed Standard Library to C, that is both portable and performant.
+Modern Standard Library for C, that is both portable and performant.
 
 ## Disclaimer
 
@@ -36,6 +34,18 @@ The file [Predefined_Macros.md](./Predefined_Macros.md) also contains a list of 
 | [ail_math.h](./ail_math.h)   | Mathematical functions. The file itself is generated (but readable) code by [./gen/math_gen.c](./gen/math_gen.c) |
 | [ail_pm.h](./ail_pm.h)       | Pattern Matching Library. Currently supports Regex & Glob Patterns                                               |
 | [ail_gui.h](./ail_gui.h)     | DEPRECATED: GUI-Library for use with Raylib (can only be compiled when raylib.h is already included)             |
+
+## Usage
+
+TBD
+
+## Goals
+
+TBD
+
+## Roadmap
+
+TBD
 
 ## Conventions
 

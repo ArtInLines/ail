@@ -1,6 +1,5 @@
 // Test the AIL_DA macros in ail.h
 
-#define AIL_ALL_IMPL
 #include "../ail.h"
 #include <stdio.h>
 #include <stdbool.h>

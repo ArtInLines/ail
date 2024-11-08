@@ -1,5 +1,4 @@
 #include "./test_assert.h"
-#define AIL_ALLOC_IMPL
 #include "../ail_alloc.h"
 
 static inline u64 sum(u64 n)

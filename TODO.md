@@ -3,7 +3,7 @@
   - Allow parallelization of builds
   - Provide thin abstraction layer over different C compilers
   - Inspired by tsoding's nob: https://github.com/tsoding/musializer/blob/master/src/nob.h
-- Sized-Heap-Array template like AIL_DA
+
 - Dynamic Array that doesn't invalidate indexes template
   - needs some name - doesn't seem to have one (except for jdah's 'blklist')
   - can be implemented with pointer invalidation or without (i.e. normal resizing or with linked-list regions)

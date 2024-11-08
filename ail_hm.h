@@ -29,7 +29,6 @@ SOFTWARE.
 #ifndef AIL_HM_H_
 #define AIL_HM_H_
 
-#define AIL_ALLOC_IMPL
 #include "ail.h"
 
 #ifndef AIL_HM_DEF
@@ -208,7 +207,8 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
 
 #endif // AIL_HM_H_
 
-#ifdef AIL_HM_IMPL
+
+#if !defined(AIL_NO_HM_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef AIL_HM_IMPL_GUARD
 #define AIL_HM_IMPL_GUARD
 
@@ -219,4 +219,4 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x)
 }
 
 #endif // AIL_HM_IMPL_GUARD
-#endif // AIL_HM_IMPL
+#endif // AIL_NO_HM_IMPL

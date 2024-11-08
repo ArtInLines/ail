@@ -134,8 +134,11 @@ AIL_BUILD_DEF AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(pchar) *argv, AIL_Al
 AIL_BUILD_DEF void  ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *fpath, AIL_Allocator allocator);
 AIL_BUILD_DEF AIL_Build_Comp ail_build_comp_from_str(char *str);
 
+#endif // AIL_BUILD_H_
 
-#ifdef AIL_BUILD_IMPL
+
+
+#if !defined(AIL_NO_BUILD_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_BUILD_IMPL_GUARD_
 #define _AIL_BUILD_IMPL_GUARD_
 
@@ -492,6 +495,4 @@ void ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *
 }
 
 #endif // _AIL_BUILD_IMPL_GUARD_
-#endif // AIL_BUILD_IMPL
-
-#endif // AIL_BUILD_H_
+#endif // AIL_NO_BUILD_IMPL

@@ -1,6 +1,6 @@
 // Memory Debugger
 //
-// Enable implementation by defining AIL_MD_IMPL
+// Disable implementation by defining AIL_NO_MD_IMPL
 //
 // If AIL_MD_MEM_DEBUG is enabled, the memory debugging system will create macros that replace malloc, calloc, free and realloc
 // and allows the system to keppt track of and report where memory is beeing allocated, how much and if the memory is beeing freed.
@@ -107,7 +107,7 @@ AIL_MD_DEF void ail_md_mem_fclose(void *f, char *file, u32 line);
 
 #endif // AIL_MD_H_
 
-#ifdef AIL_MD_IMPL
+#if !defined(AIL_NO_MD_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_MD_IMPL_GUARD_
 #define _AIL_MD_IMPL_GUARD_
 
@@ -182,7 +182,7 @@ void ail_md_mem_fclose(void *f, char *file, u32 line)
 {
     (void)file;
     (void)line;
-    fclose(f);
+    fclose((FILE*)f);
 }
 
 
@@ -669,7 +669,7 @@ void exit_crash(u32 i)
 }
 
 #endif // _AIL_MD_IMPL_GUARD_
-#endif // AIL_MD_IMPL
+#endif // AIL_NO_MD_IMPL
 
 #ifdef AIL_MD_MEM_DEBUG
 #define malloc(n)     ail_md_malloc(n, __FILE__, __LINE__)     // Replaces malloc

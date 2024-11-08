@@ -57,12 +57,8 @@ SOFTWARE.
 #ifndef AIL_PM_H_
 #define AIL_PM_H_
 
-#define AIL_ALL_IMPL
 #include "ail.h"
-
-#ifdef AIL_SV_IMPL
-#   include "ail_sv.h"
-#endif
+#include "ail_sv.h"
 
 #ifndef AIL_PM_DEF
 #   ifdef  AIL_DEF
@@ -260,14 +256,12 @@ AIL_PM_DEF_INLINE b32   ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b);
 #define ail_pm_compile(p, plen, exp_type) ail_pm_compile_a(p, plen, exp_type, ail_default_allocator)
 #define ail_pm_free(pattern)              ail_pm_free_a(pattern, ail_default_allocator)
 
-#ifdef AIL_SV_H_
-    AIL_PM_DEF AIL_PM_Comp_Res ail_pm_compile_sv_a(AIL_SV pattern, AIL_PM_Exp_Type type, AIL_Allocator allocator);
-    AIL_PM_DEF AIL_PM_Match ail_pm_match_greedy_sv(AIL_PM_Pattern pattern, AIL_SV sv);
-    AIL_PM_DEF AIL_PM_Match ail_pm_match_lazy_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
-    AIL_PM_DEF AIL_PM_Match ail_pm_match_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
-    AIL_PM_DEF b32          ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv);
-#   define ail_pm_compile_sv(pattern, type) ail_pm_compile_sv_a(pattern, type, ail_default_allocator)
-#endif
+AIL_PM_DEF AIL_PM_Comp_Res ail_pm_compile_sv_a(AIL_SV pattern, AIL_PM_Exp_Type type, AIL_Allocator allocator);
+AIL_PM_DEF AIL_PM_Match ail_pm_match_greedy_sv(AIL_PM_Pattern pattern, AIL_SV sv);
+AIL_PM_DEF AIL_PM_Match ail_pm_match_lazy_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
+AIL_PM_DEF AIL_PM_Match ail_pm_match_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
+AIL_PM_DEF b32          ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv);
+#define ail_pm_compile_sv(pattern, type) ail_pm_compile_sv_a(pattern, type, ail_default_allocator)
 
 AIL_PM_DEF AIL_PM_Comp_Char_Res _ail_pm_comp_range_char(const char *p, u32 plen, u32 *idx);
 AIL_PM_DEF AIL_PM_Comp_El_Res   _ail_pm_comp_range(const char *p, u32 plen, u32 *idx, AIL_Allocator allocator);
@@ -281,7 +275,7 @@ AIL_PM_DEF u32 _ail_pm_match_immediate_greedy(AIL_PM_El *els, u32 ellen, const c
 // IMPLEMENTATION //
 ////////////////////
 
-#ifdef AIL_PM_IMPL
+#if !defined(AIL_NO_PM_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_PM_IMPL_GUARD_
 #define _AIL_PM_IMPL_GUARD_
 
@@ -704,4 +698,4 @@ b32 ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b)
 }
 
 #endif // _AIL_PM_IMPL_GUARD_
-#endif // AIL_PM_IMPL
+#endif // AIL_NO_PM_IMPL

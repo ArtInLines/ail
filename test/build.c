@@ -1,6 +1,3 @@
-#define AIL_BUILD_IMPL
-#define AIL_FS_IMPL
-#define AIL_SV_IMPL
 #include "../ail_build.h"
 #include "../ail_fs.h"
 #include "../ail_sv.h"

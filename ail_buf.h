@@ -27,6 +27,8 @@ SOFTWARE.
 #define AIL_BUF_H_
 
 #include "ail.h"
+#include "ail_fs.h"
+#include <string.h> // For memcpy
 
 #ifndef AIL_BUF_DEF
 #ifdef  AIL_DEF
@@ -56,8 +58,6 @@ SOFTWARE.
 #error "You must define both AIL_BUF_MALLOC and AIL_BUF_FREE, or neither."
 #endif
 
-#include <string.h> // For memcpy
-
 typedef struct {
     u8 *data;
     u64 idx;
@@ -67,15 +67,9 @@ typedef struct {
 
 // @TODO: Add overflow checks when reading/peeking
 
-#ifdef AIL_FS_IMPL
-#   include "ail_fs.h"
-#endif // AIL_FS_IMPL
-#ifdef AIL_FS_H_
-    AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_file(const char *filename);
-    AIL_BUF_DEF_INLINE bool ail_buf_copy_to_file(AIL_Buffer buf, const char *filename);
-    AIL_BUF_DEF_INLINE bool ail_buf_to_file(AIL_Buffer *buf, const char *filename);
-#endif // AIL_FS_H_
-
+AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_file(const char *filename);
+AIL_BUF_DEF_INLINE bool ail_buf_copy_to_file(AIL_Buffer buf, const char *filename);
+AIL_BUF_DEF_INLINE bool ail_buf_to_file(AIL_Buffer *buf, const char *filename);
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_data(u8 *data, u64 len, u64 idx);
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_new(u64 cap);
 AIL_BUF_DEF void ail_buf_ensure_size(AIL_Buffer *buf, u64 n);
@@ -117,11 +111,10 @@ AIL_BUF_DEF void ail_buf_writecstr(AIL_Buffer *buf, char *str);
 #endif // AIL_BUF_H_
 
 
-#ifdef  AIL_BUF_IMPL
+#if !defined(AIL_NO_BUF_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_BUF_IMPL_GUARD_
 #define _AIL_BUF_IMPL_GUARD_
 
-#ifdef AIL_FS_H_
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_from_file(const char *filename)
 {
     u64 len;
@@ -146,7 +139,6 @@ AIL_BUF_DEF_INLINE bool ail_buf_to_file(AIL_Buffer *buf, const char *filename)
     AIL_BUF_FREE((void *)buf->data);
     return out;
 }
-#endif // AIL_FS_H_
 
 AIL_BUF_DEF_INLINE AIL_Buffer ail_buf_new(u64 cap)
 {
@@ -431,4 +423,4 @@ AIL_BUF_DEF void ail_buf_writecstr(AIL_Buffer *buf, char *str)
 }
 
 #endif // _AIL_BUF_IMPL_GUARD_
-#endif // AIL_BUF_IMPL
+#endif // AIL_NO_BUF_IMPL

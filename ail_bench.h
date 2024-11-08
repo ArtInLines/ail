@@ -1,6 +1,6 @@
 // A simple instrumenting Profiler
 //
-// Define `AIL_BENCH_IMPL` to enable the implementation
+// Define `AIL_NO_BENCH_IMPL` to not include any implementation
 // Define `AIL_BENCH_PROFILE` to profile code blocks
 // Define `AIL_BENCH_PROFILE_ANCHOR_COUNT` to set the maximum amount of Profile Anchors
 //
@@ -118,7 +118,7 @@ AIL_BENCH_DEF void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 de
 
 
 
-#ifdef AIL_BENCH_IMPL
+#if !defined(AIL_NO_BENCH_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_BENCH_IMPL_GUARD_
 #define _AIL_BENCH_IMPL_GUARD_
 global AIL_Bench_Global_Info ail_bench_global_info = {0};
@@ -419,4 +419,4 @@ u64 ail_bench_cpu_timer(void)
 }
 
 #endif // _AIL_BENCH_IMPL_GUARD_
-#endif // AIL_BENCH_IMPL
+#endif // AIL_NO_BENCH_IMPL

@@ -1,4 +1,3 @@
-#define AIL_MATH_IMPL
 #include "../ail_math.h"
 #include "./test_assert.h"
 #include <stdio.h>

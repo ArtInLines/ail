@@ -87,8 +87,6 @@
  */
 
 
-#define AIL_PM_IMPL
-#define AIL_SV_IMPL
 #include "../ail_sv.h"
 #include "../ail_pm.h"
 #include "./test_assert.h"

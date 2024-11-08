@@ -64,7 +64,7 @@ SOFTWARE.
 #define AIL_FS_MAX_ATTEMPTS 8
 #endif // AIL_FS_MAX_ATTEMPTS
 
-#ifdef _WIN32
+#if AIL_OS_WIN32
 #   include <windows.h>
 #   include <direct.h>
 #   define mkdir(dir, mode)      _mkdir(dir)
@@ -86,7 +86,7 @@ SOFTWARE.
 // Files/Directories
 ///////////////////
 
-#ifdef _WIN32
+#if AIL_OS_WIN32
 #   define AIL_FS_DIRENT_NAME_LEN (MAX_PATH + MAX_PATH + 1)
 #else
 #   define AIL_FS_DIRENT_NAME_LEN (256)
@@ -151,10 +151,8 @@ AIL_FS_DEF b32  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
 // Miscellanous //
 //////////////////
 
-#ifdef AIL_DA_IMPL
 // @Important: Not yet implemented
 AIL_FS_DEF AIL_DA(pchar) ail_fs_get_files_in_dir(const char *dirpath);
-#endif
 
 AIL_FS_DEF_INLINE b32 ail_fs_dir_exists(const char *dirpath);
 AIL_FS_DEF const char *ail_fs_get_file_ext(const char *filename);
@@ -165,7 +163,7 @@ AIL_FS_DEF b32 ail_fs_is_file(const char *path);
 
 
 
-#ifdef  AIL_FS_IMPL
+#if !defined(AIL_NO_FS_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_FS_IMPL_GUARD_
 #define _AIL_FS_IMPL_GUARD_
 
@@ -192,7 +190,7 @@ AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath)
 {
     AIL_ASSERT(dirpath);
     AIL_FS_Read_Dir_Res res = { 0 };
-#ifdef _WIN32
+#if AIL_OS_WIN32
     WCHAR buffer[MAX_PATH];
     swprintf_s(buffer, MAX_PATH, L"%s\\*", dirpath);
     WIN32_FIND_DATAW ffd;
@@ -214,7 +212,7 @@ AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir)
 {
     AIL_FS_Dirent res = dir.dirent;
     if (AIL_LIKELY(ail_fs_dirent_is_nil(res))) {
-#ifdef _WIN32
+#if AIL_OS_WIN32
         WIN32_FIND_DATAW ffd;
         if (!FindNextFileW(dir.handle, &ffd)) {
             DWORD err = GetLastError();
@@ -238,7 +236,7 @@ AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir)
 
 void ail_fs_read_dir_deinit(AIL_FS_Read_Dir_Res dir)
 {
-#ifdef _WIN32
+#if AIL_OS_WIN32
     FindClose(dir.handle);
 #else
     AIL_TODO();
@@ -253,7 +251,7 @@ void ail_fs_read_dir_deinit(AIL_FS_Read_Dir_Res dir)
 
 b32 ail_fs_open_file(const char *fpath, u64 *file, b32 writeable)
 {
-#ifdef _WIN32
+#if AIL_OS_WIN32
     u32 access = GENERIC_READ;
     if (writeable) access |= GENERIC_WRITE;
     void *handle = CreateFile(fpath, access, FILE_SHARE_READ, 0, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
@@ -272,7 +270,7 @@ b32 ail_fs_open_file(const char *fpath, u64 *file, b32 writeable)
 
 void ail_fs_close_file(u64 file)
 {
-#ifdef _WIN32
+#if AIL_OS_WIN32
     CloseHandle((void *)file);
 #else
     close(file);
@@ -281,7 +279,7 @@ void ail_fs_close_file(u64 file)
 
 b32 ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
 {
-#ifdef _WIN32
+#if AIL_OS_WIN32
     *actualN = 0;
     void *file = (void *)fd;
     OVERLAPPED osReader = {0};
@@ -354,7 +352,7 @@ char* ail_fs_read_entire_file(const char *fpath, u64 *size)
 
 b32 ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
 {
-#ifdef _WIN32
+#if AIL_OS_WIN32
     void *file = (void *)fd;
     OVERLAPPED osWrite = {0};
     osWrite.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -413,7 +411,6 @@ b32 ail_fs_write_file(const char *fpath, const char *buf, u64 size)
 // Miscellanous //
 //////////////////
 
-#ifdef AIL_DA_IMPL
 AIL_DA(pchar) ail_fs_get_files_in_dir(const char *dirpath)
 {
     AIL_UNUSED(dirpath);
@@ -421,7 +418,6 @@ AIL_DA(pchar) ail_fs_get_files_in_dir(const char *dirpath)
     AIL_TODO();
     return files;
 }
-#endif
 
 b32 ail_fs_dir_exists(const char *dirpath)
 {
@@ -452,4 +448,4 @@ b32 ail_fs_is_file(const char *path)
 }
 
 #endif // _AIL_FS_IMPL_GUARD_
-#endif // AIL_FS_IMPL
+#endif // AIL_NO_FS_IMPL

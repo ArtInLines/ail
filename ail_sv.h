@@ -50,7 +50,6 @@ SOFTWARE.
 #ifndef AIL_SV_H_
 #define AIL_SV_H_
 
-#define AIL_ALL_IMPL
 #include "ail.h"
 
 #ifndef AIL_SV_DEF
@@ -274,12 +273,10 @@ AIL_SV_DEF AIL_DA(AIL_SV) ail_sv_split_whitespace_a(AIL_SV sv, bool ignore_empty
 // @Important: To avoid memory leaks, make sure to free the underlying string
 AIL_SV_DEF AIL_Str ail_sv_join_a    (AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allocator);
 AIL_SV_DEF AIL_Str ail_sv_rev_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allocator);
-AIL_SV_DEF AIL_Str ail_sv_join_da_a    (AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_Allocator allocator);
-AIL_SV_DEF AIL_Str ail_sv_rev_join_da_a(AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_Allocator allocator);
 #define ail_sv_join(list, n, joiner)     ail_sv_join_a(list, n, joiner, ail_default_allocator)
 #define ail_sv_rev_join(list, n, joiner) ail_sv_rev_join_a(list, n, joiner, ail_default_allocator)
-#define ail_sv_join_da(list, joiner)     ail_sv_join_da_a(list, joiner, ail_default_allocator)
-#define ail_sv_rev_join_da(list, joiner) ail_sv_rev_join_da_a(list, joiner, ail_default_allocator)
+#define ail_sv_join_da(list, joiner)     ail_sv_join_a((list).data, (list).len, joiner, ail_default_allocator)
+#define ail_sv_rev_join_da(list, joiner) ail_sv_rev_join_da_a((list).data, (list).len, joiner, ail_default_allocator)
 
 //////////////////
 // Miscellanous //
@@ -352,7 +349,7 @@ AIL_SV_DEF AIL_Str ail_sv_replace_a(AIL_SV sv, AIL_SV to_replace, AIL_SV replace
 // IMPLEMENTATION //
 ////////////////////
 
-#ifdef AIL_SV_IMPL
+#if !defined(AIL_NO_SV_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_SV_IMPL_GUARD_
 #define _AIL_SV_IMPL_GUARD_
 #include <stdarg.h> // For va_<>
@@ -1008,11 +1005,6 @@ AIL_Str ail_sv_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allocato
     return ail_str_from_parts(res, res_len);
 }
 
-AIL_Str ail_sv_join_da_a(AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_Allocator allocator)
-{
-    return ail_sv_join_a(list.data, list.len, joiner, allocator);
-}
-
 AIL_Str ail_sv_rev_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allocator)
 {
     if (n == 0) return ail_str_from_parts("", 0);
@@ -1031,11 +1023,6 @@ AIL_Str ail_sv_rev_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allo
     }
     res[res_len] = 0;
     return ail_str_from_parts(res, res_len);
-}
-
-AIL_Str ail_sv_rev_join_da_a(AIL_DA(AIL_SV) list, AIL_SV joiner, AIL_Allocator allocator)
-{
-    return ail_sv_rev_join_a(list.data, list.len, joiner, allocator);
 }
 
 AIL_Str ail_sv_concat2_full_a(char *astr, u64 alen, char *bstr, u64 blen, AIL_Allocator allocator)
@@ -1122,4 +1109,4 @@ AIL_Str ail_sv_replace_a(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_with, AIL_
 }
 
 #endif // _AIL_SV_IMPL_GUARD_
-#endif // AIL_SV_IMPL
+#endif // AIL_NO_SV_IMPL
