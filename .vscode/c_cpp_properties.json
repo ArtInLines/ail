@@ -12,7 +12,7 @@
             ],
             "windowsSdkVersion": "10.0.22621.0",
             "compilerPath": "cl.exe",
-            "cStandard": "c99",
+            "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "windows-msvc-x64"
         },
@@ -27,7 +27,7 @@
                 "_UNICODE"
             ],
             "compilerPath": "gcc.exe",
-            "cStandard": "c99",
+            "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "windows-gcc-x64"
         },
@@ -42,7 +42,7 @@
                 "_UNICODE"
             ],
             "compilerPath": "clang.exe",
-            "cStandard": "c99",
+            "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "windows-clang-x64"
         },
@@ -57,7 +57,7 @@
                 "_UNICODE"
             ],
             "compilerPath": "gcc",
-            "cStandard": "c99",
+            "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "linux-gcc-x64"
         },
@@ -72,7 +72,7 @@
                 "_UNICODE"
             ],
             "compilerPath": "clang",
-            "cStandard": "c99",
+            "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "linux-clang-x64"
         },
@@ -90,7 +90,7 @@
                 "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks"
             ],
             "compilerPath": "/usr/bin/clang",
-            "cStandard": "c99",
+            "cStandard": "c11",
             "cppStandard": "c++14",
             "intelliSenseMode": "macos-clang-x64"
         }
