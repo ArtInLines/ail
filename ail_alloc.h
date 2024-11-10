@@ -215,7 +215,7 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 
 // @TODO: Provide reserve/committ capacities for allocators instead of just one capacity
 // @TODO: Implement Page Allocations for OSes other than WINDOWS and UNIX
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
 #include <Windows.h> // For VirtualAlloc, VirtualFree
 #else
 #include <sys/mman.h> // For mmap, munmap

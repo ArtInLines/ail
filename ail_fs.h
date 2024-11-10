@@ -64,7 +64,7 @@ SOFTWARE.
 #define AIL_FS_MAX_ATTEMPTS 8
 #endif // AIL_FS_MAX_ATTEMPTS
 
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
 #   include <windows.h>
 #   include <direct.h>
 #   define mkdir(dir, mode)      _mkdir(dir)
@@ -86,7 +86,7 @@ SOFTWARE.
 // Files/Directories
 ///////////////////
 
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
 #   define AIL_FS_DIRENT_NAME_LEN (MAX_PATH + MAX_PATH + 1)
 #else
 #   define AIL_FS_DIRENT_NAME_LEN (256)
@@ -190,7 +190,7 @@ AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath)
 {
     AIL_ASSERT(dirpath);
     AIL_FS_Read_Dir_Res res = { 0 };
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
     WCHAR buffer[MAX_PATH];
     swprintf_s(buffer, MAX_PATH, L"%s\\*", dirpath);
     WIN32_FIND_DATAW ffd;
@@ -212,7 +212,7 @@ AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir)
 {
     AIL_FS_Dirent res = dir.dirent;
     if (AIL_LIKELY(ail_fs_dirent_is_nil(res))) {
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
         WIN32_FIND_DATAW ffd;
         if (!FindNextFileW(dir.handle, &ffd)) {
             DWORD err = GetLastError();
@@ -236,7 +236,7 @@ AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir)
 
 void ail_fs_read_dir_deinit(AIL_FS_Read_Dir_Res dir)
 {
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
     FindClose(dir.handle);
 #else
     AIL_TODO();
@@ -251,7 +251,7 @@ void ail_fs_read_dir_deinit(AIL_FS_Read_Dir_Res dir)
 
 b32 ail_fs_open_file(const char *fpath, u64 *file, b32 writeable)
 {
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
     u32 access = GENERIC_READ;
     if (writeable) access |= GENERIC_WRITE;
     void *handle = CreateFile(fpath, access, FILE_SHARE_READ, 0, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
@@ -270,7 +270,7 @@ b32 ail_fs_open_file(const char *fpath, u64 *file, b32 writeable)
 
 void ail_fs_close_file(u64 file)
 {
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
     CloseHandle((void *)file);
 #else
     close(file);
@@ -279,7 +279,7 @@ void ail_fs_close_file(u64 file)
 
 b32 ail_fs_read_n_bytes(u64 fd, void *buf, u64 maxN, u64 *actualN)
 {
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
     *actualN = 0;
     void *file = (void *)fd;
     OVERLAPPED osReader = {0};
@@ -352,7 +352,7 @@ char* ail_fs_read_entire_file(const char *fpath, u64 *size)
 
 b32 ail_fs_write_n_bytes(u64 fd, const char *buf, u64 size)
 {
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
     void *file = (void *)fd;
     OVERLAPPED osWrite = {0};
     osWrite.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);

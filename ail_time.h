@@ -59,7 +59,7 @@ AIL_TIME_DEF_INLINE f64 ail_time_clock_elapsed(f64 start);
 #ifndef _AIL_TIME_GUARD_
 #define _AIL_TIME_GUARD_
 
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
 #   include <windows.h> // For Sleep
 #   define AIL_TIME_FLAG_WINSLEEP
 #elif _POSIX_C_SOURCE >= 199309L
@@ -89,7 +89,7 @@ void ail_time_sleep(u64 msecs)
 
 f64 ail_time_clock_start(void)
 {
-#if AIL_OS_WIN32
+#if AIL_OS_WIN
     return (f64)timeGetTime() / 1000;
 #elif AIL_OS_POSIX
     struct timespec ts = {0};

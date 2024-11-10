@@ -2,8 +2,9 @@
 * This header contains general utilities used throughout the other ail.h libraries
 *
 * By default this file includes all implementation alongside the declarations. To not include any implementation, define the following before including this file
-  * AIL_NO_IMPL:       include no implementations from any of the ail_* libraries included
-  * AIL_NO_ALLOC_IMPL: include no implementation for allocators
+  * AIL_NO_IMPL:        include no implementations from any of the ail_* libraries included
+  * AIL_NO_ENDIAN_IMPL: include no implementation for endianness
+  * AIL_NO_ALLOC_IMPL:  include no implementation for allocators
 * For the documentation of each of these, see below
 *
 * Define AIL_DEF (defaults to `static`), AIL_DEF_INLINE (defaults to `static inline`) if you want different function declarations as a default for all ail.h libraries
@@ -24,11 +25,17 @@
 *
 *
 *** Platform Identification Macros ***
-* Heavily inspired by https://sourceforge.net/p/predef/wiki/Home/ and https://github.com/nemequ/hedley
-* Each of the following macros is defined to be either 1 or 0
+* Heavily inspired by (and adapted code of) the following:
+  * https://sourceforge.net/p/predef/wiki/Home/
+  * https://github.com/nemequ/hedley
+  * http://web.archive.org/web/20160306052035/http://nadeausoftware.com/articles/2012/01/c_c_tip_how_use_compiler_predefined_macros_detect_operating_system
+  * https://github.com/bjoernknafla/poc
+* Each of the following macros is defined to be either 1 or 0 (except AIL_LANG_STANDARD)
+* Architecture Size (aka size of pointers):
+  * AIL_32BIT
+  * AIL_64BIT
 * Operating System (several can be true at once):
-  * AIL_OS_WIN32
-  * AIL_OS_WIN64
+  * AIL_OS_WIN
   * AIL_OS_LINUX
   * AIL_OS_UNIX
   * AIL_OS_POSIX
@@ -36,32 +43,45 @@
   * AIL_OS_MAC
   * AIL_OS_IOS
   * AIL_OS_ANDROID
-  * AIL_OS_WEB
+  * AIL_OS_WASM
   * AIL_OS_BSD
-  * AIL_OS_MINGW32
-  * AIL_OS_MINGW64
+  * AIL_OS_MINGW
   * AIL_OS_CYGWIN
   * AIL_OS_SPARC
-* CPU Architecture (several can be true at once):
-  * AIL_ARCH_X86
-  * AIL_ARCH_X64
-  * AIL_ARCH_ARM
-  * AIL_ARCH_ARM64
-  * AIL_ARCH_MIPS
-  * AIL_ARCH_RISCV
-  * AIL_ARCH_RISCV64
+* CPU Architecture (at most one can be true):
+  * AIL_ARCH_X86   - https://en.wikipedia.org/wiki/X86
+  * AIL_ARCH_ARM   - https://en.wikipedia.org/wiki/ARM_architecture_family
+  * AIL_ARCH_MIPS  - https://en.wikipedia.org/wiki/MIPS_architecture
+  * AIL_ARCH_RISCV - https://en.wikipedia.org/wiki/RISC-V
+  * AIL_ARCH_SPARC - https://en.wikipedia.org/wiki/SPARC
+  * AIL_ARCH_PPC   - https://en.wikipedia.org/wiki/PowerPC
 * Compiler (at most one is true):
-  * AIL_COMP_CLANG - https://clang.llvm.org/
-  * AIL_COMP_MSVC - https://learn.microsoft.com/en-us/cpp/build/reference/compiling-a-c-cpp-program
-  * AIL_COMP_GCC - https://gcc.gnu.org/
-  * AIL_COMP_TCC - https://www.bellard.org/tcc/
-  * AIL_COMP_PELLES - http://www.smorgasbordet.com/pellesc/
+  * AIL_COMP_CLANG        - https://clang.llvm.org/
+  * AIL_COMP_MSVC         - https://learn.microsoft.com/en-us/cpp/build/reference/compiling-a-c-cpp-program
+  * AIL_COMP_GCC          - https://gcc.gnu.org/
+  * AIL_COMP_TCC          - https://www.bellard.org/tcc/
+  * AIL_COMP_PELLES       - http://www.smorgasbordet.com/pellesc/
   * AIL_COMP_DIGITAL_MARS - https://digitalmars.com/
-  * AIL_COMP_INTEL - https://www.intel.com/content/www/us/en/developer/tools/oneapi/dpc-compiler.html
-  * AIL_COMP_EMSCRIPTEN - https://emscripten.org/
+  * AIL_COMP_INTEL        - https://www.intel.com/content/www/us/en/developer/tools/oneapi/dpc-compiler.html
+  * AIL_COMP_EMSCRIPTEN   - https://emscripten.org/
 * Language (exactly one is true):
-  * AIL_LANG_CPP
   * AIL_LANG_C
+  * AIL_LANG_CPP
+  * AIL_LANG_OBJC
+* Language Standard: AIL_LANG_STANDARD
+  * AIL_LANG_STANDARD is defined to be the year of the standard's release (as a number)
+  * i.e. to test for C11+:
+    * #if AIL_LANG_C && AIL_LANG_STANDARD >= 2011
+  * to test for C++17+:
+    * #if AIL_LANG_CPP && AIL_LANG_STANDARD >= 2017
+*
+*
+*** Endianness ***
+* Endianness describes the order of bytes in a word/double-word.
+* The Enum AIL_Endian contains the different types of endianness recognized by ail.h
+* Detecting the platform's endianness cannot be done portably & reliably at compile-time (see https://sourceforge.net/p/predef/wiki/Endianness/)
+* The following functions are provided to work with different endiannesses:
+  * ail_endian: Detect the platform's endianness
 *
 *
 *** Useful Macros ***
@@ -256,142 +276,18 @@ SOFTWARE.
 
 
 /////////////////////////
-// Custom Typedefs
-/////////////////////////
-#include <stdint.h>
-#include <stdbool.h>
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint32_t b32;
-typedef uint64_t u64;
-typedef int8_t   i8;
-typedef int16_t  i16;
-typedef int32_t  i32;
-typedef int64_t  i64;
-typedef float    f32;
-typedef double   f64;
-typedef char*    pchar;
-
-#define internal static
-#define persist  static
-#define global   static
-
-
-/////////////////////////
 // Platform Identification Macros
 /////////////////////////
 
-#if defined(_WIN32) || defined(__WIN32__)
-#	define AIL_OS_WIN32 1
+#include <stdint.h> // For INTPTR_MAX, INT64_MAX, INT32_MAX
+#if INTPTR_MAX == INT32_MAX
+#   define AIL_32BIT 1
+#   define AIL_64BIT 0
+#elif INTPTR_MAX == INT64_MAX
+#   define AIL_32BIT 0
+#   define AIL_64BIT 1
 #else
-#   define AIL_OS_WIN32 0
-#endif
-#if defined(_WIN64)
-#	define AIL_OS_WIN64 1
-#else
-#   define AIL_OS_WIN64 0
-#endif
-#if defined(__linux__)
-#	define AIL_OS_LINUX 1
-#else
-#   define AIL_OS_LINUX 0
-#endif
-#if defined(__unix)
-#	define AIL_OS_UNIX 1
-#else
-#   define AIL_OS_UNIX 0
-#endif
-#if defined(__posix)
-#	define AIL_OS_POSIX 1
-#else
-#   define AIL_OS_POSIX 0
-#endif
-#if defined(__GNU__)
-#	define AIL_OS_GNU 1
-#else
-#   define AIL_OS_GNU 0
-#endif
-#if defined(__APPLE__) && defined(__MACH__)
-#	define AIL_OS_MAC 1
-#else
-#   define AIL_OS_MAC 0
-#endif
-#if defined(AIL_OS_IOS) // @TODO
-#	define AIL_OS_IOS 1
-#else
-#   define AIL_OS_IOS 0
-#endif
-#if defined(__ANDROID__)
-#	define AIL_OS_ANDROID 1
-#else
-#   define AIL_OS_ANDROID 0
-#endif
-#if defined(AIL_OS_WEB) // @TODO
-#	define AIL_OS_WEB 1
-#else
-#   define AIL_OS_WEB 0
-#endif
-#if defined(BSD)
-#	define AIL_OS_BSD 1
-#else
-#   define AIL_OS_BSD 0
-#endif
-#if defined(__MINGW32__)
-#	define AIL_OS_MINGW32 1
-#else
-#   define AIL_OS_MINGW32 0
-#endif
-#if defined(__MINGW64__)
-#	define AIL_OS_MINGW64 1
-#else
-#   define AIL_OS_MINGW64 0
-#endif
-#if defined(__CYGWIN__)
-#	define AIL_OS_CYGWIN 1
-#else
-#   define AIL_OS_CYGWIN 0
-#endif
-#if defined(__sparc__) || defined(__sparc)
-#	define AIL_OS_SPARC 1
-#else
-#   define AIL_OS_SPARC 0
-#endif
-
-#if defined(__i386) || defined(_M_IX86) || defined(_X86_) || defined(__X86__) || defined(__I86__)
-#	define AIL_ARCH_X86 1
-#else
-#   define AIL_ARCH_X86 0
-#endif
-#if defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(__amd64) || defined(_M_AMD64) || defined(_M_X64)
-#	define AIL_ARCH_X64 1
-#else
-#   define AIL_ARCH_X64 0
-#endif
-#if defined(__arm__) || defined(_M_ARM) || defined(_ARM)
-#	define AIL_ARCH_ARM 1
-#else
-#   define AIL_ARCH_ARM 0
-#endif
-#if defined(__aarch64__)
-#	define AIL_ARCH_ARM64 1
-#else
-#   define AIL_ARCH_ARM64 0
-#endif
-#if defined(__mips) || defined(__mips__) || defined(__MIPS__)
-#	define AIL_ARCH_MIPS 1
-#else
-#   define AIL_ARCH_MIPS 0
-#endif
-#if defined(__riscv)
-#	define AIL_ARCH_RISCV 1
-#else
-#   define AIL_ARCH_RISCV 0
-#endif
-#if defined(__riscv64)
-#	define AIL_ARCH_RISCV64 1
-#else
-#   define AIL_ARCH_RISCV64 0
+#   error "Compiling on a platform that is neither 32 nor 64 bit. Please change ail.h if you wish to compile on such a platform"
 #endif
 
 #if defined(__clang__)
@@ -435,13 +331,202 @@ typedef char*    pchar;
 #   define AIL_COMP_EMSCRIPTEN 0
 #endif
 
-#if defined(__cplusplus)
-#   define AIL_LANG_CPP 1
-#   define AIL_LANG_C   0
+#if defined(__OBJC__)
+#   define AIL_LANG_OBJC 1
+#   define AIL_LANG_CPP  0
+#   define AIL_LANG_C    0
+    // @Note: I do not know of any way to get the version for Objective-C from within C
+#   define AIL_LANG_STANDARD 1
+#elif defined(__cplusplus)
+#   define AIL_LANG_OBJC 0
+#   define AIL_LANG_CPP  1
+#   define AIL_LANG_C    0
+#   if __cplusplus == 1
+#       define AIL_LANG_STANDARD 1985
+#   elif __cplusplus == 199711L
+#       define AIL_LANG_STANDARD 1998
+#   elif __cplusplus == 201103L
+#       define AIL_LANG_STANDARD 2011
+#   elif __cplusplus == 201402L
+#       define AIL_LANG_STANDARD 2014
+#   elif __cplusplus == 201703L
+#       define AIL_LANG_STANDARD 2017
+#   elif __cplusplus == 202002L
+#       define AIL_LANG_STANDARD 2020
+#   elif __cplusplus >= 202302L
+#       define AIL_LANG_STANDARD 2023
+#   else
+#       define AIL_LANG_STANDARD 1989
+#   endif
 #else
+#   define AIL_LANG_OBJC 0
 #   define AIL_LANG_CPP 0
 #   define AIL_LANG_C   1
+#   if __STDC_VERSION__ == 199901L
+#       define AIL_LANG_STANDARD 1999
+#   elif __STDC_VERSION__ == 201112L
+#       define AIL_LANG_STANDARD 2011
+#   elif __STDC_VERSION__ == 201710L
+#       define AIL_LANG_STANDARD 2017
+#   elif __STDC_VERSION__ >= 202311L
+#       define AIL_LANG_STANDARD 2023
+#   else
+#       define AIL_LANG_STANDARD 1989
+#   endif
 #endif
+
+#if defined(_WIN32) || defined(__WIN32__) || defined(_WIN64)
+#	define AIL_OS_WIN 1
+#else
+#   define AIL_OS_WIN 0
+#endif
+#if defined(__linux__) || defined(__linux)
+#	define AIL_OS_LINUX 1
+#else
+#   define AIL_OS_LINUX 0
+#endif
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+#	define AIL_OS_UNIX 1
+#else
+#   define AIL_OS_UNIX 0
+#endif
+#if defined(__posix)
+#	define AIL_OS_POSIX 1
+#else
+#   define AIL_OS_POSIX 0
+#endif
+#if defined(__GNU__)
+#	define AIL_OS_GNU 1
+#else
+#   define AIL_OS_GNU 0
+#endif
+#if defined(__APPLE__) && defined(__MACH__)
+// @Note: There are many more target informations that could be retrieved from TargetConditionals.h
+// See the following for more info:
+// - https://epir.at/2019/10/30/api-availability-and-target-conditionals/
+// - https://github.com/xybp888/iOS-SDKs/blob/master/iPhoneOS13.0.sdk/usr/include/TargetConditionals.h
+#   include <TargetConditionals.h>
+#   if TARGET_OS_IPHONE // iOS, tvOS, or watchOS device
+#       define AIL_OS_MAC 0
+#       define AIL_OS_IOS 1
+#   elif TARGET_OS_MAC
+#       define AIL_OS_MAC 1
+#       define AIL_OS_IOS 0
+#   else
+#      define AIL_OS_MAC 0
+#      define AIL_OS_IOS 0
+#   endif
+#else
+#   define AIL_OS_MAC 0
+#   define AIL_OS_IOS 0
+#endif
+#if defined(__ANDROID__)
+#	define AIL_OS_ANDROID 1
+#else
+#   define AIL_OS_ANDROID 0
+#endif
+#if defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
+#	define AIL_OS_WASM 1
+#else
+#   define AIL_OS_WASM 0
+#endif
+#if defined(BSD)
+#	define AIL_OS_BSD 1
+#else
+#   define AIL_OS_BSD 0
+#endif
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#	define AIL_OS_MINGW 1
+#else
+#   define AIL_OS_MINGW 0
+#endif
+#if defined(__CYGWIN__)
+#	define AIL_OS_CYGWIN 1
+#else
+#   define AIL_OS_CYGWIN 0
+#endif
+#if defined(__sparc__) || defined(__sparc)
+#	define AIL_OS_SPARC   1
+#   define AIL_ARCH_SPARC 1
+#else
+#   define AIL_OS_SPARC   0
+#   define AIL_ARCH_SPARC 0
+#endif
+
+#if defined(__i386) || defined(_M_IX86) || defined(_X86_) || defined(__X86__) || defined(__I86__) || defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(__amd64) || defined(_M_AMD64) || defined(_M_X64)
+#	define AIL_ARCH_X86 1
+#else
+#   define AIL_ARCH_X86 0
+#endif
+#if defined(__arm__) || defined(_M_ARM) || defined(_ARM) || defined(__aarch64__)
+#	define AIL_ARCH_ARM 1
+#else
+#   define AIL_ARCH_ARM 0
+#endif
+#if defined(__mips) || defined(__mips__) || defined(__MIPS__)
+#	define AIL_ARCH_MIPS 1
+#else
+#   define AIL_ARCH_MIPS 0
+#endif
+#if defined(__riscv) || defined(__riscv64)
+#	define AIL_ARCH_RISCV 1
+#else
+#   define AIL_ARCH_RISCV 0
+#endif
+#if defined(__powerpc) || defined(__powerpc__) || defined(__powerpc64__) || defined(__PPC) || defined(__PPC__) || defined(__PPC64__) || defined(__ppc__) || defined(__ppc64__) || defined(__POWERPC__) || defined(_ARCH_PPC) || defined(_ARCH_PPC64)
+#	define AIL_ARCH_PPC 1
+#else
+#   define AIL_ARCH_PPC 0
+#endif
+
+
+
+/////////////////////////
+// Custom Typedefs
+/////////////////////////
+#include <stdint.h>
+#include <stdbool.h>
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint32_t b32;
+typedef uint64_t u64;
+typedef int8_t   i8;
+typedef int16_t  i16;
+typedef int32_t  i32;
+typedef int64_t  i64;
+typedef float    f32;
+typedef double   f64;
+typedef char     c8;
+#if AIL_LANG_C && AIL_LANG_STANDARD >= 2011
+#   include <uchar.h>
+    typedef char16_t c16;
+    typedef char32_t c32;
+#else
+    typedef i16 c16;
+    typedef i32 c32;
+#endif
+typedef char* pchar;
+
+#define internal static
+#define persist  static
+#define global   static
+
+
+
+/////////////////////////
+// Endianness
+// Disable Implementation with `AIL_NO_ENDIAN_IMPL`
+/////////////////////////
+typedef enum AIL_Endian {
+    AIL_ENDIAN_UNKNOWN = 0,
+    AIL_ENDIAN_BIG,          // Most-Significant Byte first
+    AIL_ENDIAN_LITTLE,       // Least-Significant Byte first
+    AIL_ENDIAN_BIG_WORD,     // Big-Endian for Words, Little-Endian for Double-Words
+    AIL_ENDIAN_LITTLE_WORD,  // Little-Endian for Words, Big-Endian for Double-Words
+    AIL_ENDIAN_COUNT,
+} AIL_Endian;
+AIL_DEF AIL_Endian ail_endian(void);
 
 
 /////////////////////////
@@ -1139,6 +1224,37 @@ AIL_DA_INIT(char);  AIL_SLICE_INIT(char);  AIL_ARR_INIT(char);
 
 
 
+#if !defined(AIL_NO_ENDIAN_IMPL) && !defined(AIL_NO_IMPL)
+#ifndef _AIL_ENDIAN_GUARD_
+#define _AIL_ENDIAN_GUARD_
+
+AIL_Endian ail_endian(void)
+{
+    persist AIL_Endian res;
+    if (res) return res;
+    union {
+        u32 val;
+        u8 data[4];
+    } num;
+    num.data[0] = 0x00;
+    num.data[1] = 0x01;
+    num.data[2] = 0x02;
+    num.data[3] = 0x03;
+    AIL_STATIC_ASSERT(AIL_ENDIAN_COUNT == 5);
+    switch (num.val) {
+        case 0x00010203: res = AIL_ENDIAN_BIG;         break;
+        case 0x03020100: res = AIL_ENDIAN_LITTLE;      break;
+        case 0x02030001: res = AIL_ENDIAN_BIG_WORD;    break;
+        case 0x01000302: res = AIL_ENDIAN_LITTLE_WORD; break;
+        default:         res = AIL_ENDIAN_UNKNOWN;
+    }
+    return res;
+}
+
+#endif // _AIL_ENDIAN_GUARD_
+#endif // AIL_NO_ENDIAN_IMPL
+
+
 #if !defined(AIL_NO_ALLOC_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_ALLOCATOR_GUARD_
 #define _AIL_ALLOCATOR_GUARD_
@@ -1172,4 +1288,3 @@ AIL_DEF void __ail_default_allocator_unused__(void)
 
 #endif // _AIL_ALLOCATOR_GUARD_
 #endif // AIL_NO_ALLOC_IMPL
-
