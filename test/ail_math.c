@@ -43,8 +43,9 @@ bool test_vectors(void)
     AIL_Vec2i16 v2 = ail_vec2(x, y);
     AIL_Vec3u32 v3 = ail_vec3(22u, 0xff23532d, x);
     AIL_Vec2u64 v4 = ail_vec2(z, 7ull);
-
-    // ail_vec2_add(v1, v2);
+    AIL_Vec2u64 v5 = ail_vec2u64(z, 9);
+    ASSERT(ail_vec2_eq(ail_vec2_add(v4, v5), ail_vec2_add(v5, v4)));
+    ASSERT(ail_vec2_eq(ail_vec2_add(v4, v5), ail_vec2(2*z, 7+9)));
     return true;
 }
 

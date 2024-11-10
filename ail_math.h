@@ -1,11 +1,11 @@
 // Common Math functions
 //
-// Heavily inspired by the following libraries:
-// - HandmadeMath (https://github.com/HandmadeMath/HandmadeMath)
-// - la (https://github.com/tsoding/la)
-// - Raylib (https://github.com/raysan5/raylib/blob/master/src/raymath.h)
-// - mathc (https://github.com/felselva/mathc)
-// - fastmod (https://github.com/lemire/fastmod)
+// Heavily inspired by the following libraries (in no particular order):
+// - la              (https://github.com/tsoding/la)
+// - mathc           (https://github.com/felselva/mathc)
+// - Raylib          (https://github.com/raysan5/raylib/blob/master/src/raymath.h)
+// - fastmod         (https://github.com/lemire/fastmod)
+// - HandmadeMath    (https://github.com/HandmadeMath/HandmadeMath)
 // - tiny-fixedpoint (https://github.com/kokke/tiny-fixedpoint-c)
 // -
 //
@@ -53,82 +53,98 @@ SOFTWARE.
 
 
 ///////////////////////////////////
-// //
+//                               //
 //      Function Overloding      //
-// //
+//                               //
 ///////////////////////////////////
 
-// @Important: These size definitions are not necessarily correct, but if you want proper type inference, you should just use properly sized types anyways
-#define _AIL_MATH_GENERIC_1(pre, post, arg0, ...) _Generic((arg0), \
-    unsigned char:          AIL_CONCAT(pre, u8, post),  \
-    signed char:            AIL_CONCAT(pre, i8, post),  \
-    unsigned short:         AIL_CONCAT(pre, u16, post), \
-    signed short:           AIL_CONCAT(pre, i16, post), \
-    unsigned int:           AIL_CONCAT(pre, u32, post), \
-    signed int:             AIL_CONCAT(pre, i32, post), \
-    unsigned long int:      AIL_CONCAT(pre, u64, post), \
-    signed long int:        AIL_CONCAT(pre, i64, post), \
-    unsigned long long int: AIL_CONCAT(pre, u64, post), \
-    signed long long int:   AIL_CONCAT(pre, i64, post)  \
+// @Important: These size definitions for C's standard types might map to bigger int types than actually true for this platform, but if you want proper type inference, you should just use properly sized types (i.e. u8, i16, f32, etc.) anyways
+#define _AIL_MATH_GENERIC_INTEGRAL_NAME_1(pre, post, var) _Generic((var), \
+    unsigned char:          _AIL_CONCAT_3(pre, u8,  post), \
+    signed char:            _AIL_CONCAT_3(pre, i8,  post), \
+    unsigned short:         _AIL_CONCAT_3(pre, u16, post), \
+    signed short:           _AIL_CONCAT_3(pre, i16, post), \
+    unsigned int:           _AIL_CONCAT_3(pre, u32, post), \
+    signed int:             _AIL_CONCAT_3(pre, i32, post), \
+    unsigned long int:      _AIL_CONCAT_3(pre, u64, post), \
+    signed long int:        _AIL_CONCAT_3(pre, i64, post), \
+    unsigned long long int: _AIL_CONCAT_3(pre, u64, post), \
+    signed long long int:   _AIL_CONCAT_3(pre, i64, post), \
+    float:                  _AIL_CONCAT_3(pre, f32, post), \
+    double:                 _AIL_CONCAT_3(pre, f64, post)  \
 )
 
-#define AIL_MATH_GENERIC(pre, post, arg0, ...) _Generic((arg0), \
-    u8:  AIL_CONCAT(pre, u8, post),  \
-    i8:  AIL_CONCAT(pre, i8, post),  \
-    u16: AIL_CONCAT(pre, u16, post), \
-    i16: AIL_CONCAT(pre, i16, post), \
-    u32: AIL_CONCAT(pre, u32, post), \
-    i32: AIL_CONCAT(pre, i32, post), \
-    u64: AIL_CONCAT(pre, u64, post), \
-    i64: AIL_CONCAT(pre, i64, post), \
-    f32: AIL_CONCAT(pre, f32, post), \
-    f64: AIL_CONCAT(pre, f64, post), \
-    default: _AIL_MATH_GENERIC_1(pre, post, arg0, __VA_ARGS__) \
-) ((arg0), __VA_ARGS__)
+#define AIL_MATH_GENERIC_INTEGRAL_NAME(pre, post, arg0) _Generic((arg0), \
+    u8:  _AIL_CONCAT_3(pre, u8,  post), \
+    i8:  _AIL_CONCAT_3(pre, i8,  post), \
+    u16: _AIL_CONCAT_3(pre, u16, post), \
+    i16: _AIL_CONCAT_3(pre, i16, post), \
+    u32: _AIL_CONCAT_3(pre, u32, post), \
+    i32: _AIL_CONCAT_3(pre, i32, post), \
+    u64: _AIL_CONCAT_3(pre, u64, post), \
+    i64: _AIL_CONCAT_3(pre, i64, post), \
+    f32: _AIL_CONCAT_3(pre, f32, post), \
+    f64: _AIL_CONCAT_3(pre, f64, post), \
+    default: _AIL_MATH_GENERIC_INTEGRAL_NAME_1(pre, post, arg0) \
+)
+#define AIL_MATH_GENERIC_INTEGRAL(pre, post, arg0, ...) AIL_MATH_GENERIC_INTEGRAL_NAME(pre, post, arg0)((arg0), __VA_ARGS__)
 
-#define _AIL_MATH_GENERIC_BINOP_4(pre, post, arg0, arg1) AIL_MATH_GENERIC(pre, post, arg0, arg1)
-#define _AIL_MATH_GENERIC_BINOP_4(pre, post, arg0, arg1) AIL_MATH_GENERIC(pre, post, arg0, arg1)
-#define AIL_MATH_GENERIC_BINOP(pre, post, arg0, arg1, ...) AIL_VFUNC(_AIL_MATH_GENERIC_BINOP_, pre, post, arg0, arg1, __VA_ARGS__)
+#define AIL_MATH_GENERIC_LINALG(pre, post, arg0, ...) AIL_MATH_GENERIC_INTEGRAL_NAME(pre, post, (arg0).els[0])((arg0), __VA_ARGS__)
+
+#define _AIL_MATH_GENERIC_BINOP_LA_4(pre, post, arg0, arg1) AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1)
+#define _AIL_MATH_GENERIC_BINOP_LA_5(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_4(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_6(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_5(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_7(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_6(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_8(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_7(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_9(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_8(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_10(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_9(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_11(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_10(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_12(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_11(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_13(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_12(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_14(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_13(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_15(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_14(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define _AIL_MATH_GENERIC_BINOP_LA_16(pre, post, arg0, arg1, ...) _AIL_MATH_GENERIC_BINOP_LA_15(pre, post, AIL_MATH_GENERIC_LINALG(pre, post, arg0, arg1), __VA_ARGS__)
+#define AIL_MATH_GENERIC_BINOP_LA(pre, post, arg0, ...) AIL_VFUNC(_AIL_MATH_GENERIC_BINOP_LA_, pre, post, arg0, __VA_ARGS__)
 
 
 //////////////////////
 //  Linear Algebra  //
 //////////////////////
 
-#define ail_vec2(x, y) AIL_MATH_GENERIC(ail_vec2, , x, y)
-#define ail_vec3(x, y, z) AIL_MATH_GENERIC(ail_vec3, , x, y, z)
-#define ail_vec4(x, y, z, w) AIL_MATH_GENERIC(ail_vec4, , x, y, z, w)
+#define ail_vec2(x, y) AIL_MATH_GENERIC_INTEGRAL(ail_vec2, , x, y)
+#define ail_vec3(x, y, z) AIL_MATH_GENERIC_INTEGRAL(ail_vec3, , x, y, z)
+#define ail_vec4(x, y, z, w) AIL_MATH_GENERIC_INTEGRAL(ail_vec4, , x, y, z, w)
 
-#define ail_vec2_add(a, b, ...) AIL_MATH_GENERIC(ail_vec2, _add, a, b, __VA_ARGS__)
-#define ail_vec3_add(a, b, ...) AIL_MATH_GENERIC(ail_vec3, _add, a, b, __VA_ARGS__)
-#define ail_vec4_add(a, b, ...) AIL_MATH_GENERIC(ail_vec4, _add, a, b, __VA_ARGS__)
+#define ail_vec2_add(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec2, _add, a, __VA_ARGS__)
+#define ail_vec3_add(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec3, _add, a, __VA_ARGS__)
+#define ail_vec4_add(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec4, _add, a, __VA_ARGS__)
 
-#define ail_vec2_sub(a, b, ...) AIL_MATH_GENERIC(ail_vec2, _sub, a, b, __VA_ARGS__)
-#define ail_vec3_sub(a, b, ...) AIL_MATH_GENERIC(ail_vec3, _sub, a, b, __VA_ARGS__)
-#define ail_vec4_sub(a, b, ...) AIL_MATH_GENERIC(ail_vec4, _sub, a, b, __VA_ARGS__)
+#define ail_vec2_sub(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec2, _sub, a, __VA_ARGS__)
+#define ail_vec3_sub(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec3, _sub, a, __VA_ARGS__)
+#define ail_vec4_sub(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec4, _sub, a, __VA_ARGS__)
 
-#define ail_vec2_eq(a, b) AIL_MATH_GENERIC(ail_vec2, _eq, a, b)
-#define ail_vec3_eq(a, b) AIL_MATH_GENERIC(ail_vec3, _eq, a, b)
-#define ail_vec4_eq(a, b) AIL_MATH_GENERIC(ail_vec4, _eq, a, b)
+#define ail_vec2_eq(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec2, _eq, a, __VA_ARGS__)
+#define ail_vec3_eq(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec3, _eq, a, __VA_ARGS__)
+#define ail_vec4_eq(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec4, _eq, a, __VA_ARGS__)
 
-#define ail_vec2_dot(a, b) AIL_MATH_GENERIC(ail_vec2, _dot, a, b)
-#define ail_vec3_dot(a, b) AIL_MATH_GENERIC(ail_vec3, _dot, a, b)
-#define ail_vec4_dot(a, b) AIL_MATH_GENERIC(ail_vec4, _dot, a, b)
+#define ail_vec2_dot(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec2, _dot, a, __VA_ARGS__)
+#define ail_vec3_dot(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec3, _dot, a, __VA_ARGS__)
+#define ail_vec4_dot(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_vec4, _dot, a, __VA_ARGS__)
 
-#define ail_mat2_add(a, b) AIL_MATH_GENERIC(ail_mat2, _add, a, b)
-#define ail_mat3_add(a, b) AIL_MATH_GENERIC(ail_mat3, _add, a, b)
-#define ail_mat4_add(a, b) AIL_MATH_GENERIC(ail_mat4, _add, a, b)
+#define ail_mat2_add(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_mat2, _add, a, __VA_ARGS__)
+#define ail_mat3_add(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_mat3, _add, a, __VA_ARGS__)
+#define ail_mat4_add(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_mat4, _add, a, __VA_ARGS__)
 
-#define ail_mat2_sub(a, b) AIL_MATH_GENERIC(ail_mat2, _sub, a, b)
-#define ail_mat3_sub(a, b) AIL_MATH_GENERIC(ail_mat3, _sub, a, b)
-#define ail_mat4_sub(a, b) AIL_MATH_GENERIC(ail_mat4, _sub, a, b)
+#define ail_mat2_sub(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_mat2, _sub, a, __VA_ARGS__)
+#define ail_mat3_sub(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_mat3, _sub, a, __VA_ARGS__)
+#define ail_mat4_sub(a, ...) AIL_MATH_GENERIC_BINOP_LA(ail_mat4, _sub, a, __VA_ARGS__)
 
 
 
 ////////////////////////////////
-// //
+//                            //
 //      Type Definitions      //
-// //
+//                            //
 ////////////////////////////////
 
 
@@ -689,9 +705,9 @@ typedef union AIL_Mat4f64 {
 
 
 /////////////////////////////////////
-// //
+//                                 //
 //      Function Declarations      //
-// //
+//                                 //
 /////////////////////////////////////
 
 
@@ -922,9 +938,9 @@ AIL_Mat4f64 ail_mat4f64_sub(AIL_Mat4f64 a, AIL_Mat4f64 b);
 
 
 //////////////////////////////
-// //
+//                          //
 //      Implementation      //
-// //
+//                          //
 //////////////////////////////
 #if !defined(AIL_NO_MATH_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_MATH_IMPL_GUARD_

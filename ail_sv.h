@@ -283,6 +283,7 @@ AIL_SV_DEF AIL_Str ail_sv_rev_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_All
 //////////////////
 
 #define ail_sb_push_sv(sbptr, sv) ail_da_pushn(sbptr, sv.str, sv.len)
+AIL_SV_DEF AIL_PRINTF_FORMAT(2, 3) void ail_sb_print(AIL_SB *sb, char *format, ...);
 AIL_SV_DEF AIL_Str ail_sb_to_str(AIL_SB sb);
 
 AIL_SV_DEF bool ail_sv_is_space(char c);
@@ -466,6 +467,16 @@ AIL_Str ail_sb_to_str(AIL_SB sb)
 {
     if (!sb.len || sb.data[sb.len-1] != 0) ail_da_push(&sb, 0);
     return ail_str_from_parts(sb.data, sb.len - 1);
+}
+
+void ail_sb_print(AIL_SB *sb, char *format, ...)
+{
+    persist char buffer[AIL_KB(2)];
+    va_list args;
+    va_start(args, format);
+    int n = vsnprintf(buffer, AIL_ARRLEN(buffer), format, args);
+    ail_da_pushn(sb, buffer, n);
+    va_end(args);
 }
 
 AIL_DA(char) _ail_da_from_unsigned_a(u64 num, AIL_Allocator allocator)

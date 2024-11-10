@@ -32,16 +32,15 @@ SOFTWARE.
 #define STR_LIT   AIL_STR_FROM_LITERAL
 #define STR_LIT_T AIL_STR_FROM_LITERAL_T
 
-
 global AIL_Str LICENSE_COMMENT = STR_LIT(
     "// Common Math functions\n"
     "//\n"
-    "// Heavily inspired by the following libraries:\n"
-    "// - HandmadeMath (https://github.com/HandmadeMath/HandmadeMath)\n"
-    "// - la (https://github.com/tsoding/la)\n"
-    "// - Raylib (https://github.com/raysan5/raylib/blob/master/src/raymath.h)\n"
-    "// - mathc (https://github.com/felselva/mathc)\n"
-    "// - fastmod (https://github.com/lemire/fastmod)\n"
+    "// Heavily inspired by the following libraries (in no particular order):\n"
+    "// - la              (https://github.com/tsoding/la)\n"
+    "// - mathc           (https://github.com/felselva/mathc)\n"
+    "// - Raylib          (https://github.com/raysan5/raylib/blob/master/src/raymath.h)\n"
+    "// - fastmod         (https://github.com/lemire/fastmod)\n"
+    "// - HandmadeMath    (https://github.com/HandmadeMath/HandmadeMath)\n"
     "// - tiny-fixedpoint (https://github.com/kokke/tiny-fixedpoint-c)\n"
     "// -\n"
     "//\n"
@@ -100,39 +99,6 @@ global AIL_Str IMPL_END = STR_LIT(
     "#endif // AIL_NO_MATH_IMPL\n"
 );
 
-global AIL_Str MATH_GENERIC_MACRO = STR_LIT(
-    "// @Important: These size definitions are not necessarily correct, but if you want proper type inference, you should just use properly sized types anyways\n"
-    "#define _AIL_MATH_GENERIC_1(pre, post, arg0, ...) _Generic((arg0), \\\n"
-    "    unsigned char:          AIL_CONCAT(pre, u8, post),  \\\n"
-    "    signed char:            AIL_CONCAT(pre, i8, post),  \\\n"
-    "    unsigned short:         AIL_CONCAT(pre, u16, post), \\\n"
-    "    signed short:           AIL_CONCAT(pre, i16, post), \\\n"
-    "    unsigned int:           AIL_CONCAT(pre, u32, post), \\\n"
-    "    signed int:             AIL_CONCAT(pre, i32, post), \\\n"
-    "    unsigned long int:      AIL_CONCAT(pre, u64, post), \\\n"
-    "    signed long int:        AIL_CONCAT(pre, i64, post), \\\n"
-    "    unsigned long long int: AIL_CONCAT(pre, u64, post), \\\n"
-    "    signed long long int:   AIL_CONCAT(pre, i64, post)  \\\n"
-    ")\n"
-    "\n"
-    "#define AIL_MATH_GENERIC(pre, post, arg0, ...) _Generic((arg0), \\\n"
-    "    u8:  AIL_CONCAT(pre, u8, post),  \\\n"
-    "    i8:  AIL_CONCAT(pre, i8, post),  \\\n"
-    "    u16: AIL_CONCAT(pre, u16, post), \\\n"
-    "    i16: AIL_CONCAT(pre, i16, post), \\\n"
-    "    u32: AIL_CONCAT(pre, u32, post), \\\n"
-    "    i32: AIL_CONCAT(pre, i32, post), \\\n"
-    "    u64: AIL_CONCAT(pre, u64, post), \\\n"
-    "    i64: AIL_CONCAT(pre, i64, post), \\\n"
-    "    f32: AIL_CONCAT(pre, f32, post), \\\n"
-    "    f64: AIL_CONCAT(pre, f64, post), \\\n"
-    "    default: _AIL_MATH_GENERIC_1(pre, post, arg0, __VA_ARGS__) \\\n"
-    ") ((arg0), __VA_ARGS__)\n"
-    "\n"
-    "#define _AIL_MATH_GENERIC_BINOP_4(pre, post, arg0, arg1) AIL_MATH_GENERIC(pre, post, arg0, arg1)\n"
-    "#define _AIL_MATH_GENERIC_BINOP_4(pre, post, arg0, arg1) AIL_MATH_GENERIC(pre, post, arg0, arg1)\n"
-    "#define AIL_MATH_GENERIC_BINOP(pre, post, arg0, arg1, ...) AIL_VFUNC(_AIL_MATH_GENERIC_BINOP_, pre, post, arg0, arg1, __VA_ARGS__)\n"
-);
 
 AIL_SLICE_INIT(AIL_SV);
 
@@ -147,21 +113,90 @@ global AIL_SLICE(AIL_SV) vec_attrs[] = {
     ail_slice_from_arr(vec_attrs_rect)
 };
 
-global AIL_Str num_type_names[] = {
-    STR_LIT(AIL_STRINGIFY(u8)),
-    STR_LIT(AIL_STRINGIFY(i8)),
-    STR_LIT(AIL_STRINGIFY(u16)),
-    STR_LIT(AIL_STRINGIFY(i16)),
-    STR_LIT(AIL_STRINGIFY(u32)),
-    STR_LIT(AIL_STRINGIFY(i32)),
-    STR_LIT(AIL_STRINGIFY(u64)),
-    STR_LIT(AIL_STRINGIFY(i64)),
-    STR_LIT(AIL_STRINGIFY(f32)),
-    STR_LIT(AIL_STRINGIFY(f64)),
-};
-
 global char COMMENT_STRING[] = "////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////";
 global char NEWLINES_STRING[] = "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+global char SPACE_STRING[] = "                                                                                                    ";
+
+#define VEC_MIN_SIZE 2
+#define VEC_MAX_SIZE 4
+#define MAT_MIN_SIZE 2
+#define MAT_MAX_SIZE 4
+#define GENERIC_BINOP_LA_NAME "AIL_MATH_GENERIC_BINOP_LA"
+#define GENERIC_INTEGRAL_NAME "AIL_MATH_GENERIC_INTEGRAL"
+#define GENERIC_LA_NAME       "AIL_MATH_GENERIC_LINALG"
+
+typedef enum NumType {
+    NUM_TYPE_U8 = 0,
+    NUM_TYPE_I8,
+    NUM_TYPE_U16,
+    NUM_TYPE_I16,
+    NUM_TYPE_U32,
+    NUM_TYPE_I32,
+    NUM_TYPE_U64,
+    NUM_TYPE_I64,
+    NUM_TYPE_F32,
+    NUM_TYPE_F64,
+    NUM_TYPE_COUNT,
+} NumType;
+global AIL_Str num_type_names[] = {
+    [NUM_TYPE_U8]  = STR_LIT(AIL_STRINGIFY(u8)),
+    [NUM_TYPE_I8]  = STR_LIT(AIL_STRINGIFY(i8)),
+    [NUM_TYPE_U16] = STR_LIT(AIL_STRINGIFY(u16)),
+    [NUM_TYPE_I16] = STR_LIT(AIL_STRINGIFY(i16)),
+    [NUM_TYPE_U32] = STR_LIT(AIL_STRINGIFY(u32)),
+    [NUM_TYPE_I32] = STR_LIT(AIL_STRINGIFY(i32)),
+    [NUM_TYPE_U64] = STR_LIT(AIL_STRINGIFY(u64)),
+    [NUM_TYPE_I64] = STR_LIT(AIL_STRINGIFY(i64)),
+    [NUM_TYPE_F32] = STR_LIT(AIL_STRINGIFY(f32)),
+    [NUM_TYPE_F64] = STR_LIT(AIL_STRINGIFY(f64)),
+};
+
+internal void math_generic_macro(AIL_SB *sb) {
+    ail_sb_push_sv(sb, ail_sv_from_cstr("// @Important: These size definitions for C's standard types might map to bigger int types than actually true for this platform, but if you want proper type inference, you should just use properly sized types (i.e. u8, i16, f32, etc.) anyways\n"
+        "#define _" GENERIC_INTEGRAL_NAME "_NAME_1(pre, post, var) _Generic((var), \\\n"
+        "    unsigned char:          _AIL_CONCAT_3(pre, u8,  post), \\\n"
+        "    signed char:            _AIL_CONCAT_3(pre, i8,  post), \\\n"
+        "    unsigned short:         _AIL_CONCAT_3(pre, u16, post), \\\n"
+        "    signed short:           _AIL_CONCAT_3(pre, i16, post), \\\n"
+        "    unsigned int:           _AIL_CONCAT_3(pre, u32, post), \\\n"
+        "    signed int:             _AIL_CONCAT_3(pre, i32, post), \\\n"
+        "    unsigned long int:      _AIL_CONCAT_3(pre, u64, post), \\\n"
+        "    signed long int:        _AIL_CONCAT_3(pre, i64, post), \\\n"
+        "    unsigned long long int: _AIL_CONCAT_3(pre, u64, post), \\\n"
+        "    signed long long int:   _AIL_CONCAT_3(pre, i64, post), \\\n"
+        "    float:                  _AIL_CONCAT_3(pre, f32, post), \\\n"
+        "    double:                 _AIL_CONCAT_3(pre, f64, post)  \\\n"
+        ")\n"
+        "\n"
+        "#define " GENERIC_INTEGRAL_NAME "_NAME(pre, post, arg0) _Generic((arg0), \\\n"
+    ));
+    u32 max_len = 0;
+    for (u32 i = 0; i < NUM_TYPE_COUNT; i++) max_len = AIL_MAX(max_len, num_type_names[i].len);
+    for (u32 i = 0; i < NUM_TYPE_COUNT; i++) {
+        char *type    = num_type_names[i].str;
+        u32 space_len = max_len - num_type_names[i].len;
+        ail_sb_print(sb, "    %s:%.*s _AIL_CONCAT_3(pre, %s,%.*s post), \\\n", type, space_len, SPACE_STRING, type, space_len, SPACE_STRING);
+    }
+    ail_sb_push_sv(sb, ail_sv_from_cstr(
+        "    default: _" GENERIC_INTEGRAL_NAME "_NAME_1(pre, post, arg0) \\\n"
+        ")\n"
+        "#define " GENERIC_INTEGRAL_NAME "(pre, post, arg0, ...) " GENERIC_INTEGRAL_NAME "_NAME(pre, post, arg0)((arg0), __VA_ARGS__)\n"
+        "\n"
+    ));
+
+    ail_sb_push_sv(sb, ail_sv_from_cstr("#define " GENERIC_LA_NAME "(pre, post, arg0, ...) " GENERIC_INTEGRAL_NAME "_NAME(pre, post, (arg0).els[0])((arg0), __VA_ARGS__)\n\n"));
+
+    ail_sb_push_sv(sb, ail_sv_from_cstr("#define _" GENERIC_BINOP_LA_NAME "_4(pre, post, arg0, arg1) " GENERIC_LA_NAME "(pre, post, arg0, arg1)\n"));
+    for (u32 i = 5; i <= 16; i++) {
+        ail_sb_print(sb,
+            "#define _" GENERIC_BINOP_LA_NAME "_%d(pre, post, arg0, arg1, ...) _" GENERIC_BINOP_LA_NAME "_%d(pre, post, " GENERIC_LA_NAME "(pre, post, arg0, arg1), __VA_ARGS__)\n",
+            i, i-1
+        );
+    }
+    ail_sb_print(sb,
+        "#define " GENERIC_BINOP_LA_NAME "(pre, post, arg0, ...) AIL_VFUNC(_" GENERIC_BINOP_LA_NAME "_, pre, post, arg0, __VA_ARGS__)\n"
+    );
+}
 
 AIL_Str get_newlines(u32 n)
 {
@@ -174,7 +209,7 @@ AIL_Str get_title_comment(AIL_SV text, u32 newlines_count)
 {
     u32 len = text.len + 16;
     char buf[512];
-    snprintf(buf, AIL_ARRLEN(buf), "%s%.*s\n//%.*s//\n//      %.*s      //\n//%.*s//\n%.*s%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, len - 4, " ", (u32)text.len, text.str, len - 4, " ", len, COMMENT_STRING, get_newlines(newlines_count).str);
+    snprintf(buf, AIL_ARRLEN(buf), "%s%.*s\n//%.*s//\n//      %.*s      //\n//%.*s//\n%.*s%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, len - 4, SPACE_STRING, (u32)text.len, text.str, len - 4, SPACE_STRING, len, COMMENT_STRING, get_newlines(newlines_count).str);
     return ail_str_new_cstr(buf);
 }
 
@@ -186,17 +221,19 @@ AIL_Str get_subtitle_comment(AIL_SV text, u32 newlines_count)
     return ail_str_new_cstr(buf);
 }
 
-AIL_Str get_container_name(AIL_SV container_type, u32 n, AIL_SV inner_type)
+#define get_container_name(container_type, n, inner_type) get_container_name_full(container_type.str, container_type.len, n, inner_type.str, inner_type.len)
+AIL_Str get_container_name_full(char *container_type_str, u64 container_type_len, u32 n, char *inner_type_str, u64 inner_type_len)
 {
-    return ail_sv_concat(SV_LIT_T("AIL_"), container_type, ail_sv_new_unsigned(n), inner_type);
+    return ail_sv_concat(SV_LIT_T("AIL_"), ail_sv_from_parts(container_type_str, container_type_len), ail_sv_new_unsigned(n), ail_sv_from_parts(inner_type_str, inner_type_len));
 }
+
 
 void vec_typedefs(AIL_SB *sb)
 {
     char buf[1024];
-    for (u32 i = 2; i <= 4; i++) {
-        for (u32 j = 0; j < AIL_ARRLEN(num_type_names); j++) {
-            AIL_SV inner = ail_sv_from_str(num_type_names[j]);
+    for (u32 i = VEC_MIN_SIZE; i <= VEC_MAX_SIZE; i++) {
+        for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
+            AIL_Str inner = num_type_names[j];
             AIL_Str name = get_container_name(SV_LIT_T("Vec"), i, inner);
             snprintf(buf, AIL_ARRLEN(buf), "typedef union %s {\n    %s els[%d];\n", name.str, inner.str, i);
             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
@@ -241,9 +278,9 @@ void vec_typedefs(AIL_SB *sb)
 void mat_typedefs(AIL_SB *sb)
 {
     char buf[1024];
-    for (u32 i = 2; i <= 4; i++) {
-        for (u32 j = 0; j < AIL_ARRLEN(num_type_names); j++) {
-            AIL_SV inner = ail_sv_from_str(num_type_names[j]);
+    for (u32 i = MAT_MIN_SIZE; i <= MAT_MAX_SIZE; i++) {
+        for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
+            AIL_Str inner = num_type_names[j];
             AIL_Str name = get_container_name(SV_LIT_T("Mat"), i, inner);
             snprintf(buf, AIL_ARRLEN(buf), "typedef union %s {\n    %s els[%d][%d];\n    %s cols[%d];\n    struct { %s ", name.str, inner.str, i, i, get_container_name(SV_LIT_T("Vec"), i, inner).str, i, inner.str);
             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
@@ -262,14 +299,14 @@ void mat_typedefs(AIL_SB *sb)
 void vec_constructor(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb)
 {
     char buf[1024];
-    for (u32 i = 2; i < 5; i++) {
+    for (u32 i = VEC_MIN_SIZE; i <= VEC_MAX_SIZE; i++) {
         AIL_SLICE(AIL_SV) attrs = ail_slice_from_parts(vec_attrs_xy, i);
         AIL_Str untyped_input   = ail_sv_join_da(attrs, ail_sv_from_cstr(", "));
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d(%s) AIL_MATH_GENERIC(ail_vec%d, , %s)\n", i, untyped_input.str, i, untyped_input.str);
+        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d(%s) " GENERIC_INTEGRAL_NAME "(ail_vec%d, , %s)\n", i, untyped_input.str, i, untyped_input.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
-        for (u32 j = 0; j < AIL_ARRLEN(num_type_names); j++) {
-            AIL_SV inner = ail_sv_from_str(num_type_names[j]);
+        for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
+            AIL_Str inner = num_type_names[j];
             AIL_Str type = get_container_name(SV_LIT_T("Vec"), i, inner);
             AIL_SB op_sb = ail_sb_new();
             for (u32 k = 0; k < i; k++) {
@@ -296,12 +333,12 @@ void vec_constructor(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb)
 void vec_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb, AIL_Str op_name, AIL_Str op)
 {
     char buf[1024];
-    for (u32 i = 2; i < 5; i++) {
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d_%s(a, b, ...) AIL_MATH_GENERIC(ail_vec%d, _%s, a, b, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
+    for (u32 i = VEC_MIN_SIZE; i <= VEC_MAX_SIZE; i++) {
+        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_vec%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
-        for (u32 j = 0; j < AIL_ARRLEN(num_type_names); j++) {
-            AIL_SV inner = ail_sv_from_str(num_type_names[j]);
+        for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
+            AIL_Str inner = num_type_names[j];
             AIL_Str type = get_container_name(SV_LIT_T("Vec"), i, inner);
             AIL_SB op_sb = ail_sb_new();
             for (u32 k = 0; k < i; k++) {
@@ -324,12 +361,12 @@ void vec_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb
 void mat_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb, AIL_Str op_name, AIL_Str op)
 {
     char buf[1024];
-    for (u32 i = 2; i < 5; i++) {
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_mat%d_%s(a, b) AIL_MATH_GENERIC(ail_mat%d, _%s, a, b)\n", i, op_name.str, i, op_name.str);
+    for (u32 i = MAT_MIN_SIZE; i <= MAT_MAX_SIZE; i++) {
+        snprintf(buf, AIL_ARRLEN(buf), "#define ail_mat%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_mat%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
-        for (u32 j = 0; j < AIL_ARRLEN(num_type_names); j++) {
-            AIL_SV inner = ail_sv_from_str(num_type_names[j]);
+        for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
+            AIL_Str inner = num_type_names[j];
             AIL_Str type = get_container_name(SV_LIT_T("Mat"), i, inner);
             AIL_SB op_sb = ail_sb_new();
             for (u32 col = 0; col < i; col++) {
@@ -357,12 +394,12 @@ void mat_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb
 void vec_element_wise_connected_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb, AIL_Str op_name, AIL_Str op, AIL_Str connector, AIL_Str return_type)
 {
     char buf[1024];
-    for (u32 i = 2; i < 5; i++) {
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d_%s(a, b) AIL_MATH_GENERIC(ail_vec%d, _%s, a, b)\n", i, op_name.str, i, op_name.str);
+    for (u32 i = VEC_MIN_SIZE; i <= VEC_MAX_SIZE; i++) {
+        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_vec%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
-        for (u32 j = 0; j < AIL_ARRLEN(num_type_names); j++) {
-            AIL_SV inner = ail_sv_from_str(num_type_names[j]);
+        for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
+            AIL_Str inner = num_type_names[j];
             AIL_Str type = get_container_name(SV_LIT_T("Vec"), i, inner);
             AIL_SB op_sb = ail_sb_new();
             for (u32 k = 0; k < i; k++) {
@@ -415,7 +452,7 @@ int main(void)
     ail_sb_push_sv(&file_sb, HEADER_BEGIN);
     ail_sb_push_sv(&file_sb, get_title_comment(SV_LIT_T("Function Overloding"), 1));
     ail_sb_push_sv(&file_sb, get_newlines(1));
-    ail_sb_push_sv(&file_sb, MATH_GENERIC_MACRO);
+    math_generic_macro(&file_sb);
     ail_da_pushn(&file_sb, generic_sb.data, generic_sb.len);
     ail_sb_push_sv(&file_sb, get_title_comment(SV_LIT_T("Type Definitions"), 1));
     ail_da_pushn(&file_sb, type_sb.data, type_sb.len);
