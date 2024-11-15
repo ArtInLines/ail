@@ -214,7 +214,7 @@ AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x);
 
 AIL_HM_DEF u32 ail_hm_next_u32_2power(u32 x)
 {
-    AIL_NEXT_2POWER(x, x);
+    AIL_NEXT_2POWER_POS(x, x);
     return x;
 }
 
