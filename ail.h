@@ -123,14 +123,14 @@
   * AIL_HAS_ATTRIBUTE(attribute):     Check whether the given attribute is supported by the compiler.
   * AIL_HAS_CPP_ATTRIBUTE(attribute): Check whether the given c++-specific attribute is supported by the compiler
   * AIL_HAS_EXTENSION(extension):     Check whether the given extension is enabled by the compiler
-  * AIL_HAS_WARNING(warning):         Check whether the provided warning is active. For example: AIL_HAS_WARNING("-Wformat")
+  * AIL_HAS_WARNING(warning):         Check whether the provided warning is active. The warning must be one of the AIL_Warn_Kind enum
   *
   * AIL_WARN_PUSH: Store the current warning level (presumably to change it temporarily)
   * AIL_WARN_POP:  Reset the latest saved warning level
-  * AIL_WARN_NO_DEPRECATED:      Disable warnings for usage of deprecated functions
-  * AIL_WARN_NO_UNKNOWN_PRAGMAS: Disable warnings regarding unknown pragmas
-  * AIL_WARN_NO_CAST_QUAL:       Disable warning for casts that change qualifiers like 'const'
-  * AIL_WARN_NO_UNUSED_FUNCTION: Disable warnings for unused functions
+  * AIL_WARN_ENABLE(warning):  Enable warning for the specified warning
+  * AIL_WARN_DISABLE(warning): Disable warning for the specified warning
+  * AIL_WARN_ERROR(wanring):   Set the specified warning as an error
+  * AIL_Warn_Kind is an enum containing all the warnings you can specify in macros like AIL_WARN_ENABLE
   *
   * AIL_PRINTF_FORMAT(str_idx, first_arg_idx): Mark the parameters of this function to abide by the formatting used in printf. `str_idx` is the index of the parameter containing the format string, while `first_arg_idx` is index of the first input to the format
   * AIL_DEPRECATED([since, [replacement]]): Mark a function as deprecated, with optional strings indicating since when the function's deprecated and what should be used instead
@@ -578,20 +578,20 @@ AIL_DEF AIL_Endian ail_endian(void);
 #define _AIL_CONCAT_8(A, B, C, D, E, F, G, H) A##B##C##D##E##F##G##H
 #define AIL_CONCAT(...) AIL_VFUNC(_AIL_CONCAT_, __VA_ARGS__)
 
-// Most of the following macros that deal with providing a unified interface for compiler extensions across compilers, have been adapted from Hedley:
-// https://github.com/nemequ/hedley
+// Most of the following macros that deal with providing a unified interface for compiler extensions across compilers
+// This was to a large part adapted from Hedley: https://github.com/nemequ/hedley
 // The original Hedley project supports even more compilers as well as older C versions
 #define _AIL_VERSION_ENCODE_(major, minor, patch) (((major) * 1000000) + ((minor) * 1000) + (patch))
 #define _AIL_VERSION_CHECK_(version, major, minor, patch) ((version) >= _AIL_VERSION_ENCODE_(major, minor, patch))
-// _AIL_VERSION_GNUC_
-#if defined(__GNUC__)
+// _AIL_VERSION_GCC_
+#if AIL_COMP_GCC && defined(__GNUC__)
 #   if defined(__GNUC_PATCHLEVEL__)
-#       define _AIL_VERSION_GNUC_ _AIL_VERSION_ENCODE_(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
+#       define _AIL_VERSION_GCC_ _AIL_VERSION_ENCODE_(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
 #   else
-#       define _AIL_VERSION_GNUC_ _AIL_VERSION_ENCODE_(__GNUC__, __GNUC_MINOR__, 0)
+#       define _AIL_VERSION_GCC_ _AIL_VERSION_ENCODE_(__GNUC__, __GNUC_MINOR__, 0)
 #   endif
 #else
-#   define _AIL_VERSION_GNUC_ (0)
+#   define _AIL_VERSION_GCC_ (0)
 #endif
 // _AIL_VERSION_MSVC_
 #if defined(_MSC_FULL_VER) && !defined(__ICL)
@@ -639,12 +639,6 @@ AIL_DEF AIL_Endian ail_endian(void);
 #else
 #   define _AIL_VERSION_PELLES_ (0)
 #endif
-// _AIL_VERSION_GCC_
-#if defined(_AIL_VERSION_GNUC_) && !defined(__clang__) && !defined(_AIL_VERSION_INTEL_)
-#   define _AIL_VERSION_GCC_ _AIL_VERSION_GNUC_
-#else
-#   define _AIL_VERSION_GCC_ (0)
-#endif
 
 // AIL_HAS_ATTRIBUTE
 #if defined(__has_attribute)
@@ -677,6 +671,10 @@ AIL_DEF AIL_Endian ail_endian(void);
 #   define AIL_HAS_WARNING(warning) (0)
 #endif
 
+// See also: https://gcc.gnu.org/onlinedocs/cpp/Pragmas.html
+#define AIL_DO_PRAGMA_(x) _Pragma(#x)
+#define AIL_DO_PRAGMA(x) AIL_DO_PRAGMA_(x)
+
 // AIL_WARN_PUSH && AIL_WARN_POP
 #if defined(__clang__)
 #   define AIL_WARN_PUSH _Pragma("clang diagnostic push")
@@ -697,55 +695,268 @@ AIL_DEF AIL_Endian ail_endian(void);
 #   define AIL_WARN_PUSH
 #   define AIL_WARN_POP
 #endif
-// AIL_WARN_NO_DEPRECATED
-#if AIL_HAS_WARNING("-Wdeprecated-declarations")
-#   define AIL_WARN_NO_DEPRECATED _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
-#   define AIL_WARN_NO_DEPRECATED _Pragma("warning(disable:1478 1786)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
-#   define AIL_WARN_NO_DEPRECATED _Pragma("warning(disable:1478 1786)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 3, 0)
-#   define AIL_WARN_NO_DEPRECATED _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0)
-#   define AIL_WARN_NO_DEPRECATED _Pragma("warning(disable:4996)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 2, 90, 0)
-#   define AIL_WARN_NO_DEPRECATED _Pragma("warn(disable:2241)")
-#else
-#   define AIL_WARN_NO_DEPRECATED
-#endif
-// AIL_WARN_NO_UNKNOWN_PRAGMAS
-#if AIL_HAS_WARNING("-Wunknown-pragmas")
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("clang diagnostic ignored \"-Wunknown-pragmas\"")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("warning(disable:161)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("warning(disable:161)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 3, 0)
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("GCC diagnostic ignored \"-Wunknown-pragmas\"")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0)
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS _Pragma("warning(disable:4068)")
-#else
-#   define AIL_WARN_NO_UNKNOWN_PRAGMAS
-#endif
-// AIL_WARN_NO_CAST_QUAL
-#if AIL_HAS_WARNING("-Wcast-qual")
-#   define AIL_WARN_NO_CAST_QUAL _Pragma("clang diagnostic ignored \"-Wcast-qual\"")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
-#   define AIL_WARN_NO_CAST_QUAL _Pragma("warning(disable:2203 2331)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 0, 0)
-#   define AIL_WARN_NO_CAST_QUAL _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
-#else
-#   define AIL_WARN_NO_CAST_QUAL
-#endif
-// AIL_WARN_NO_UNUSED_FUNCTION
-#if AIL_HAS_WARNING("-Wunknown-function")
-#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma("clang diagnostic ignored \"-Wunknown-function\"")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 4, 0)
-#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma("GCC diagnostic ignored \"-Wunknown-function\"")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 1, 0, 0)
-#   define AIL_WARN_NO_UNUSED_FUNCTION _Pragma("warning(disable:4505)")
-#else
-#   define AIL_WARN_NO_UNUSED_FUNCTION
+
+// AIL_WARN_ENABLE
+#define AIL_WARN_ENABLE(warning_name)  AIL_EXPAND(AIL_CONCAT(_AIL_WARN_ENABLE_,  warning_name))
+#define AIL_WARN_DISABLE(warning_name) AIL_EXPAND(AIL_CONCAT(_AIL_WARN_DISABLE_, warning_name))
+#define AIL_WARN_ERROR(warning_name)   AIL_EXPAND(AIL_CONCAT(_AIL_WARN_ERROR_,   warning_name))
+
+// #if AIL_COMP_CLANG
+// #   define AIL_WARN_ENABLE(warning_name) AIL_DO_PRAGMA(clang diagnostic warning AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name))
+// #elif AIL_COMP_GCC
+// #   define AIL_WARN_ENABLE(warning_name) AIL_DO_PRAGMA(GCC diagnostic warning AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name))
+// #elif AIL_COMP_MSVC
+// #   define AIL_WARN_ENABLE(warning_name) AIL_DO_PRAGMA(warning(AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #elif AIL_COMP_INTEL
+// #   define AIL_WARN_ENABLE(warning_name) AIL_DO_PRAGMA(warning(AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #elif AIL_COMP_PELLES
+// #   define AIL_WARN_ENABLE(warning_name) AIL_DO_PRAGMA(warn(AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #   define AIL_WARN_ENABLE(warning_name)
+// #endif
+// // AIL_WARN_DISABLE
+// #if AIL_COMP_CLANG
+// #   define AIL_WARN_DISABLE(warning_name) AIL_DO_PRAGMA(clang diagnostic ignored AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name))
+// #elif AIL_COMP_GCC
+// #   define AIL_WARN_DISABLE(warning_name) AIL_DO_PRAGMA(GCC diagnostic ignored AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name))
+// #elif AIL_COMP_MSVC
+// #   define AIL_WARN_DISABLE(warning_name) AIL_DO_PRAGMA(warning(disable:AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #elif AIL_COMP_INTEL
+// #   define AIL_WARN_DISABLE(warning_name) AIL_DO_PRAGMA(warning(disable:AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #elif AIL_COMP_PELLES
+// #   define AIL_WARN_DISABLE(warning_name) AIL_DO_PRAGMA(warn(disable:AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #   define AIL_WARN_DISABLE(warning_name)
+// #endif
+// // AIL_WARN_ERROR
+// #if AIL_COMP_CLANG
+// #   define AIL_WARN_ERROR(warning_name) AIL_DO_PRAGMA(clang diagnostic error AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name))
+// #elif AIL_COMP_GCC
+// #   define AIL_WARN_ERROR(warning_name) AIL_DO_PRAGMA(GCC diagnostic error AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name))
+// #elif AIL_COMP_MSVC
+// #   define AIL_WARN_ERROR(warning_name) AIL_DO_PRAGMA(warning(error:AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #elif AIL_COMP_INTEL
+// #   define AIL_WARN_ERROR(warning_name) AIL_DO_PRAGMA(warning(error:AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #elif AIL_COMP_PELLES
+// #   define AIL_WARN_ERROR(warning_name) AIL_DO_PRAGMA(warn(error:AIL_EXPAND(_AIL_WARN_KIND_NAME_##warning_name)))
+// #   define AIL_WARN_ERROR(warning_name)
+// #endif
+
+// AIL_Warn_Kinds
+typedef enum AIL_Warn_Kinds {
+    AIL_WARN_NONE,
+    AIL_WARN_ALL,
+    AIL_WARN_EXHAUSTIVE_SWITCH,
+    AIL_WARN_UNSAFE_CONVERSION,
+    AIL_WARN_MISSING_ARGLIST,
+    AIL_WARN_IFDEF_0_MACRO,
+    AIL_WARN_SECTION_NAME_TOO_LONG,
+    AIL_WARN_PRINTF_FORMTAT,
+    AIL_WARN_SIGN_EXTENDED_CONVERSION,
+    AIL_WARN_STRING_CAST,
+    AIL_WARN_UNBALANCED_PUSH_POP,
+    AIL_WARN_DEPRECATED,
+    AIL_WARN_UNKNOWN_PRAGMA,
+    AIL_WARN_UNKNOWN_MACRO,
+    AIL_WARN_UNUSED_FUNCTION,
+    AIL_WARN_UNUSED_VARIABLE,
+    AIL_WARN_ZERO_LENGTH_ARRAY,
+    AIL_WARN_CAST_QUAL,
+    AIL_WARN_IMPLICIT_INT,
+    AIL_WARN_UNREACHABLE_CODE,
+    AIL_WARN_COUNT,
+} AIL_Warn_Kinds;
+
+#if AIL_COMP_CLANG
+#   define _AIL_WARN_ENABLE_AIL_WARN_NONE
+#   define _AIL_WARN_DISABLE_AIL_WARN_NONE
+#   define _AIL_WARN_ERROR_AIL_WARN_NONE
+#   define _AIL_WARN_ENABLE_AIL_WARN_ALL
+#   define _AIL_WARN_DISABLE_AIL_WARN_ALL
+#   define _AIL_WARN_ERROR_AIL_WARN_ALL
+#   define _AIL_WARN_ENABLE_AIL_WARN_EXHAUSTIVE_SWITCH
+#   define _AIL_WARN_DISABLE_AIL_WARN_EXHAUSTIVE_SWITCH
+#   define _AIL_WARN_ERROR_AIL_WARN_EXHAUSTIVE_SWITCH
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNSAFE_CONVERSION
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNSAFE_CONVERSION
+#   define _AIL_WARN_ERROR_AIL_WARN_UNSAFE_CONVERSION
+#   define _AIL_WARN_ENABLE_AIL_WARN_MISSING_ARGLIST
+#   define _AIL_WARN_DISABLE_AIL_WARN_MISSING_ARGLIST
+#   define _AIL_WARN_ERROR_AIL_WARN_MISSING_ARGLIST
+#   define _AIL_WARN_ENABLE_AIL_WARN_IFDEF_0_MACRO
+#   define _AIL_WARN_DISABLE_AIL_WARN_IFDEF_0_MACRO
+#   define _AIL_WARN_ERROR_AIL_WARN_IFDEF_0_MACRO
+#   define _AIL_WARN_ENABLE_AIL_WARN_SECTION_NAME_TOO_LONG
+#   define _AIL_WARN_DISABLE_AIL_WARN_SECTION_NAME_TOO_LONG
+#   define _AIL_WARN_ERROR_AIL_WARN_SECTION_NAME_TOO_LONG
+#   define _AIL_WARN_ENABLE_AIL_WARN_PRINTF_FORMTAT
+#   define _AIL_WARN_DISABLE_AIL_WARN_PRINTF_FORMTAT
+#   define _AIL_WARN_ERROR_AIL_WARN_PRINTF_FORMTAT
+#   define _AIL_WARN_ENABLE_AIL_WARN_SIGN_EXTENDED_CONVERSION
+#   define _AIL_WARN_DISABLE_AIL_WARN_SIGN_EXTENDED_CONVERSION
+#   define _AIL_WARN_ERROR_AIL_WARN_SIGN_EXTENDED_CONVERSION
+#   define _AIL_WARN_ENABLE_AIL_WARN_STRING_CAST
+#   define _AIL_WARN_DISABLE_AIL_WARN_STRING_CAST
+#   define _AIL_WARN_ERROR_AIL_WARN_STRING_CAST
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNBALANCED_PUSH_POP
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNBALANCED_PUSH_POP
+#   define _AIL_WARN_ERROR_AIL_WARN_UNBALANCED_PUSH_POP
+#   define _AIL_WARN_ENABLE_AIL_WARN_DEPRECATED _Pragma("clang diagnostic warning \"-Wdeprecated-declarations\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_DEPRECATED _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_DEPRECATED _Pragma("clang diagnostic error \"-Wdeprecated-declarations\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNKNOWN_PRAGMA _Pragma("clang diagnostic warning \"-Wunknown-pragmas\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNKNOWN_PRAGMA _Pragma("clang diagnostic ignored \"-Wunknown-pragmas\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNKNOWN_PRAGMA _Pragma("clang diagnostic error \"-Wunknown-pragmas\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNKNOWN_MACRO
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNKNOWN_MACRO
+#   define _AIL_WARN_ERROR_AIL_WARN_UNKNOWN_MACRO
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNUSED_FUNCTION _Pragma("clang diagnostic warning \"-Wunused-function\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNUSED_FUNCTION _Pragma("clang diagnostic ignored \"-Wunused-function\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNUSED_FUNCTION _Pragma("clang diagnostic error \"-Wunused-function\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNUSED_VARIABLE _Pragma("clang diagnostic warning \"-Wunused-variable\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNUSED_VARIABLE _Pragma("clang diagnostic ignored \"-Wunused-variable\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNUSED_VARIABLE _Pragma("clang diagnostic error \"-Wunused-variable\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("clang diagnostic warning \"-Wzero-length-array\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("clang diagnostic ignored \"-Wzero-length-array\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("clang diagnostic error \"-Wzero-length-array\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_CAST_QUAL _Pragma("clang diagnostic warning \"-Wcast-qual\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_CAST_QUAL _Pragma("clang diagnostic ignored \"-Wcast-qual\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_CAST_QUAL _Pragma("clang diagnostic error \"-Wcast-qual\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_IMPLICIT_INT
+#   define _AIL_WARN_DISABLE_AIL_WARN_IMPLICIT_INT
+#   define _AIL_WARN_ERROR_AIL_WARN_IMPLICIT_INT
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNREACHABLE_CODE
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNREACHABLE_CODE
+#   define _AIL_WARN_ERROR_AIL_WARN_UNREACHABLE_CODE
+#   define _AIL_WARN_ENABLE_AIL_WARN_COUNT
+#   define _AIL_WARN_DISABLE_AIL_WARN_COUNT
+#   define _AIL_WARN_ERROR_AIL_WARN_COUNT
+#elif AIL_COMP_GCC
+#   define _AIL_WARN_ENABLE_AIL_WARN_NONE
+#   define _AIL_WARN_DISABLE_AIL_WARN_NONE
+#   define _AIL_WARN_ERROR_AIL_WARN_NONE
+#   define _AIL_WARN_ENABLE_AIL_WARN_ALL
+#   define _AIL_WARN_DISABLE_AIL_WARN_ALL
+#   define _AIL_WARN_ERROR_AIL_WARN_ALL
+#   define _AIL_WARN_ENABLE_AIL_WARN_EXHAUSTIVE_SWITCH
+#   define _AIL_WARN_DISABLE_AIL_WARN_EXHAUSTIVE_SWITCH
+#   define _AIL_WARN_ERROR_AIL_WARN_EXHAUSTIVE_SWITCH
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNSAFE_CONVERSION
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNSAFE_CONVERSION
+#   define _AIL_WARN_ERROR_AIL_WARN_UNSAFE_CONVERSION
+#   define _AIL_WARN_ENABLE_AIL_WARN_MISSING_ARGLIST
+#   define _AIL_WARN_DISABLE_AIL_WARN_MISSING_ARGLIST
+#   define _AIL_WARN_ERROR_AIL_WARN_MISSING_ARGLIST
+#   define _AIL_WARN_ENABLE_AIL_WARN_IFDEF_0_MACRO
+#   define _AIL_WARN_DISABLE_AIL_WARN_IFDEF_0_MACRO
+#   define _AIL_WARN_ERROR_AIL_WARN_IFDEF_0_MACRO
+#   define _AIL_WARN_ENABLE_AIL_WARN_SECTION_NAME_TOO_LONG
+#   define _AIL_WARN_DISABLE_AIL_WARN_SECTION_NAME_TOO_LONG
+#   define _AIL_WARN_ERROR_AIL_WARN_SECTION_NAME_TOO_LONG
+#   define _AIL_WARN_ENABLE_AIL_WARN_PRINTF_FORMTAT
+#   define _AIL_WARN_DISABLE_AIL_WARN_PRINTF_FORMTAT
+#   define _AIL_WARN_ERROR_AIL_WARN_PRINTF_FORMTAT
+#   define _AIL_WARN_ENABLE_AIL_WARN_SIGN_EXTENDED_CONVERSION
+#   define _AIL_WARN_DISABLE_AIL_WARN_SIGN_EXTENDED_CONVERSION
+#   define _AIL_WARN_ERROR_AIL_WARN_SIGN_EXTENDED_CONVERSION
+#   define _AIL_WARN_ENABLE_AIL_WARN_STRING_CAST
+#   define _AIL_WARN_DISABLE_AIL_WARN_STRING_CAST
+#   define _AIL_WARN_ERROR_AIL_WARN_STRING_CAST
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNBALANCED_PUSH_POP
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNBALANCED_PUSH_POP
+#   define _AIL_WARN_ERROR_AIL_WARN_UNBALANCED_PUSH_POP
+#   define _AIL_WARN_ENABLE_AIL_WARN_DEPRECATED _Pragma("GCC diagnostic warning \"-Wdeprecated-declarations\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_DEPRECATED _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_DEPRECATED _Pragma("GCC diagnostic error \"-Wdeprecated-declarations\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNKNOWN_PRAGMA _Pragma("GCC diagnostic warning \"-Wunknown-pragmas\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNKNOWN_PRAGMA _Pragma("GCC diagnostic ignored \"-Wunknown-pragmas\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNKNOWN_PRAGMA _Pragma("GCC diagnostic error \"-Wunknown-pragmas\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNKNOWN_MACRO
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNKNOWN_MACRO
+#   define _AIL_WARN_ERROR_AIL_WARN_UNKNOWN_MACRO
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNUSED_FUNCTION _Pragma("GCC diagnostic warning \"-Wunused-function\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNUSED_FUNCTION _Pragma("GCC diagnostic ignored \"-Wunused-function\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNUSED_FUNCTION _Pragma("GCC diagnostic error \"-Wunused-function\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNUSED_VARIABLE _Pragma("GCC diagnostic warning \"-Wunused-variable\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNUSED_VARIABLE _Pragma("GCC diagnostic ignored \"-Wunused-variable\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNUSED_VARIABLE _Pragma("GCC diagnostic error \"-Wunused-variable\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("GCC diagnostic warning \"-Wpedantic\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("GCC diagnostic ignored \"-Wpedantic\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("GCC diagnostic error \"-Wpedantic\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_CAST_QUAL _Pragma("GCC diagnostic warning \"-Wcast-qual\"")
+#   define _AIL_WARN_DISABLE_AIL_WARN_CAST_QUAL _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
+#   define _AIL_WARN_ERROR_AIL_WARN_CAST_QUAL _Pragma("GCC diagnostic error \"-Wcast-qual\"")
+#   define _AIL_WARN_ENABLE_AIL_WARN_IMPLICIT_INT
+#   define _AIL_WARN_DISABLE_AIL_WARN_IMPLICIT_INT
+#   define _AIL_WARN_ERROR_AIL_WARN_IMPLICIT_INT
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNREACHABLE_CODE
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNREACHABLE_CODE
+#   define _AIL_WARN_ERROR_AIL_WARN_UNREACHABLE_CODE
+#   define _AIL_WARN_ENABLE_AIL_WARN_COUNT
+#   define _AIL_WARN_DISABLE_AIL_WARN_COUNT
+#   define _AIL_WARN_ERROR_AIL_WARN_COUNT
+#elif AIL_COMP_MSVC || AIL_COMP_INTEL
+#   define _AIL_WARN_ENABLE_AIL_WARN_NONE
+#   define _AIL_WARN_DISABLE_AIL_WARN_NONE
+#   define _AIL_WARN_ERROR_AIL_WARN_NONE
+#   define _AIL_WARN_ENABLE_AIL_WARN_ALL _Pragma("warning(push, 4)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_ALL _Pragma("warning(push, 0)")
+#   define _AIL_WARN_ERROR_AIL_WARN_ALL _Pragma("warning(error: 4061 4062 5262 4191 4242 4254 4287 4388 5219 4546 4574 4619 4668 4767 4774 4777 4826 4905 4906 5031 5032 4996 4505 5245 5264 4200 5266 4431)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_EXHAUSTIVE_SWITCH _Pragma("warning(4061 4062 5262)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_EXHAUSTIVE_SWITCH _Pragma("warning(disable:4061 4062 5262)")
+#   define _AIL_WARN_ERROR_AIL_WARN_EXHAUSTIVE_SWITCH _Pragma("warning(error:4061 4062 5262)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNSAFE_CONVERSION _Pragma("warning(4191 4242 4254 4287 4388 5219)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNSAFE_CONVERSION _Pragma("warning(disable:4191 4242 4254 4287 4388 5219)")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNSAFE_CONVERSION _Pragma("warning(error:4191 4242 4254 4287 4388 5219)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_MISSING_ARGLIST _Pragma("warning(4546)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_MISSING_ARGLIST _Pragma("warning(disable:4546)")
+#   define _AIL_WARN_ERROR_AIL_WARN_MISSING_ARGLIST _Pragma("warning(error:4546)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_IFDEF_0_MACRO _Pragma("warning(4574)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_IFDEF_0_MACRO _Pragma("warning(disable:4574)")
+#   define _AIL_WARN_ERROR_AIL_WARN_IFDEF_0_MACRO _Pragma("warning(error:4574)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_SECTION_NAME_TOO_LONG _Pragma("warning(4767)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_SECTION_NAME_TOO_LONG _Pragma("warning(disable:4767)")
+#   define _AIL_WARN_ERROR_AIL_WARN_SECTION_NAME_TOO_LONG _Pragma("warning(error:4767)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_PRINTF_FORMTAT _Pragma("warning(4774 4777)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_PRINTF_FORMTAT _Pragma("warning(disable:4774 4777)")
+#   define _AIL_WARN_ERROR_AIL_WARN_PRINTF_FORMTAT _Pragma("warning(error:4774 4777)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_SIGN_EXTENDED_CONVERSION _Pragma("warning(4826)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_SIGN_EXTENDED_CONVERSION _Pragma("warning(disable:4826)")
+#   define _AIL_WARN_ERROR_AIL_WARN_SIGN_EXTENDED_CONVERSION _Pragma("warning(error:4826)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_STRING_CAST _Pragma("warning(4905 4906)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_STRING_CAST _Pragma("warning(disable:4905 4906)")
+#   define _AIL_WARN_ERROR_AIL_WARN_STRING_CAST _Pragma("warning(error:4905 4906)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNBALANCED_PUSH_POP _Pragma("warning(5031 5032)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNBALANCED_PUSH_POP _Pragma("warning(disable:5031 5032)")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNBALANCED_PUSH_POP _Pragma("warning(error:5031 5032)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_DEPRECATED _Pragma("warning(4996)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_DEPRECATED _Pragma("warning(disable:4996)")
+#   define _AIL_WARN_ERROR_AIL_WARN_DEPRECATED _Pragma("warning(error:4996)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNKNOWN_PRAGMA _Pragma("warning(4619)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNKNOWN_PRAGMA _Pragma("warning(disable:4619)")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNKNOWN_PRAGMA _Pragma("warning(error:4619)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNKNOWN_MACRO _Pragma("warning(4668)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNKNOWN_MACRO _Pragma("warning(disable:4668)")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNKNOWN_MACRO _Pragma("warning(error:4668)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNUSED_FUNCTION _Pragma("warning(4505 5245)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNUSED_FUNCTION _Pragma("warning(disable:4505 5245)")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNUSED_FUNCTION _Pragma("warning(error:4505 5245)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNUSED_VARIABLE _Pragma("warning(5264)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNUSED_VARIABLE _Pragma("warning(disable:5264)")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNUSED_VARIABLE _Pragma("warning(error:5264)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("warning(4200)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("warning(disable:4200)")
+#   define _AIL_WARN_ERROR_AIL_WARN_ZERO_LENGTH_ARRAY _Pragma("warning(error:4200)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_CAST_QUAL _Pragma("warning(5266)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_CAST_QUAL _Pragma("warning(disable:5266)")
+#   define _AIL_WARN_ERROR_AIL_WARN_CAST_QUAL _Pragma("warning(error:5266)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_IMPLICIT_INT _Pragma("warning(4431)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_IMPLICIT_INT _Pragma("warning(disable:4431)")
+#   define _AIL_WARN_ERROR_AIL_WARN_IMPLICIT_INT _Pragma("warning(error:4431)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_UNREACHABLE_CODE _Pragma("warning(4702)")
+#   define _AIL_WARN_DISABLE_AIL_WARN_UNREACHABLE_CODE _Pragma("warning(disable:4702)")
+#   define _AIL_WARN_ERROR_AIL_WARN_UNREACHABLE_CODE _Pragma("warning(error:4702)")
+#   define _AIL_WARN_ENABLE_AIL_WARN_COUNT
+#   define _AIL_WARN_DISABLE_AIL_WARN_COUNT
+#   define _AIL_WARN_ERROR_AIL_WARN_COUNT
 #endif
 
 // AIL_DEPRECATED([since[, replacement]])
@@ -977,18 +1188,18 @@ AIL_DEF AIL_Endian ail_endian(void);
 
 // @TODO: Better static assert message
 #ifdef __cpp_static_assert
-#   define _AIL_STATIC_ASSERT2(cond, msg) static_assert(!!(cond), msg)
+#   define _AIL_STATIC_ASSERT2(expr, msg) static_assert(!!(expr), msg)
 #elif __STDC_VERSION__ >= 202311L
-#   define _AIL_STATIC_ASSERT2(cond, msg) static_assert(!!(cond), msg)
+#   define _AIL_STATIC_ASSERT2(expr, msg) static_assert(!!(expr), msg)
 #elif __STDC_VERSION__ >= 201112L
 #   include <assert.h>
-#   define _AIL_STATIC_ASSERT2(cond, msg) _Static_assert(!!(cond), msg)
+#   define _AIL_STATIC_ASSERT2(expr, msg) _Static_assert(!!(expr), msg)
 #else
-#   define _AIL_STATIC_ASSERT_MSG2(cond, msg, line) char __ail_static_assertion_at_line##line[((!!(cond))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIFY(msg)
-#   define _AIL_STATIC_ASSERT_MSG1(cond, msg, line) _AIL_STATIC_ASSERT_MSG2(cond, msg, line)
-#   define _AIL_STATIC_ASSERT2(cond, msg)           _AIL_STATIC_ASSERT_MSG1(cond, msg, __LINE__)
+#   define _AIL_STATIC_ASSERT_MSG2(expr, msg, line) char __ail_static_assertion_at_line##line[((!!(expr))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIFY(msg)
+#   define _AIL_STATIC_ASSERT_MSG1(expr, msg, line) _AIL_STATIC_ASSERT_MSG2(expr, msg, line)
+#   define _AIL_STATIC_ASSERT2(expr, msg)           _AIL_STATIC_ASSERT_MSG1(expr, msg, __LINE__)
 #endif
-#define _AIL_STATIC_ASSERT1(cond) _AIL_STATIC_ASSERT2(cond, __FILE__ ":" AIL_STR_LINE ": Static Assert failed")
+#define _AIL_STATIC_ASSERT1(expr) _AIL_STATIC_ASSERT2(expr, __FILE__ ":" AIL_STR_LINE ": Static Assert failed")
 #define AIL_STATIC_ASSERT(...) AIL_VFUNC(_AIL_STATIC_ASSERT, __VA_ARGS__)
 
 #define AIL_OFFSETOF(ptr, field) (((char *) &(ptr)->field) - ((char *) (ptr)))
@@ -1017,7 +1228,7 @@ AIL_DEF AIL_Endian ail_endian(void);
 #define _AIL_CALL_CALLOC3(allocator, nelem, size_el) (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
 #define _AIL_CALL_CALLOC2(allocator, size)           (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (size),            NULL)
 // Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
-#define AIL_CALL_CALLOC(...) AIL_VFUNC(_AIL_CALL_CALLOC, __VA_ARGS__)
+#define AIL_CALL_CALLOC(allocator, ...) AIL_VFUNC(_AIL_CALL_CALLOC, allocator, __VA_ARGS__)
 
 // Move a previously allocated region of memory to a new place with at least <new_size> bytes
 #define AIL_CALL_REALLOC(allocator, old_ptr, new_size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (new_size), (old_ptr))
@@ -1227,6 +1438,8 @@ AIL_DA_INIT(char);  AIL_SLICE_INIT(char);  AIL_ARR_INIT(char);
 #if !defined(AIL_NO_ENDIAN_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_ENDIAN_GUARD_
 #define _AIL_ENDIAN_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 AIL_Endian ail_endian(void)
 {
@@ -1251,6 +1464,7 @@ AIL_Endian ail_endian(void)
     return res;
 }
 
+AIL_WARN_POP
 #endif // _AIL_ENDIAN_GUARD_
 #endif // AIL_NO_ENDIAN_IMPL
 
@@ -1258,7 +1472,11 @@ AIL_Endian ail_endian(void)
 #if !defined(AIL_NO_ALLOC_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_ALLOCATOR_GUARD_
 #define _AIL_ALLOCATOR_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNREACHABLE_CODE)
 AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCATOR_SIZE_TYPE_ size, void *old_ptr)
 {
     AIL_UNUSED(data);
@@ -1274,6 +1492,7 @@ AIL_DEF void* ail_default_alloc(void *data, AIL_Allocator_Mode mode, _AIL_ALLOCA
     AIL_UNREACHABLE();
     return NULL;
 }
+AIL_WARN_POP
 
 global AIL_Allocator ail_default_allocator = {
     .data  = NULL,
@@ -1286,5 +1505,6 @@ AIL_DEF void __ail_default_allocator_unused__(void)
     AIL_UNUSED(ail_default_allocator);
 }
 
+AIL_WARN_POP
 #endif // _AIL_ALLOCATOR_GUARD_
 #endif // AIL_NO_ALLOC_IMPL

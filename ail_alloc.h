@@ -75,6 +75,8 @@ typedef struct AIL_Alloc_Size_Header {
 } AIL_Alloc_Size_Header;
 
 #define AIL_ALLOC_INIT_ALLOCATOR(name, region_params, params) \
+    AIL_WARN_PUSH                                             \
+    AIL_WARN_DISABLE(AIL_WARN_ZERO_LENGTH_ARRAY)              \
     typedef struct AIL_Alloc_##name##_Region {                \
         region_params                                         \
         u64 region_size;                                      \
@@ -86,7 +88,8 @@ typedef struct AIL_Alloc_Size_Header {
         AIL_Allocator *backing_allocator;                     \
         u64 region_block_size;                                \
         AIL_Alloc_##name##_Region region_head;                \
-    } AIL_Alloc_##name;
+    } AIL_Alloc_##name;                                       \
+    AIL_WARN_POP
 
 typedef AIL_Alloc_Size_Header AIL_Alloc_Page_Header;
 
@@ -210,13 +213,18 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 #if !defined(AIL_NO_ALLOC_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_ALLOC_IMPL_GUARD_
 #define _AIL_ALLOC_IMPL_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNREACHABLE_CODE)
 
 #include <stdlib.h> // For std_allocator and memset
 
 // @TODO: Provide reserve/committ capacities for allocators instead of just one capacity
 // @TODO: Implement Page Allocations for OSes other than WINDOWS and UNIX
 #if AIL_OS_WIN
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_ALL)
 #include <Windows.h> // For VirtualAlloc, VirtualFree
+AIL_WARN_POP
 #else
 #include <sys/mman.h> // For mmap, munmap
 #endif
@@ -227,13 +235,13 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
 #else
 #define _AIL_ALLOC_LOG(...) do { _AIL_DBG_PRINT_("Memory Trace: " __VA_ARGS__); _AIL_DBG_PRINT_("\n"); } while(0)
 #endif // AIL_ALLOC_PRINT_MEM
-#define AIL_ALLOC_LOG_ALLOC(allocator, ptr, size)          _AIL_ALLOC_LOG("Malloc   %4zu bytes at %p in '" allocator "' allocator", (size), (ptr));
-#define AIL_ALLOC_LOG_CALLOC(allocator, ptr, size)         _AIL_ALLOC_LOG("Calloc   %4zu bytes at %p in '" allocator "' allocator", (size), (ptr));
-#define AIL_ALLOC_LOG_REALLOC(allocator, nptr, optr, size) _AIL_ALLOC_LOG("Relloc   %4zu bytes from %p to %p in '" allocator "' allocator", (size), (optr), (nptr));
-#define AIL_ALLOC_LOG_SHRINK(allocator, ptr, osize, nsize) _AIL_ALLOC_LOG("Shrink   %4zu bytes at %p %4zu bytes '" allocator "' allocator", (osize), (ptr), (nsize));
-#define AIL_ALLOC_LOG_FREE(allocator, ptr, size)           _AIL_ALLOC_LOG("Free     %4zu bytes at %p in '" allocator "' allocator", (size), (ptr));
-#define AIL_ALLOC_LOG_CLEAR_ALL(allocator, size)           _AIL_ALLOC_LOG("ClearAll %4zu bytes in '" allocator "' allocator", (size));
-#define AIL_ALLOC_LOG_FREE_ALL(allocator, size)            _AIL_ALLOC_LOG("FreeAll  %4zu bytes in '" allocator "' allocator", (size));
+#define AIL_ALLOC_LOG_ALLOC(allocator, ptr, size)          _AIL_ALLOC_LOG("Malloc   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
+#define AIL_ALLOC_LOG_CALLOC(allocator, ptr, size)         _AIL_ALLOC_LOG("Calloc   %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
+#define AIL_ALLOC_LOG_REALLOC(allocator, nptr, optr, size) _AIL_ALLOC_LOG("Relloc   %4llu bytes from %p to %p in '" allocator "' allocator", (size), (optr), (nptr));
+#define AIL_ALLOC_LOG_SHRINK(allocator, ptr, osize, nsize) _AIL_ALLOC_LOG("Shrink   %4llu bytes at %p %4llu bytes '" allocator "' allocator", (osize), (ptr), (nsize));
+#define AIL_ALLOC_LOG_FREE(allocator, ptr, size)           _AIL_ALLOC_LOG("Free     %4llu bytes at %p in '" allocator "' allocator", (size), (ptr));
+#define AIL_ALLOC_LOG_CLEAR_ALL(allocator, size)           _AIL_ALLOC_LOG("ClearAll %4llu bytes in '" allocator "' allocator", (size));
+#define AIL_ALLOC_LOG_FREE_ALL(allocator, size)            _AIL_ALLOC_LOG("FreeAll  %4llu bytes in '" allocator "' allocator", (size));
 #define AIL_ALLOC_LOG(allocator, mode, ptr, osize, nsize, optr) do { \
         switch(mode) {                                               \
             case AIL_MEM_ALLOC:                                      \
@@ -285,7 +293,7 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
     } while(0)
 
 #define AIL_ALLOC_FOR_EACH_REGION(allocatorName, it_name, first_region_ptr, body) \
-    for (AIL_CONCAT(AIL_Alloc_, AIL_CONCAT(allocatorName, _Region)) *it_name = first_region_ptr, *_ail_alloc_for_each_next_region_; it_name != NULL; it_name = _ail_alloc_for_each_next_region_) { \
+    for (AIL_CONCAT(AIL_Alloc_, allocatorName, _Region) *it_name = first_region_ptr, *_ail_alloc_for_each_next_region_; it_name != NULL; it_name = _ail_alloc_for_each_next_region_) { \
         _ail_alloc_for_each_next_region_ = it_name->region_next; \
         body; \
     }
@@ -304,7 +312,7 @@ AIL_ALLOC_DEF AIL_Allocator_Func ail_alloc_freelist_alloc;
     } while(0)
 
 #define AIL_ALLOC_NEW_REGION(allocatorName, allocator, out_region_ptr_var, last_region_ptr_var, min_region_size, unmerged_body) do { \
-        AIL_CONCAT(AIL_Alloc_, AIL_CONCAT(allocatorName, _Region)) *_ail_alloc_new_region_ptr_var_;                                  \
+        AIL_CONCAT(AIL_Alloc_, allocatorName, _Region) *_ail_alloc_new_region_ptr_var_;                                              \
         _AIL_ALLOC_NEW_REGION_(allocatorName, allocator, _ail_alloc_new_region_ptr_var_, min_region_size);                           \
         if (AIL_LIKELY(_ail_alloc_new_region_ptr_var_)) {                                                                            \
             if (false && AIL_ALLOC_CAN_MERGE_REGIONS(last_region_ptr_var, _ail_alloc_new_region_ptr_var_)) {                         \
@@ -484,7 +492,6 @@ static void* _ail_alloc_page_internal_realloc_(void *old_ptr, u64 size)
         // @TODO: VirtualAlloc can take the previous pointer to potentially just increase the size
         // @TODO: mmap has some kind of hint system, that probably does more or less the same
         void *res = _ail_alloc_page_internal_alloc_(NULL, size);
-        AIL_Alloc_Page_Header *header = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Page_Header);
         memcpy(res, old_ptr, header->size);
         _ail_alloc_internal_free_pages_(old_ptr, header->size);
         return res;
@@ -659,7 +666,7 @@ AIL_Allocator ail_alloc_arena_new(u64 cap, AIL_Allocator *backing_allocator)
 // @Note: Expects size to be aligned to AIL_ALLOC_ALIGNMENT
 void* _ail_alloc_arena_internal_alloc_(AIL_Alloc_Arena *arena, u64 header_size, u64 size)
 {
-    AIL_Alloc_Arena_Region *last_region, *region = &arena->region_head;
+    AIL_Alloc_Arena_Region *last_region = NULL, *region = &arena->region_head;
     // AIL_BENCH_PROFILE_START(Arena_Alloc_Find_Region);
     AIL_ALLOC_FIND_REGION(region, last_region, (region->used + size + header_size <= region->region_size));
     if (AIL_UNLIKELY(!region)) {
@@ -743,7 +750,7 @@ void* ail_alloc_arena_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void 
             }
             // AIL_BENCH_PROFILE_END(Arena_Free_Find_Region);
             // Free element, if it was the last one allocated
-            u64 old_size = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Arena_Header)->size;
+            old_size = AIL_ALLOC_GET_HEADER(old_ptr, AIL_Alloc_Arena_Header)->size;
             if ((u8 *)old_ptr + old_size == region->mem + region->used) region->used -= old_size + sizeof(AIL_Alloc_Arena_Header);
         } break;
         case AIL_MEM_CLEAR_ALL: {
@@ -787,7 +794,7 @@ static void _ail_alloc_pool_internal_clear_region_(AIL_Alloc_Pool_Region *region
 static void* _ail_alloc_pool_internal_alloc_(AIL_Alloc_Pool *pool)
 {
     void *ptr;
-    AIL_Alloc_Pool_Region *last_region, *region = &pool->region_head;
+    AIL_Alloc_Pool_Region *last_region = NULL, *region = &pool->region_head;
     AIL_ALLOC_FIND_REGION(region, last_region, (region->head));
     if (region) {
         ptr = region->head;
@@ -897,14 +904,14 @@ done:
 
 void _ail_alloc_freelist_node_print_(u64 id, u64 size)
 {
-    printf("\033[42m| %zd, %zd \033[0m", id, size);
+    printf("\033[42m| %lld, %lld \033[0m", id, size);
 }
 
 void _ail_alloc_freelist_block_print_(AIL_Alloc_Freelist_Header header)
 {
-    printf("\033[41m| %zd ", header.size);
+    printf("\033[41m| %lld ", header.size);
     AIL_ASSERT(header.pad < AIL_ALLOC_ALIGNMENT);
-    if (header.pad) printf("+ %zd ", header.pad);
+    if (header.pad) printf("+ %lld ", header.pad);
     printf("\033[0m");
 }
 
@@ -939,7 +946,7 @@ void _ail_alloc_freelist_region_print_(AIL_Alloc_Freelist_Region *region)
         nodes.data[i] = tmp;
     }
 
-    printf("\033[48;5;0m%zd/%zd used: ", region->region_used, region->region_size);
+    printf("\033[48;5;0m%lld/%lld used: ", region->region_used, region->region_size);
     u32 idx = 0;
     u8 *ptr = region->mem;
     while (ptr < region->mem + region->region_size) {
@@ -995,7 +1002,7 @@ void* _ail_alloc_freelist_internal_alloc_(AIL_Alloc_Freelist *fl, u64 size)
     u64 req_size = sizeof(AIL_Alloc_Freelist_Header) + size + header.pad;
 
     // AIL_BENCH_PROFILE_START(Freelist_Alloc_Find_Region_Node);
-    AIL_Alloc_Freelist_Region *prev_region, *region = &fl->region_head;
+    AIL_Alloc_Freelist_Region *prev_region = NULL, *region = &fl->region_head;
     AIL_Alloc_Freelist_Node_Couple node_couple = {0};
     while (region) {
         prev_region = region;
@@ -1208,6 +1215,6 @@ void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, vo
     return ptr;
 }
 
-
+AIL_WARN_POP
 #endif // _AIL_ALLOC_IMPL_GUARD_
 #endif // AIL_NO_ALLOC_IMPL
