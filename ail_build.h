@@ -1,9 +1,9 @@
 // Build System for writing build-scripts in C
 //
-// Strongly inspired by Tsoding's nob.h (https://github.com/tsoding/musializer/blob/master/nob.h)
+// Strongly inspired by Tsoding's nob.h (https://github.com/tsoding/nob.h)
 // @Note: Works but barely useable yet
 //
-// LICENSE regarding Tsoding's code
+// LICENSE of Tsoding's nob.h library
 /*
 Copyright 2023 Alexey Kutepov <reximkut@gmail.com> and Musializer Contributors
 
@@ -27,7 +27,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 //
-// LICENSE regarding modifications & original code
+// LICENSE for modifications of nob.h & original code
 /*
 Copyright (c) 2024 Lily Val Richter
 
