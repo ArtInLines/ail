@@ -1,5 +1,5 @@
 #include "../ail.h"
-#include "./test_assert.h"
+#include "./assert.h"
 #include <string.h>
 #include <stdio.h>
 

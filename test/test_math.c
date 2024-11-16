@@ -1,5 +1,5 @@
 #include "../ail_math.h"
-#include "./test_assert.h"
+#include "./assert.h"
 #include <stdio.h>
 
 bool test_is2power(void)

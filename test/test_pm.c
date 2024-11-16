@@ -89,7 +89,7 @@
 
 #include "../ail_sv.h"
 #include "../ail_pm.h"
-#include "./test_assert.h"
+#include "./assert.h"
 
 typedef struct SuccTest {
     AIL_SV pattern;

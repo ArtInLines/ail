@@ -52,32 +52,32 @@ C ?= $(COMP)
 
 all: da macros math sv fs hm alloc buf ring pm
 
-da: ail_da.c
-	$(C) $(CFLAGS) -o ail_da ail_da.c
+da: test_da.c
+	$(C) $(CFLAGS) -o test_da test_da.c
 
-macros: ail_macros.c
-	$(C) $(CFLAGS) -o ail_macros ail_macros.c
+macros: test_macros.c
+	$(C) $(CFLAGS) -o test_macros test_macros.c
 
-math: ail_math.c
-	$(C) $(CFLAGS) -o ail_math ail_math.c
+math: test_math.c
+	$(C) $(CFLAGS) -o test_math test_math.c
 
-sv: ail_sv.c
-	$(C) $(CFLAGS) -o ail_sv ail_sv.c
+sv: test_sv.c
+	$(C) $(CFLAGS) -o test_sv test_sv.c
 
-fs: ail_fs.c
-	$(C) $(CFLAGS) -o ail_fs ail_fs.c
+fs: test_fs.c
+	$(C) $(CFLAGS) -o test_fs test_fs.c
 
-hm: ail_hm.c
-	$(C) $(CFLAGS) -o ail_hm ail_hm.c
+hm: test_hm.c
+	$(C) $(CFLAGS) -o test_hm test_hm.c
 
-alloc: ail_alloc.c
-	$(C) $(CFLAGS) -o ail_alloc ail_alloc.c
+alloc: test_alloc.c
+	$(C) $(CFLAGS) -o test_alloc test_alloc.c
 
-buf: ail_buf.c
-	$(C) $(CFLAGS) -o ail_buf ail_buf.c
+buf: test_buf.c
+	$(C) $(CFLAGS) -o test_buf test_buf.c
 
-ring: ail_ring.c
-	$(C) $(CFLAGS) -o ail_ring ail_ring.c
+ring: test_ring.c
+	$(C) $(CFLAGS) -o test_ring test_ring.c
 
-pm: ail_pm.c
-	$(C) $(CFLAGS) -o ail_pm ail_pm.c
+pm: test_pm.c
+	$(C) $(CFLAGS) -o test_pm test_pm.c

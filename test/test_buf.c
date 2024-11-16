@@ -1,6 +1,6 @@
 // Test ail_buf.h
 
-#include "test_assert.h"
+#include "assert.h"
 #include "../ail_buf.h"
 #include <stdlib.h>
 #include <stdio.h>

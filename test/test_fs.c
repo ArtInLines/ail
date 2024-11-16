@@ -1,6 +1,6 @@
 // Test ail_fs.h
 
-#include "test_assert.h"
+#include "assert.h"
 #include "../ail_fs.h"
 #include <stdio.h>
 

@@ -1,6 +1,6 @@
 // Test ail_ring.h
 
-#include "test_assert.h"
+#include "assert.h"
 #include "../ail_ring.h"
 #include <stdio.h>
 
