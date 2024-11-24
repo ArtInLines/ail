@@ -19,30 +19,46 @@
 * Nul-terminated C-Strings: pchar
 *
 *
+*** Allocator Interface ***
+* The interface for allocators that are used throughout ail
+* AIL_Allcoator:      Structure containing context & alloc function
+* AIL_Allocator_Mode: Enum containing all different operations that can be used with allocators
+* @Note: Certain allocators do not support all operations. See notes on the specific allocators you wish to use
+* Macros for calling the different operations on an allocator:
+* @Note: `al` Refers to the allocator instance in the following macros
+  * ail_call_alloc(al, size):        Allocate at least `size` bytes
+  * ail_call_calloc(al, size):       Allocate at least `size` bytes that are all cleared to zero
+  * ail_call_realloc(al, ptr, size): Move a previously allocated memory-region somewhere with at least `size` bytes available
+  * ail_call_shrink(al, ptr, size):  Like reallocing to a smaller size, but with the guarantuee that no new allocation will be made
+  * ail_call_free(al, ptr):          Free a single chunk of memory
+  * ail_call_clear_all(al):          Marks all internally held memory as free
+  * ail_call_free_all(al):           Like clear_all, but might free internally held memory as well
+*
+*
 *** Useful Macros ***
 * The following list only contains the public API of macros, but none of the internally used macros (which are always prefixed with an underscore)
-* None of these macros guarantuee safety in regards to side-effects, so be aware to avoid something like AIL_MIN(x++, --y);
-  * AIL_ARRLEN(arr): Get the size of a fixed-sized, stack-allocated array
-  * AIL_TYPEOF(x):   Get the type of x (only available with certain compiler extensions or on C++/C23)
-  * AIL_OFFSETOF(ptr, field): Return the offset in bytes from a struct-field from a pointer to a struct
-  *
-  * AIL_SWAP(x, y):             Swap x and y (without providing their type) (only works when AIL_TYPEOF works)
-  * AIL_SWAP_PORTABLE(T, x, y): Swap x and y in the most portable way (requires you to provide their type T)
-  * AIL_MAX(a, b):              Get the maximum of two values
-  * AIL_MIN(a, b):              Get the minimum of two values
-  * AIL_CLAMP(x, min, max):     Returns the closest value to x in the range [min; max]
-  * AIL_IS_2POWER(x):           Returns whether x is a power of 2
-  * AIL_NEXT_2POWER(x):         Get the next highest value above x that is a power of 2 (if x isn't already a power of 2)
-  * AIL_LERP(t, min, max):      Linearly interpolate between min and max
-  * AIL_INV_LERP(x, min, max):  Does the inverse of a linear interpolation, returning the interpolater, such that the following holds: AIL_LERP(AIL_INV_LERP(x, min, max), min, max) == x
+* @Note: None of these macros guarantuee safety in regards to side-effects, so be aware to avoid something like ail_min(x++, --y);
+  * ail_arrlen(arr):     Get the size of a fixed-sized, stack-allocated array
+  * ail_int_from_ptr(p): Convert p to an integer
+  * ail_ptr_from_int(i): Convert i to a pointer
+  * ail_typeof(x):       Get the type of x (only available on certain compilers or with C++/C23)
+  * ail_offset_of(ptr, field_name):          Get the offset of a field in bytes from a pointer to a struct
+  * ail_offset_of_type(T, field_name):       Get the offset of a field in bytes from the struct Type
+  * ail_base_from_field(T, field_name, ptr): Get a pointer to the base of a struct from a pointer to the field field_name
+  * ail_swap(x, y):    Swap x and y (without providing their type) (only works when ail_typeof works)
+  * ail_swap(T, x, y): Swap x and y (requires you to provide their type T)
   *
   * AIL_KB(n): Get n kilobyte
   * AIL_MB(n): Get n megabyte
   * AIL_GB(n): Get n gigabyte
   * AIL_TB(n): Get n terabyte
+  * AIL_THOUS(n): Get n thousand
+  * AIL_MIL(n):   Get n million
+  * AIL_BIL(n):   Get n billion
   *
-  * AIL_ASSERT(expr, [msg]):        Assert that expr is true with an optional message
-  * AIL_STATIC_ASSERT(cond, [msg]): Statically assert that cond is true with an optional message
+  * ail_debugtrap():                Insert a Debug-Trap for the program to halt and terminate
+  * ail_assert(expr, [msg]):        Assert that expr is true with an optional message
+  * ail_static_assert(cond, [msg]): Statically assert that cond is true with an optional message
   * AIL_PANIC(...):                 Panic and exit the program. Any input will be given as input to printf
   * AIL_TODO():                     Panic when hitting this place while the program is running
   * AIL_UNREACHABLE():              Panic when hitting this place while the program is running
@@ -176,29 +192,29 @@ typedef char* pchar;
 // Allocator Interface
 /////////////////////////
 // Allocate a region of memory holding at least <size> bytes
-#define AIL_CALL_ALLOC(allocator, size) (allocator).alloc((allocator).data, AIL_MEM_ALLOC, (size), NULL)
+#define ail_call_alloc(al, size) (al).alloc((al).data, AIL_MEM_ALLOC, (size), NULL)
 
-#define _AIL_CALL_CALLOC_3(allocator, nelem, size_el) (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
-#define _AIL_CALL_CALLOC_2(allocator, size)           (allocator).alloc((allocator).data, AIL_MEM_CALLOC, (size),            NULL)
+#define _ail_call_calloc_3(al, nelem, size_el) (al).alloc((al).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
+#define _ail_call_calloc_2(al, size)           (al).alloc((al).data, AIL_MEM_CALLOC, (size),            NULL)
 // Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
-#define AIL_CALL_CALLOC(allocator, ...) AIL_VFUNC(_AIL_CALL_CALLOC_, allocator, __VA_ARGS__)
+#define ail_call_calloc(al, ...) AIL_VFUNC(_ail_call_calloc_, al, __VA_ARGS__)
 
 // Move a previously allocated region of memory to a new place with at least <new_size> bytes
-#define AIL_CALL_REALLOC(allocator, old_ptr, new_size) (allocator).alloc((allocator).data, AIL_MEM_REALLOC, (new_size), (old_ptr))
+#define ail_call_realloc(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_REALLOC, (new_size), (old_ptr))
 
 // Provide a hint to the allocator, that the previously allocated region of memory can be shrunk to only contain <new_size> bytes.
 // The purpose of this is to reduce memory usage when finding out later that less memory than expected was needed.
 // Some allcoators treat this as a no-op
-#define AIL_CALL_SHRINK(allocator, old_ptr, new_size) (allocator).alloc((allocator).data, AIL_MEM_SHRINK, (new_size), (old_ptr))
+#define ail_call_shrink(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_SHRINK, (new_size), (old_ptr))
 
 // Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
-#define AIL_CALL_FREE(allocator, old_ptr) (allocator).alloc((allocator).data, AIL_MEM_FREE, 0, (old_ptr))
+#define ail_call_free(al, ptr) (al).alloc((al).data, AIL_MEM_FREE, 0, (ptr))
 
 // If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
-#define AIL_CALL_CLEAR_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_CLEAR_ALL, 0, NULL)
+#define ail_call_clear_all(al) (al).alloc((al).data, AIL_MEM_CLEAR_ALL, 0, NULL)
 
 // If the allocator holds several memory regions, it frees all of them except for one
-#define AIL_CALL_FREE_ALL(allocator) (allocator).alloc((allocator).data, AIL_MEM_FREE_ALL, 0, NULL)
+#define ail_call_free_all(al) (al).alloc((al).data, AIL_MEM_FREE_ALL, 0, NULL)
 
 // The action that should be executed when calling the allocator proc
 // @TODO: Potential other functions:
@@ -501,31 +517,6 @@ typedef struct AIL_Allocator {
 #define AIL_CONCAT(...) AIL_VFUNC(_AIL_CONCAT_, __VA_ARGS__)
 
 
-// AIL_WARN_PUSH && AIL_WARN_POP
-#if AIL_COMP_CLANG
-#   define AIL_WARN_PUSH _Pragma("clang diagnostic push")
-#   define AIL_WARN_POP  _Pragma("clang diagnostic pop")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
-#   define AIL_WARN_PUSH _Pragma("warning(push)")
-#   define AIL_WARN_POP  _Pragma("warning(pop)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 6, 0)
-#   define AIL_WARN_PUSH _Pragma("GCC diagnostic push")
-#   define AIL_WARN_POP  _Pragma("GCC diagnostic pop")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0) || _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
-#   define AIL_WARN_PUSH _Pragma("warning(push)")
-#   define AIL_WARN_POP  _Pragma("warning(pop)")
-#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 2, 90, 0)
-#   define AIL_WARN_PUSH _Pragma("warning(push)")
-#   define AIL_WARN_POP  _Pragma("warning(pop)")
-#else
-#   define AIL_WARN_PUSH
-#   define AIL_WARN_POP
-#endif
-
-#define AIL_WARN_ENABLE(warning_name)  AIL_EXPAND(AIL_CONCAT(_AIL_WARN_ENABLE_,  warning_name))
-#define AIL_WARN_DISABLE(warning_name) AIL_EXPAND(AIL_CONCAT(_AIL_WARN_DISABLE_, warning_name))
-#define AIL_WARN_ERROR(warning_name)   AIL_EXPAND(AIL_CONCAT(_AIL_WARN_ERROR_,   warning_name))
-
 // AIL_LIKELY && AIL_UNLIKELY
 #if (ail_has_builtin(__builtin_expect) && !_AIL_VERSION_ICL_) || \
     _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 3, 0, 0) || \
@@ -557,13 +548,13 @@ typedef struct AIL_Allocator {
 #   define AIL_FLAG_ENUM
 #endif
 
-// AIL_TYPEOF
+// ail_typeof
 #if AIL_LANG_C && AIL_LANG_STANDARD >= 2023
-#   define AIL_TYPEOF(x) typeof_unqual(x)
+#   define ail_typeof(x) typeof_unqual(x)
 #elif AIL_LANG_CPP
-#   define AIL_TYPEOF(x) decltype(x)
+#   define ail_typeof(x) decltype(x)
 #elif AIL_COMP_GCC || AIL_OS_MINGW || AIL_COMP_CLANG
-#   define AIL_TYPEOF(x) __typeof__(x)
+#   define ail_typeof(x) __typeof__(x)
 #else
 // No typeof possible
 #endif
@@ -575,40 +566,44 @@ typedef struct AIL_Allocator {
 #endif
 
 // @Note: Do not include "enum" in the declaration
-#if defined(__GNUC__)
+#if AIL_COMP_GCC
 #   define AIL_PACK_BEGIN() __attribute__((__packed__))
 #   define AIL_PACK_END()
-#elif defined(_MSC_VER)
+#elif AIL_COMP_MSVC
 #   define AIL_PACK_BEGIN() _Pragma(pack(push, 1))
 #   define AIL_PACK_END()   _Pragma(pack(pop))
-#elif defined(__clang__) || defined(__TINYC__)
+#elif AIL_COMP_CLANG || AIL_COMP_TCC
 #   define AIL_PACK_BEGIN() __attribute__((packed))
+#   define AIL_PACK_END()
+#else
+#   define AIL_PACK_BEGIN()
 #   define AIL_PACK_END()
 #endif
 
-#define AIL_ARRLEN(arr) (sizeof(arr) / sizeof(*(arr)))
 
-// @Note: Not safe to use with expressions, that have side-effects (like AIL_MAX(x++, y++))
-#define AIL_MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define AIL_MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define AIL_CLAMP(x, min, max) ((x) > (max) ? (max) : (x) < (min) ? (min) : (x))
-
-#define _AIL_SWAP_PORTABLE_(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
-#define AIL_SWAP_PORTABLE(T, x, y) _AIL_SWAP_PORTABLE_(T, x, y);
-#ifdef AIL_TYPEOF
-#   define AIL_SWAP(x, y) do { AIL_TYPEOF(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
+#define ail_arrlen(arr)     (sizeof(arr) / sizeof((arr)[0]))
+#define ail_int_from_ptr(p) (u64)(((u8*)p) - 0)
+#define ail_ptr_from_int(i) (void*)(((u8*)0) + i)
+#define ail_offset_of(ptr, field_name)    ail_int_from_ptr((u8*)&(ptr)->field_name - (u8*)(ptr))
+#define ail_offset_of_type(T, field_name) ail_int_from_ptr(((T *)0)->field_name)
+#define ail_base_from_field(T, field_name, ptr) (T*)((u8*)(ptr) - ail_offset_of_type(T, field_name))
+#define _ail_swap_3(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0);
+#ifdef ail_typeof
+#   define _ail_swap_2(x, y) do { ail_typeof(x) _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0)
 #else
-#   define AIL_SWAP(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
+#   define _ail_swap_2(x, y) do { x ^= y; y ^= x; x ^= y; } while(0)
 #endif
+#define ail_swap(...) AIL_VFUNC(_ail_swap_, __VA_ARGS__)
 
-// AIL_LERP(AIL_INV_LERP(x, min, max), min, max) = x
-#define AIL_LERP(t, min, max) ((min) + (t)*((max) - (min)))
-#define AIL_INV_LERP(x, min, max) (((double)(x) - (double)(min)) / ((double)(max) - (double)(min)))
 
-#define AIL_KB(x) (((u64)(x)) << 10)
-#define AIL_MB(x) (((u64)(x)) << 20)
-#define AIL_GB(x) (((u64)(x)) << 30)
-#define AIL_TB(x) (((u64)(x)) << 40)
+#define AIL_KB(n) (((u64)(n)) << 10)
+#define AIL_MB(n) (((u64)(n)) << 20)
+#define AIL_GB(n) (((u64)(n)) << 30)
+#define AIL_TB(n) (((u64)(n)) << 40)
+#define AIL_THOUS(n) ((n)*1000)
+#define AIL_MIL(n)   ((n)*1000000)
+#define AIL_BIL(n)   ((n)*1000000000LL)
+
 
 // ail_debugtrap - largely copied from https://github.com/nemequ/portable-snippets/
 #if ail_has_builtin(__builtin_debugtrap)
@@ -633,42 +628,59 @@ typedef struct AIL_Allocator {
 #   define ail_debugtrap() (*(volatile size_t *)0 = 0)
 #endif
 
-#define _AIL_ASSERT_COMMON_(expr, msg) do { if (!(expr)) { _AIL_DBG_PRINT_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); ail_debugtrap(); } } while(0)
-#define _AIL_ASSERT_2(expr, msg)       _AIL_ASSERT_COMMON_(expr, "with message '" msg "'")
-#define _AIL_ASSERT_1(expr)            _AIL_ASSERT_COMMON_(expr, "with expression 'AIL_ASSERT(" AIL_STRINGIFY(expr) ")'")
-#define AIL_ASSERT(...) AIL_VFUNC(_AIL_ASSERT_, __VA_ARGS__);
+#define _ail_assert_common_(expr, msg) do { if (!(expr)) { _ail_dbg_print_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); ail_debugtrap(); } } while(0)
+#define _ail_assert_2(expr, msg)       _ail_assert_common_(expr, "with message '" msg "'")
+#ifdef AIL_STRIP_PREFIX
+#   define _ail_assert_1(expr)            _ail_assert_common_(expr, "with expression 'assert(" AIL_STRINGIFY(expr) ")'")
+#else
+#   define _ail_assert_1(expr)            _ail_assert_common_(expr, "with expression 'ail_assert(" AIL_STRINGIFY(expr) ")'")
+#endif
+#define ail_assert(...) AIL_VFUNC(_ail_assert_, __VA_ARGS__);
 
-#define AIL_PANIC(...)    do { _AIL_DBG_PRINT_(__VA_ARGS__); _AIL_DBG_PRINT_("\n"); ail_debugtrap(); } while(0)
-#define AIL_TODO()        do { _AIL_DBG_PRINT_("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); ail_debugtrap(); } while(0)
-#define AIL_UNREACHABLE() do { _AIL_DBG_PRINT_("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); ail_debugtrap(); } while(0)
+#define AIL_PANIC(...)    do { _ail_dbg_print_(__VA_ARGS__); _ail_dbg_print_("\n"); ail_debugtrap(); } while(0)
+#define AIL_TODO()        do { _ail_dbg_print_("Hit TODO in " __FILE__ ":" AIL_STR_LINE "\n"); ail_debugtrap(); } while(0)
+#define AIL_UNREACHABLE() do { _ail_dbg_print_("Reached an unreachable place in " __FILE__ ":" AIL_STR_LINE "\n"); ail_debugtrap(); } while(0)
 
 // @TODO: Better static assert message
 #ifdef __cpp_static_assert
-#   define _AIL_STATIC_ASSERT2(expr, msg) static_assert(!!(expr), msg)
+#   define _ail_static_assert_2(expr, msg) static_assert(!!(expr), msg)
 #elif __STDC_VERSION__ >= 202311L
-#   define _AIL_STATIC_ASSERT2(expr, msg) static_assert(!!(expr), msg)
+#   define _ail_static_assert_2(expr, msg) static_assert(!!(expr), msg)
 #elif __STDC_VERSION__ >= 201112L
 #   include <assert.h>
-#   define _AIL_STATIC_ASSERT2(expr, msg) _Static_assert(!!(expr), msg)
+#   define _ail_static_assert_2(expr, msg) _Static_assert(!!(expr), msg)
 #else
-#   define _AIL_STATIC_ASSERT_MSG2(expr, msg, line) char __ail_static_assertion_at_line##line[((!!(expr))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIFY(msg)
-#   define _AIL_STATIC_ASSERT_MSG1(expr, msg, line) _AIL_STATIC_ASSERT_MSG2(expr, msg, line)
-#   define _AIL_STATIC_ASSERT2(expr, msg)           _AIL_STATIC_ASSERT_MSG1(expr, msg, __LINE__)
+#   define _ail_static_assert_msg_2(expr, msg, line) c8 __ail_static_assertion_at_line##line[((!!(expr))*2)-1]; c8 *__ail_static_assertion_at_line##line_message = AIL_STRINGIFY(msg)
+#   define _ail_static_assert_msg_1(expr, msg, line) _ail_static_assert_msg_2(expr, msg, line)
+#   define _ail_static_assert_2(expr, msg)           _ail_static_assert_msg_1(expr, msg, __LINE__)
 #endif
-#define _AIL_STATIC_ASSERT1(expr) _AIL_STATIC_ASSERT2(expr, __FILE__ ":" AIL_STR_LINE ": Static Assert failed")
-#define AIL_STATIC_ASSERT(...) AIL_VFUNC(_AIL_STATIC_ASSERT, __VA_ARGS__)
+#define _ail_static_assert_1(expr) _ail_static_assert_2(expr, __FILE__ ":" AIL_STR_LINE ": Static Assert failed")
+#define ail_static_assert(...) AIL_VFUNC(_ail_static_assert_, __VA_ARGS__)
 
-#define AIL_OFFSETOF(ptr, field) (((char *) &(ptr)->field) - ((char *) (ptr)))
 
-#define AIL_IS_2POWER_POS(x) (x && ((x & (x - 1)) == 0))
-#define AIL_IS_2POWER(x)     ((x < 0) ? AIL_IS_2POWER_POS(-(x)) : AIL_IS_2POWER_POS(x))
-#define AIL_NEXT_2POWER_POS(x, out) do {                                                                                                      \
-        out = (x) - 1;                                                                                                                        \
-        for (size_t _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
-            out |= out >> _ail_next_2power_shift_;                                                                                            \
-        out += (out+1 <= 1) + 1;                                                                                                              \
-    } while(0)
-#define AIL_NEXT_2POWER(x, out) do { if (x >= 0) AIL_NEXT_2POWER_POS(x, out); else { AIL_NEXT_2POWER_POS(-(x), out); out = -out; } } while(0)
+// AIL_WARN_PUSH && AIL_WARN_POP
+#if AIL_COMP_CLANG
+#   define AIL_WARN_PUSH _Pragma("clang diagnostic push")
+#   define AIL_WARN_POP  _Pragma("clang diagnostic pop")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_INTEL_, 13, 0, 0)
+#   define AIL_WARN_PUSH _Pragma("warning(push)")
+#   define AIL_WARN_POP  _Pragma("warning(pop)")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_GCC_, 4, 6, 0)
+#   define AIL_WARN_PUSH _Pragma("GCC diagnostic push")
+#   define AIL_WARN_POP  _Pragma("GCC diagnostic pop")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_MSVC_, 15, 0, 0) || _AIL_VERSION_CHECK_(_AIL_VERSION_ICL_, 2021, 1, 0)
+#   define AIL_WARN_PUSH _Pragma("warning(push)")
+#   define AIL_WARN_POP  _Pragma("warning(pop)")
+#elif _AIL_VERSION_CHECK_(_AIL_VERSION_PELLES_, 2, 90, 0)
+#   define AIL_WARN_PUSH _Pragma("warning(push)")
+#   define AIL_WARN_POP  _Pragma("warning(pop)")
+#else
+#   define AIL_WARN_PUSH
+#   define AIL_WARN_POP
+#endif
 
+#define AIL_WARN_ENABLE(warning_name)  AIL_EXPAND(AIL_CONCAT(_AIL_WARN_ENABLE_,  warning_name))
+#define AIL_WARN_DISABLE(warning_name) AIL_EXPAND(AIL_CONCAT(_AIL_WARN_DISABLE_, warning_name))
+#define AIL_WARN_ERROR(warning_name)   AIL_EXPAND(AIL_CONCAT(_AIL_WARN_ERROR_,   warning_name))
 
 #endif // _AIL_BASE_H_

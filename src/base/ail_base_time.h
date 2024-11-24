@@ -11,7 +11,6 @@
 
 #include "ail_base.h"
 
-// @Note: Returns the amount
-internal u64 ail_time_now(void);
+// @TODO
 
 #endif // _AIL_BASE_TIME_H_
