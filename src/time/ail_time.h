@@ -14,8 +14,8 @@
 internal void ail_time_sleep(u64 msecs);
 
 // Time in seconds here
-inline f64 ail_time_clock_start(void);
-inline f64 ail_time_clock_elapsed(f64 start);
+inline_func f64 ail_time_clock_start(void);
+inline_func f64 ail_time_clock_elapsed(f64 start);
 
 #endif // _AIL_TIME_H_
 

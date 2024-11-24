@@ -29,13 +29,13 @@
     } AIL_Bench_Global_Info;
 #endif
 
-inline void ail_bench_init(void);
-inline u64 ail_bench_count_page_faults(void);
-inline u64 ail_bench_os_timer_freq(void);
-inline u64 ail_bench_os_timer(void);
-inline u64 ail_bench_calc_cpu_timer_freq(void);
-inline u64 ail_bench_cpu_timer(void);
-inline f64 ail_bench_cpu_elapsed_to_ms(u64 cpu_elapsed);
+inline_func void ail_bench_init(void);
+inline_func u64 ail_bench_count_page_faults(void);
+inline_func u64 ail_bench_os_timer_freq(void);
+inline_func u64 ail_bench_os_timer(void);
+inline_func u64 ail_bench_calc_cpu_timer_freq(void);
+inline_func u64 ail_bench_cpu_timer(void);
+inline_func f64 ail_bench_cpu_elapsed_to_ms(u64 cpu_elapsed);
 
 
 #ifdef AIL_BENCH_PROFILE
@@ -179,7 +179,7 @@ void ail_bench_clear_anchors(void)
 }
 
 // Calculates amount of characters required to write x as a decimal number
-static inline u32 ail_bench_u64_len(u64 x) {
+inline_func u32 ail_bench_u64_len(u64 x) {
     u32 len = 1;
     while (x > 9) {
         x /= 10;
@@ -189,11 +189,11 @@ static inline u32 ail_bench_u64_len(u64 x) {
 }
 
 // Calculates amount of characters required to write x as a decimal number
-static inline u32 ail_bench_f64_len(f64 x, u32 precision) {
+inline_func u32 ail_bench_f64_len(f64 x, u32 precision) {
     return ail_bench_u64_len((u64)x) + 1 + precision;
 }
 
-static inline u32 ail_bench_str_len(const char *str) {
+inline_func u32 ail_bench_str_len(const char *str) {
     u32 len = 0;
     while (str[len]) len++;
     return len;

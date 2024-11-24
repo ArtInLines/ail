@@ -1,7 +1,7 @@
 #include "./assert.h"
 #include "../ail_alloc.h"
 
-static inline u64 sum(u64 n)
+inline_func u64 sum(u64 n)
 {
     return n*(n+1)/2;
 }

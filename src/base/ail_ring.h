@@ -6,6 +6,7 @@
 #define _AIL_RING_H_
 
 #include "ail_base.h"
+#include "ail_mem.h"
 
 typedef struct AIL_RingBuffer {
     u64 start;
@@ -14,9 +15,9 @@ typedef struct AIL_RingBuffer {
     u8 *data;
 } AIL_RingBuffer;
 
-inline AIL_RingBuffer ail_ring_from_data(u8 *buffer, u64 buffer_size);
-inline AIL_RingBuffer ail_ring_new(u64 buffer_size, AIL_Allocator allocator);
-inline void ail_buf_free(AIL_RingBuffer rb, AIL_Allocator allocator);
+inline_func AIL_RingBuffer ail_ring_from_data(u8 *buffer, u64 buffer_size);
+inline_func AIL_RingBuffer ail_ring_new(u64 buffer_size, AIL_Allocator allocator);
+inline_func void ail_buf_free(AIL_RingBuffer rb, AIL_Allocator allocator);
 internal u64  ail_ring_len      (AIL_RingBuffer  rb);
 internal void ail_ring_pop      (AIL_RingBuffer *rb);
 internal void ail_ring_popn     (AIL_RingBuffer *rb, u64 n);

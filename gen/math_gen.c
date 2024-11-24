@@ -1,31 +1,9 @@
-// Generate ail_math.h
-//
-// LICENSE
 /*
-Copyright (c) 2024 Lily Val Richter
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+*** Generate Math ***
 */
 
-#include "../ail.h"
-#include "../ail_sv.h"
-#include "../ail_fs.h"
+#include "../src/base/ail_base.h"
+#include "../src/base/ail_str.h"
 
 #define SV_LIT    AIL_SV_FROM_LITERAL
 #define SV_LIT_T  AIL_SV_FROM_LITERAL_T
@@ -106,11 +84,11 @@ global AIL_SV vec_attrs_xy[]    = { SV_LIT("x"), SV_LIT("y"), SV_LIT("z"), SV_LI
 global AIL_SV vec_attrs_color[] = { SV_LIT("r"), SV_LIT("g"), SV_LIT("b"), SV_LIT("a") };
 global AIL_SV vec_attrs_uv[]    = { SV_LIT("u"), SV_LIT("v"), SV_LIT("w") };
 global AIL_SV vec_attrs_rect[]  = { SV_LIT("width"), SV_LIT("height") };
-global AIL_SLICE(AIL_SV) vec_attrs[] = {
-    ail_slice_from_arr(vec_attrs_xy),
-    ail_slice_from_arr(vec_attrs_color),
-    ail_slice_from_arr(vec_attrs_uv),
-    ail_slice_from_arr(vec_attrs_rect)
+global AIL_SA(AIL_SV) vec_attrs[] = {
+    ail_sa_from_arr(vec_attrs_xy),
+    ail_sa_from_arr(vec_attrs_color),
+    ail_sa_from_arr(vec_attrs_uv),
+    ail_sa_from_arr(vec_attrs_rect)
 };
 
 global char COMMENT_STRING[] = "////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////";
@@ -201,7 +179,7 @@ internal void math_generic_macro(AIL_SB *sb) {
 AIL_Str get_newlines(u32 n)
 {
     char buf[64];
-    snprintf(buf, AIL_ARRLEN(buf), "%.*s", n, NEWLINES_STRING);
+    snprintf(buf, ail_arrlen(buf), "%.*s", n, NEWLINES_STRING);
     return ail_str_new_cstr(buf);
 }
 
@@ -209,7 +187,7 @@ AIL_Str get_title_comment(AIL_SV text, u32 newlines_count)
 {
     u32 len = text.len + 16;
     char buf[512];
-    snprintf(buf, AIL_ARRLEN(buf), "%s%.*s\n//%.*s//\n//      %.*s      //\n//%.*s//\n%.*s%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, len - 4, SPACE_STRING, (u32)text.len, text.str, len - 4, SPACE_STRING, len, COMMENT_STRING, get_newlines(newlines_count).str);
+    snprintf(buf, ail_arrlen(buf), "%s%.*s\n//%.*s//\n//      %.*s      //\n//%.*s//\n%.*s%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, len - 4, SPACE_STRING, (u32)text.len, text.str, len - 4, SPACE_STRING, len, COMMENT_STRING, get_newlines(newlines_count).str);
     return ail_str_new_cstr(buf);
 }
 
@@ -217,7 +195,7 @@ AIL_Str get_subtitle_comment(AIL_SV text, u32 newlines_count)
 {
     u32 len = text.len + 8;
     char buf[256];
-    snprintf(buf, AIL_ARRLEN(buf), "%s%.*s\n//  %.*s  //\n%.*s\n%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, (u32)text.len, text.str, len, COMMENT_STRING, get_newlines(newlines_count).str);
+    snprintf(buf, ail_arrlen(buf), "%s%.*s\n//  %.*s  //\n%.*s\n%s", get_newlines(newlines_count + 1).str, len, COMMENT_STRING, (u32)text.len, text.str, len, COMMENT_STRING, get_newlines(newlines_count).str);
     return ail_str_new_cstr(buf);
 }
 
@@ -235,33 +213,33 @@ void vec_typedefs(AIL_SB *sb)
         for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
             AIL_Str inner = num_type_names[j];
             AIL_Str name = get_container_name(SV_LIT_T("Vec"), i, inner);
-            snprintf(buf, AIL_ARRLEN(buf), "typedef union %s {\n    %s els[%d];\n", name.str, inner.str, i);
+            snprintf(buf, ail_arrlen(buf), "typedef union %s {\n    %s els[%d];\n", name.str, inner.str, i);
             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
 
-            for (u32 k = 0; k < AIL_ARRLEN(vec_attrs); k++) {
+            for (u32 k = 0; k < ail_arrlen(vec_attrs); k++) {
                 if (vec_attrs[k].len >= i) {
-                    snprintf(buf, AIL_ARRLEN(buf), "    struct { %s %s; };\n", inner.str, ail_sv_join(vec_attrs[k].data, i, SV_LIT_T(", ")).str);
+                    snprintf(buf, ail_arrlen(buf), "    struct { %s %s; };\n", inner.str, ail_sv_join(vec_attrs[k].data, i, SV_LIT_T(", ")).str);
                     ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
                 }
             }
             u32 counter = 0;
-            for (u32 k = 0; k < AIL_ARRLEN(vec_attrs); k++) {
+            for (u32 k = 0; k < ail_arrlen(vec_attrs); k++) {
                 if (vec_attrs[k].len >= i) {
                     for (u32 l = vec_attrs[k].len - 1; l >= 2; l--) {
                         if (l >= i) continue;
                         for (u32 m = 0; m + l <= i; m++) {
                             ail_sb_push_sv(sb, ail_sv_from_cstr("    struct { "));
                             if (m > 0) {
-                                if (m > 1) snprintf(buf, AIL_ARRLEN(buf), "%s _%d[%d]; ", inner.str, counter++, m);
-                                else       snprintf(buf, AIL_ARRLEN(buf), "%s _%d; ",     inner.str, counter++);
+                                if (m > 1) snprintf(buf, ail_arrlen(buf), "%s _%d[%d]; ", inner.str, counter++, m);
+                                else       snprintf(buf, ail_arrlen(buf), "%s _%d; ",     inner.str, counter++);
                                 ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
                             }
-                            snprintf(buf, AIL_ARRLEN(buf), "%s %s; ", get_container_name(SV_LIT_T("Vec"), l, inner).str, ail_sv_join(vec_attrs[k].data + m, l, SV_LIT_T("")).str);
+                            snprintf(buf, ail_arrlen(buf), "%s %s; ", get_container_name(SV_LIT_T("Vec"), l, inner).str, ail_sv_join(vec_attrs[k].data + m, l, SV_LIT_T("")).str);
                             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
                             i32 count = i - l - m;
                             if (count > 0) {
-                                if (count > 1) snprintf(buf, AIL_ARRLEN(buf), "%s _%d[%d]; ", inner.str, counter++, count);
-                                else           snprintf(buf, AIL_ARRLEN(buf), "%s _%d; ",     inner.str, counter++);
+                                if (count > 1) snprintf(buf, ail_arrlen(buf), "%s _%d[%d]; ", inner.str, counter++, count);
+                                else           snprintf(buf, ail_arrlen(buf), "%s _%d; ",     inner.str, counter++);
                                 ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
                             }
                             ail_sb_push_sv(sb, ail_sv_from_cstr("};\n"));
@@ -269,7 +247,7 @@ void vec_typedefs(AIL_SB *sb)
                     }
                 }
             }
-            snprintf(buf, AIL_ARRLEN(buf), "} %s;\n\n", name.str);
+            snprintf(buf, ail_arrlen(buf), "} %s;\n\n", name.str);
             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
         }
     }
@@ -282,7 +260,7 @@ void mat_typedefs(AIL_SB *sb)
         for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
             AIL_Str inner = num_type_names[j];
             AIL_Str name = get_container_name(SV_LIT_T("Mat"), i, inner);
-            snprintf(buf, AIL_ARRLEN(buf), "typedef union %s {\n    %s els[%d][%d];\n    %s cols[%d];\n    struct { %s ", name.str, inner.str, i, i, get_container_name(SV_LIT_T("Vec"), i, inner).str, i, inner.str);
+            snprintf(buf, ail_arrlen(buf), "typedef union %s {\n    %s els[%d][%d];\n    %s cols[%d];\n    struct { %s ", name.str, inner.str, i, i, get_container_name(SV_LIT_T("Vec"), i, inner).str, i, inner.str);
             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
             for (u32 col = 0; col < i; col++) {
                 for (u32 row = 0; row < i; row++) {
@@ -290,7 +268,7 @@ void mat_typedefs(AIL_SB *sb)
                     ail_sb_push_sv(sb, ail_sv_concat(SV_LIT_T("x"), ail_str_new_unsigned(row+1), ail_str_new_unsigned(col+1)));
                 }
             }
-            snprintf(buf, AIL_ARRLEN(buf), "; };\n} %s;\n\n", name.str);
+            snprintf(buf, ail_arrlen(buf), "; };\n} %s;\n\n", name.str);
             ail_sb_push_sv(sb, ail_sv_from_cstr(buf));
         }
     }
@@ -300,9 +278,9 @@ void vec_constructor(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb)
 {
     char buf[1024];
     for (u32 i = VEC_MIN_SIZE; i <= VEC_MAX_SIZE; i++) {
-        AIL_SLICE(AIL_SV) attrs = ail_slice_from_parts(vec_attrs_xy, i);
+        AIL_SA(AIL_SV) attrs = ail_sa_from_parts(vec_attrs_xy, i);
         AIL_Str untyped_input   = ail_sv_join_da(attrs, ail_sv_from_cstr(", "));
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d(%s) " GENERIC_INTEGRAL_NAME "(ail_vec%d, , %s)\n", i, untyped_input.str, i, untyped_input.str);
+        snprintf(buf, ail_arrlen(buf), "#define ail_vec%d(%s) " GENERIC_INTEGRAL_NAME "(ail_vec%d, , %s)\n", i, untyped_input.str, i, untyped_input.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
         for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
@@ -310,18 +288,18 @@ void vec_constructor(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb)
             AIL_Str type = get_container_name(SV_LIT_T("Vec"), i, inner);
             AIL_SB op_sb = ail_sb_new();
             for (u32 k = 0; k < i; k++) {
-                snprintf(buf, AIL_ARRLEN(buf), "%s.%s = %s", (k ? ", " : ""), vec_attrs_xy[k].str, attrs.data[k].str);
+                snprintf(buf, ail_arrlen(buf), "%s.%s = %s", (k ? ", " : ""), vec_attrs_xy[k].str, attrs.data[k].str);
                 ail_sb_push_sv(&op_sb, ail_sv_from_cstr(buf));
             }
-            snprintf(buf, AIL_ARRLEN(buf), "%s ail_vec%d%s(", type.str, i, inner.str);
+            snprintf(buf, ail_arrlen(buf), "%s ail_vec%d%s(", type.str, i, inner.str);
             for (u32 k = 0; k < i; k++) {
-                snprintf(buf, AIL_ARRLEN(buf), "%s%s%s %s", buf, (k ? ", " : ""), inner.str, attrs.data[k].str);
+                snprintf(buf, ail_arrlen(buf), "%s%s%s %s", buf, (k ? ", " : ""), inner.str, attrs.data[k].str);
             }
-            snprintf(buf, AIL_ARRLEN(buf), "%s)", buf);
+            snprintf(buf, ail_arrlen(buf), "%s)", buf);
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(buf));
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(";\n"));
 
-            snprintf(buf, AIL_ARRLEN(buf), "%s\n{\n    return (%s) { %s };\n}\n\n", buf, type.str, ail_sb_to_str(op_sb).str);
+            snprintf(buf, ail_arrlen(buf), "%s\n{\n    return (%s) { %s };\n}\n\n", buf, type.str, ail_sb_to_str(op_sb).str);
             ail_sb_push_sv(impl_sb, ail_sv_from_cstr(buf));
         }
     }
@@ -334,7 +312,7 @@ void vec_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb
 {
     char buf[1024];
     for (u32 i = VEC_MIN_SIZE; i <= VEC_MAX_SIZE; i++) {
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_vec%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
+        snprintf(buf, ail_arrlen(buf), "#define ail_vec%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_vec%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
         for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
@@ -342,14 +320,14 @@ void vec_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb
             AIL_Str type = get_container_name(SV_LIT_T("Vec"), i, inner);
             AIL_SB op_sb = ail_sb_new();
             for (u32 k = 0; k < i; k++) {
-                snprintf(buf, AIL_ARRLEN(buf), "%s.%s = a.%s %s b.%s", (k ? ", " : ""), vec_attrs_xy[k].str, vec_attrs_xy[k].str, op.str, vec_attrs_xy[k].str);
+                snprintf(buf, ail_arrlen(buf), "%s.%s = a.%s %s b.%s", (k ? ", " : ""), vec_attrs_xy[k].str, vec_attrs_xy[k].str, op.str, vec_attrs_xy[k].str);
                 ail_sb_push_sv(&op_sb, ail_sv_from_cstr(buf));
             }
-            snprintf(buf, AIL_ARRLEN(buf), "%s ail_vec%d%s_%s(%s a, %s b)", type.str, i, inner.str, op_name.str, type.str, type.str);
+            snprintf(buf, ail_arrlen(buf), "%s ail_vec%d%s_%s(%s a, %s b)", type.str, i, inner.str, op_name.str, type.str, type.str);
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(buf));
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(";\n"));
 
-            snprintf(buf, AIL_ARRLEN(buf), "%s\n{\n    return (%s) { %s };\n}\n\n", buf, type.str, ail_sb_to_str(op_sb).str);
+            snprintf(buf, ail_arrlen(buf), "%s\n{\n    return (%s) { %s };\n}\n\n", buf, type.str, ail_sb_to_str(op_sb).str);
             ail_sb_push_sv(impl_sb, ail_sv_from_cstr(buf));
         }
     }
@@ -362,7 +340,7 @@ void mat_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb
 {
     char buf[1024];
     for (u32 i = MAT_MIN_SIZE; i <= MAT_MAX_SIZE; i++) {
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_mat%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_mat%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
+        snprintf(buf, ail_arrlen(buf), "#define ail_mat%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_mat%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
         for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
@@ -372,16 +350,16 @@ void mat_element_wise_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_SB *impl_sb
             for (u32 col = 0; col < i; col++) {
                 ail_sb_push_sv(&op_sb, ail_sv_from_cstr("        {"));
                 for (u32 row = 0; row < i; row++) {
-                    snprintf(buf, AIL_ARRLEN(buf), "%sa.els[%d][%d] %s b.els[%d][%d]", (row ? ", " : " "), col, row, op.str, col, row);
+                    snprintf(buf, ail_arrlen(buf), "%sa.els[%d][%d] %s b.els[%d][%d]", (row ? ", " : " "), col, row, op.str, col, row);
                     ail_sb_push_sv(&op_sb, ail_sv_from_cstr(buf));
                 }
                 ail_sb_push_sv(&op_sb, ail_sv_from_cstr("},\n"));
             }
-            snprintf(buf, AIL_ARRLEN(buf), "%s ail_mat%d%s_%s(%s a, %s b)", type.str, i, inner.str, op_name.str, type.str, type.str);
+            snprintf(buf, ail_arrlen(buf), "%s ail_mat%d%s_%s(%s a, %s b)", type.str, i, inner.str, op_name.str, type.str, type.str);
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(buf));
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(";\n"));
 
-            snprintf(buf, AIL_ARRLEN(buf), "%s\n{\n    return (%s) { .els = {\n%s    }};\n}\n\n", buf, type.str, ail_sb_to_str(op_sb).str);
+            snprintf(buf, ail_arrlen(buf), "%s\n{\n    return (%s) { .els = {\n%s    }};\n}\n\n", buf, type.str, ail_sb_to_str(op_sb).str);
             ail_sb_push_sv(impl_sb, ail_sv_from_cstr(buf));
         }
     }
@@ -395,7 +373,7 @@ void vec_element_wise_connected_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_S
 {
     char buf[1024];
     for (u32 i = VEC_MIN_SIZE; i <= VEC_MAX_SIZE; i++) {
-        snprintf(buf, AIL_ARRLEN(buf), "#define ail_vec%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_vec%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
+        snprintf(buf, ail_arrlen(buf), "#define ail_vec%d_%s(a, ...) " GENERIC_BINOP_LA_NAME "(ail_vec%d, _%s, a, __VA_ARGS__)\n", i, op_name.str, i, op_name.str);
         ail_sb_push_sv(generic_sb, ail_sv_from_cstr(buf));
 
         for (u32 j = 0; j < NUM_TYPE_COUNT; j++) {
@@ -403,14 +381,14 @@ void vec_element_wise_connected_binop(AIL_SB *generic_sb, AIL_SB *decl_sb, AIL_S
             AIL_Str type = get_container_name(SV_LIT_T("Vec"), i, inner);
             AIL_SB op_sb = ail_sb_new();
             for (u32 k = 0; k < i; k++) {
-                snprintf(buf, AIL_ARRLEN(buf), " %s a.%s %s b.%s", (k ? connector.str : ""), vec_attrs_xy[k].str, op.str, vec_attrs_xy[k].str);
+                snprintf(buf, ail_arrlen(buf), " %s a.%s %s b.%s", (k ? connector.str : ""), vec_attrs_xy[k].str, op.str, vec_attrs_xy[k].str);
                 ail_sb_push_sv(&op_sb, ail_sv_from_cstr(buf));
             }
-            snprintf(buf, AIL_ARRLEN(buf), "%s ail_vec%d%s_%s(%s a, %s b)", return_type.len ? return_type.str : inner.str, i, inner.str, op_name.str, type.str, type.str);
+            snprintf(buf, ail_arrlen(buf), "%s ail_vec%d%s_%s(%s a, %s b)", return_type.len ? return_type.str : inner.str, i, inner.str, op_name.str, type.str, type.str);
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(buf));
             ail_sb_push_sv(decl_sb, ail_sv_from_cstr(";\n"));
 
-            snprintf(buf, AIL_ARRLEN(buf), "%s\n{\n    return%s;\n}\n\n", buf, ail_sb_to_str(op_sb).str);
+            snprintf(buf, ail_arrlen(buf), "%s\n{\n    return%s;\n}\n\n", buf, ail_sb_to_str(op_sb).str);
             ail_sb_push_sv(impl_sb, ail_sv_from_cstr(buf));
         }
     }

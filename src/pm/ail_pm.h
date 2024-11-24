@@ -200,11 +200,11 @@ typedef struct AIL_PM_Match {
 } AIL_PM_Match;
 
 
-global AIL_Allocator ail_pm_tmp_allocator = {
-    .data  = NULL,
-    .alloc = &ail_default_alloc,
-};
+global AIL_Allocator ail_pm_tmp_allocator;
 
+
+inline_func void ail_pm_init(u64 tmp_allocater_default_cap);
+inline_func void ail_pm_deinit(void);
 
 internal const char* ail_pm_exp_to_str(AIL_PM_Exp_Type type);
 internal u32   ail_pm_err_to_str(AIL_PM_Err err, char *buf, u32 buflen);
@@ -217,7 +217,7 @@ internal AIL_PM_Match ail_pm_match (AIL_PM_Pattern pattern, const char *s, u32 s
 internal AIL_PM_Match ail_pm_match_lazy  (AIL_PM_Pattern pattern, const char *s, u32 len);
 internal AIL_PM_Match ail_pm_match_greedy(AIL_PM_Pattern pattern, const char *s, u32 len);
 internal b32          ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u32 slen);
-inline b32   ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b);
+inline_func b32   ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b);
 #define ail_pm_compile(p, plen, exp_type) ail_pm_compile_a(p, plen, exp_type, ail_default_allocator)
 #define ail_pm_free(pattern)              ail_pm_free_a(pattern, ail_default_allocator)
 
@@ -243,6 +243,17 @@ internal u32 _ail_pm_match_immediate_greedy(AIL_PM_El *els, u32 ellen, const cha
 #if !defined(AIL_NO_PM_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_PM_IMPL_GUARD_
 #define _AIL_PM_IMPL_GUARD_
+
+void ail_pm_init(u64 tmp_allocater_default_cap)
+{
+    ail_pm_tmp_allocator = ail_alloc_arena_new(tmp_allocater_default_cap, &ail_alloc_pager);
+}
+
+void ail_pm_deinit(void)
+{
+    ail_call_free_all(ail_pm_tmp_allocator);
+    ail_pm_tmp_allocator = (AIL_Allocator){ 0 };
+}
 
 const char* ail_pm_exp_to_str(AIL_PM_Exp_Type type)
 {
@@ -513,7 +524,7 @@ AIL_PM_Comp_Res ail_pm_compile_sv_a(AIL_SV pattern, AIL_PM_Exp_Type type, AIL_Al
 
 void ail_pm_free_a(AIL_PM_Pattern pattern, AIL_Allocator allocator)
 {
-    AIL_CALL_FREE(allocator, pattern.els);
+    ail_call_free(allocator, pattern.els);
 }
 
 b32 _ail_pm_match_el(AIL_PM_El el, char c)
@@ -540,7 +551,7 @@ b32 _ail_pm_match_el(AIL_PM_El el, char c)
 
 u32 _ail_pm_match_immediate_greedy(AIL_PM_El *els, u32 ellen, const char *s, u32 slen)
 {
-    u32 *stack = AIL_CALL_ALLOC(ail_pm_tmp_allocator, ellen*sizeof(u32));
+    u32 *stack = ail_call_alloc(ail_pm_tmp_allocator, ellen*sizeof(u32));
     u32 n = 0;
     u32 el_idx = 0;
 match:
@@ -567,7 +578,7 @@ match:
         stack[el_idx++] = n;
     }
 done:
-    AIL_CALL_FREE(ail_pm_tmp_allocator, stack);
+    ail_call_free(ail_pm_tmp_allocator, stack);
     return n;
 backtrack:
     for (i32 i = el_idx; i >= 0; i--) {

@@ -47,15 +47,21 @@ typedef struct AIL_SV { // Sized String View
     char *str;
     u64   len;
 } AIL_SV;
+AIL_SA_INIT(AIL_SV);
+AIL_CA_INIT(AIL_SV);
 AIL_DA_INIT(AIL_SV);
 
 typedef struct AIL_Str { // Sized String (with nul-terminator for std/os interop)
     char *str;
     u64   len;
 } AIL_Str;
+AIL_SA_INIT(AIL_Str);
+AIL_CA_INIT(AIL_Str);
 AIL_DA_INIT(AIL_Str);
 
 typedef AIL_DA(char) AIL_SB; // String Builder
+AIL_SA_INIT(AIL_SB);
+AIL_CA_INIT(AIL_SB);
 AIL_DA_INIT(AIL_SB);
 
 typedef struct AIL_SV_Find_Of_Res { // Result from ail_sv_find* functions
@@ -76,15 +82,15 @@ typedef struct AIL_SV_Find_Of_Res { // Result from ail_sv_find* functions
 
 #define AIL_STR_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit)-1 }
 #define AIL_STR_FROM_LITERAL_T(clit) (AIL_Str)AIL_STR_FROM_LITERAL(clit)
-inline AIL_Str ail_str_from_parts(char *s, u64 len);       // @Assert: s[len] == '\0'
-inline AIL_Str ail_str_from_da_nil_term(AIL_DA(char) str); // @Assert: str.data[str.len] == '\0'
-inline AIL_Str ail_str_from_cstr (char *s);
+inline_func AIL_Str ail_str_from_parts(char *s, u64 len);       // @Assert: s[len] == '\0'
+inline_func AIL_Str ail_str_from_da_nil_term(AIL_DA(char) str); // @Assert: str.data[str.len] == '\0'
+inline_func AIL_Str ail_str_from_cstr (char *s);
 #define ail_str_from_sv(sv) ail_str_from_parts(sv.str, sv.len)
 
-inline AIL_SLICE(u8) ail_slice_from_sv(AIL_SV sv);
-inline AIL_SLICE(u8) ail_slice_from_str(AIL_Str str);
-inline AIL_ARR(u8) ail_arr_from_sv(AIL_SV sv);
-inline AIL_ARR(u8) ail_arr_from_str(AIL_Str str);
+inline_func AIL_SA(u8) ail_sa_from_sv(AIL_SV sv);
+inline_func AIL_SA(u8) ail_sa_from_str(AIL_Str str);
+inline_func AIL_CA(u8) ail_ca_from_sv(AIL_SV sv);
+inline_func AIL_CA(u8) ail_ca_from_str(AIL_Str str);
 
 // @Important: Copies the underlying string to a new memory region. Remember to free the Str with ail_str_free
 internal AIL_Str ail_str_new_sv_a(AIL_SV sv, AIL_Allocator allocator);
@@ -109,13 +115,13 @@ internal void ail_str_free_a(AIL_Str str, AIL_Allocator allocator);
 
 #define AIL_SV_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit)-1 }
 #define AIL_SV_FROM_LITERAL_T(clit) (AIL_SV)AIL_SV_FROM_LITERAL(clit)
-inline AIL_SV ail_sv_from_parts(char *str, u64 len);
-inline AIL_SV ail_sv_from_cstr (char *str);
-inline AIL_SV ail_sv_from_str(AIL_Str str);
-inline AIL_SV ail_sv_from_da(AIL_DA(char) str);
-inline AIL_SV ail_sv_new_unsigned_a(u64 num, AIL_Allocator allocator);
-inline AIL_SV ail_sv_new_signed_a  (i64 num, AIL_Allocator allocator);
-inline AIL_SV ail_sv_new_float_a   (f64 num, AIL_Allocator allocator);
+inline_func AIL_SV ail_sv_from_parts(char *str, u64 len);
+inline_func AIL_SV ail_sv_from_cstr (char *str);
+inline_func AIL_SV ail_sv_from_str(AIL_Str str);
+inline_func AIL_SV ail_sv_from_da(AIL_DA(char) str);
+inline_func AIL_SV ail_sv_new_unsigned_a(u64 num, AIL_Allocator allocator);
+inline_func AIL_SV ail_sv_new_signed_a  (i64 num, AIL_Allocator allocator);
+inline_func AIL_SV ail_sv_new_float_a   (f64 num, AIL_Allocator allocator);
 #define ail_sv_new_unsigned(num) ail_sv_new_unsigned_a(num, ail_default_allocator)
 #define ail_sv_new_signed(num)   ail_sv_new_signed_a(num, ail_default_allocator)
 #define ail_sv_new_float(num)    ail_sv_new_float_a(num, ail_default_allocator)
@@ -125,10 +131,10 @@ inline AIL_SV ail_sv_new_float_a   (f64 num, AIL_Allocator allocator);
 // Creating a SB //
 ///////////////////
 
-inline AIL_SB ail_sb_from_parts(char *data, u64 len, u64 cap, AIL_Allocator allocator);
-inline AIL_SB ail_sb_from_da(AIL_DA(char) da);
-inline AIL_SB ail_sb_new_a(AIL_Allocator allocator);
-inline AIL_SB ail_sb_new_cap_a(u64 initial_cap, AIL_Allocator allocator);
+inline_func AIL_SB ail_sb_from_parts(char *data, u64 len, u64 cap, AIL_Allocator allocator);
+inline_func AIL_SB ail_sb_from_da(AIL_DA(char) da);
+inline_func AIL_SB ail_sb_new_a(AIL_Allocator allocator);
+inline_func AIL_SB ail_sb_new_cap_a(u64 initial_cap, AIL_Allocator allocator);
 internal AIL_SB ail_sb_new_cstr_a(char *str, AIL_Allocator allocator);
 internal AIL_SB ail_sb_new_str_a (AIL_Str str, AIL_Allocator allocator);
 internal AIL_SB ail_sb_new_da_a  (AIL_DA(char) str, AIL_Allocator allocator);
@@ -321,34 +327,34 @@ internal AIL_Str ail_sv_replace_a(AIL_SV sv, AIL_SV to_replace, AIL_SV replace_w
 #define _AIL_SV_IMPL_GUARD_
 #include <stdarg.h> // For va_<>
 
-AIL_SLICE(u8) ail_slice_from_sv(AIL_SV sv)
+AIL_SA(u8) ail_sa_from_sv(AIL_SV sv)
 {
-    return (AIL_SLICE(u8)) {
+    return (AIL_SA(u8)) {
         .data = (u8*) sv.str,
         .len  = sv.len,
     };
 }
 
-AIL_SLICE(u8) ail_slice_from_str(AIL_Str str)
+AIL_SA(u8) ail_sa_from_str(AIL_Str str)
 {
-    return (AIL_SLICE(u8)) {
+    return (AIL_SA(u8)) {
         .data = (u8*) str.str,
         .len  = str.len + 1,
     };
 }
 
-AIL_ARR(u8) ail_arr_from_sv(AIL_SV sv)
+AIL_CA(u8) ail_ca_from_sv(AIL_SV sv)
 {
-    return (AIL_ARR(u8)) {
+    return (AIL_CA(u8)) {
         .data = (u8*) sv.str,
         .len  = sv.len,
         .cap  = sv.len,
     };
 }
 
-AIL_ARR(u8) ail_arr_from_str(AIL_Str str)
+AIL_CA(u8) ail_ca_from_str(AIL_Str str)
 {
-    return (AIL_ARR(u8)) {
+    return (AIL_CA(u8)) {
         .data = (u8*) str.str,
         .len  = str.len + 1,
         .cap  = str.len + 1,
@@ -440,7 +446,7 @@ void ail_sb_print(AIL_SB *sb, char *format, ...)
     persist char buffer[AIL_KB(2)];
     va_list args;
     va_start(args, format);
-    int n = vsnprintf(buffer, AIL_ARRLEN(buffer), format, args);
+    int n = vsnprintf(buffer, AIL_caLEN(buffer), format, args);
     ail_da_pushn(sb, buffer, n);
     va_end(args);
 }

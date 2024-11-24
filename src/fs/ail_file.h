@@ -12,13 +12,13 @@
 #include <sys/stat.h> // For file stats
 
 #ifndef AIL_FS_READ_TIMEOUT
-#define AIL_FS_READ_TIMEOUT 500 // in milliseconds
+#   define AIL_FS_READ_TIMEOUT 500 // in milliseconds
 #endif // AIL_FS_READ_TIMEOUT
 #ifndef AIL_FS_WRITE_TIMEOUT
-#define AIL_FS_WRITE_TIMEOUT 500 // in milliseconds
+#   define AIL_FS_WRITE_TIMEOUT 500 // in milliseconds
 #endif // AIL_FS_WRITE_TIMEOUT
 #ifndef AIL_FS_MAX_ATTEMPTS
-#define AIL_FS_MAX_ATTEMPTS 8
+#   define AIL_FS_MAX_ATTEMPTS 8
 #endif // AIL_FS_MAX_ATTEMPTS
 
 #if AIL_OS_WIN
@@ -79,7 +79,7 @@ typedef struct AIL_FS_Read_Dir_Res {
     AIL_FS_Error err;
 } AIL_FS_Read_Dir_Res;
 
-inline b32 ail_fs_dirent_is_nil(AIL_FS_Dirent a);
+inline_func b32 ail_fs_dirent_is_nil(AIL_FS_Dirent a);
 internal AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath);
 internal AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir);
 internal void ail_fs_read_dir_deinit(AIL_FS_Read_Dir_Res dir);
@@ -111,7 +111,7 @@ internal b32  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
 // @Important: Not yet implemented
 internal AIL_DA(pchar) ail_fs_get_files_in_dir(const char *dirpath);
 
-inline b32 ail_fs_dir_exists(const char *dirpath);
+inline_func b32 ail_fs_dir_exists(const char *dirpath);
 internal const char *ail_fs_get_file_ext(const char *filename);
 internal b32 ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
 internal b32 ail_fs_is_file(const char *path);
