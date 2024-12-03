@@ -282,7 +282,7 @@ u32 ail_pm_el_to_str(AIL_PM_El el, char *buf, u32 buflen)
             n += snprintf(buf + n, buflen - n, " %c-%c", el.r.start, el.r.end);
             break;
         case AIL_PM_EL_ONE_OF_CHAR:
-            AIL_ASSERT(el.cs.len > 0);
+            ail_assert(el.cs.len > 0);
             n += snprintf(buf + n, buflen - n, " %c", el.cs.data[0]);
             for (u32 i = 1; i < el.cs.len; i++) {
                 n += snprintf(buf + n, buflen - n, " %c", el.cs.data[i]);
@@ -318,7 +318,7 @@ u32 ail_pm_el_to_str(AIL_PM_El el, char *buf, u32 buflen)
 u32 ail_pm_pattern_to_str(AIL_PM_Pattern pattern, char *buf, u32 buflen)
 {
     u32 n = snprintf(buf, buflen, "{ Attrs: [ ");
-    for (u32 i = 0; i < AIL_ARRLEN(ail_pm_attr_strs); i++) {
+    for (u32 i = 0; i < ail_arrlen(ail_pm_attr_strs); i++) {
         if (ail_pm_attr_strs[i] && (pattern.attrs & i)) n += snprintf(buf + n, buflen - n, "%s ", ail_pm_attr_strs[i]);
     }
     n += snprintf(buf + n, buflen - n, "] Els: [ ");
@@ -411,7 +411,7 @@ report_err:
 
     *idx = i;
     if (i < plen) { // No missing brackets
-        AIL_ASSERT(p[*idx++] == ']');
+        ail_assert(p[*idx++] == ']');
         return (AIL_PM_Comp_El_Res){ .el = el };
     }
 missing_bracket:
@@ -574,7 +574,7 @@ match:
                 break;
             case AIL_PM_COUNT_COUNT: AIL_UNREACHABLE();
         }
-        AIL_ASSERT(el_idx < ellen);
+        ail_assert(el_idx < ellen);
         stack[el_idx++] = n;
     }
 done:
@@ -669,7 +669,7 @@ b32 ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv)
 
 b32 ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b)
 {
-    AIL_STATIC_ASSERT(sizeof(AIL_PM_Match) == 8);
+    ail_static_assert(sizeof(AIL_PM_Match) == 8);
     return a.len == b.len && (!a.len || a.idx == b.idx);
 }
 

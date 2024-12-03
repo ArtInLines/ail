@@ -149,7 +149,7 @@ AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath)
     AIL_FS_Read_Dir_Res res = { 0 };
 #if AIL_OS_WIN
     WCHAR buffer[MAX_PATH];
-    swprintf_s(buffer, MAX_PATH, L"%s\\*", dirpath);
+    swprintf_s(buffer, MAX_PATH, L"%hs\\*", dirpath);
     WIN32_FIND_DATAW ffd;
     res.handle = FindFirstFileW(buffer, &ffd);
     if (res.handle == INVALID_HANDLE_VALUE) res.err = AIL_FS_ERR_NO_ENTRY;
