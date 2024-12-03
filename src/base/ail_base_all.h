@@ -4,6 +4,7 @@
 #include "./ail_platform.h"
 #include "./ail_base.h"
 #include "./ail_mem.h"
+#include "./ail_alloc.h"
 #include "./ail_base_math.h"
 #include "./ail_base_time.h"
 #include "./ail_endian.h"

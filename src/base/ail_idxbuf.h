@@ -6,7 +6,7 @@
 #define _AIL_IDXBUF_H_
 
 #include "ail_base.h"
-#include "ail_mem.h"
+#include "ail_alloc.h"
 
 typedef struct AIL_IdxBuffer {
     u8 *data;
@@ -84,14 +84,14 @@ internal void ail_idxbuf_writecstr(AIL_IdxBuffer *buf, char *str);
 // bool ail_idxbuf_to_file(AIL_IdxBuffer *buf, const char *filename)
 // {
 //     bool out = ail_fs_write_file(filename, (char*)(buf->data), buf->len);
-//     AIL_CALL_FREE(buf->allocator, buf->data);
+//     ail_call_free(buf->allocator, buf->data);
 //     return out;
 // }
 
 AIL_IdxBuffer ail_idxbuf_new(u64 cap, AIL_Allocator allocator)
 {
     AIL_IdxBuffer buf;
-    buf.data = AIL_CALL_ALLOC(allocator, cap);
+    buf.data = ail_call_alloc(allocator, cap);
     buf.len  = 0;
     buf.cap  = cap;
     buf.idx  = 0;
@@ -112,7 +112,7 @@ AIL_IdxBuffer ail_idxbuf_from_data(u8 *data, u64 len, u64 idx, AIL_Allocator all
 
 void ail_idxbuf_free(AIL_IdxBuffer buf)
 {
-    AIL_CALL_FREE(buf.allocator, buf.data);
+    ail_call_free(buf.allocator, buf.data);
 }
 
 // Ensures that there's enough capacity to write `n` more bytes into the buffer
@@ -122,7 +122,7 @@ void ail_idxbuf_ensure_size(AIL_IdxBuffer *buf, u64 n)
     if (AIL_UNLIKELY(min > buf->cap)) {
         u64 new_cap = buf->cap * 2;
         if (AIL_UNLIKELY(min > new_cap)) new_cap = min;
-        buf->data = AIL_CALL_REALLOC(buf->allocator, buf->data, new_cap);
+        buf->data = ail_call_realloc(buf->allocator, buf->data, new_cap);
         buf->cap = new_cap;
     }
 }
@@ -178,7 +178,7 @@ u64 ail_idxbuf_peek8msb(AIL_IdxBuffer buf)
 
 char *ail_idxbuf_peekstr(AIL_IdxBuffer buf, u64 len)
 {
-    char *out = AIL_CALL_ALLOC(buf.allocator, sizeof(char) * (len + 1));
+    char *out = ail_call_alloc(buf.allocator, sizeof(char) * (len + 1));
     ail_mem_copy(out, &buf.data[buf.idx], len);
     out[len] = 0;
     return out;

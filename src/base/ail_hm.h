@@ -12,7 +12,7 @@
 #define _AIL_HM_H_
 
 #include "ail_base.h"
-#include "ail_mem.h"
+#include "ail_alloc.h"
 
 #ifndef AIL_HM_INIT_CAP
 #define AIL_HM_INIT_CAP 256

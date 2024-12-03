@@ -7,7 +7,7 @@
 #define _AIL_FILE_H_
 
 #include "../base/ail_base.h"
-#include "../base/ail_mem.h" // For ail_mem_copy
+#include "../base/ail_alloc.h" // For ail_mem_copy
 #include <fcntl.h>    // For file access flags
 #include <sys/stat.h> // For file stats
 

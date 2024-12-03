@@ -6,7 +6,7 @@
 #define _AIL_RING_H_
 
 #include "ail_base.h"
-#include "ail_mem.h"
+#include "ail_alloc.h"
 
 typedef struct AIL_RingBuffer {
     u64 start;

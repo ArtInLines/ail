@@ -8,7 +8,7 @@
 #define _AIL_ARR_H_
 
 #include "./ail_base.h"
-// #include "./ail_mem.h" is included at the end of the file, so that type templates are defined first, as ail_mem might want to make use of them
+// #include "./ail_alloc.h" is included at the end of the file, so that type templates are defined first, as ail_mem might want to make use of them
 
 #ifndef AIL_DA_INIT_CAP
 #   define AIL_DA_INIT_CAP 256
@@ -65,7 +65,7 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 #define ail_da_from_struct_t(T, st)         (AIL_DA(T))ail_da_from_struct(st)
 #define ail_da_from_parts_t(T, d, l, c, al) (AIL_DA(T))ail_da_from_parts(d, l, c, al)
 
-#define ail_sa_free(saPtr, al) do { AIL_CALL_FREE((al), (saPtr)->data); (saPtr)->data = NULL; (saPtr)->len = 0; } while(0);
+#define ail_sa_free(saPtr, al) do { ail_call_free((al), (saPtr)->data); (saPtr)->data = NULL; (saPtr)->len = 0; } while(0);
 #define ail_ca_free(caPtr, al) do { ail_sa_free(caPtr, al); (caPtr)->cap = 0; }
 #define ail_da_free(daPtr) ail_ca_free_a(daPtr, (daPtr)->allocator)
 #define ail_da_free_a(daPtr, al) ail_ca_free(daPtr, al)
@@ -81,7 +81,7 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 #define ail_ca_resize(caPtr, newCap, al) ail_da_resize_a(caPtr, newCap, al)
 #define ail_da_resize(daPtr, newCap)     ail_da_resize_a(daPtr, newCap, (daPtr)->allocator)
 #define ail_da_resize_a(daPtr, newCap, al) do {                                                   \
-        (daPtr)->data = AIL_CALL_REALLOC((al), (daPtr)->data, sizeof((daPtr)->data[0])*(newCap)); \
+        (daPtr)->data = ail_call_realloc((al), (daPtr)->data, sizeof((daPtr)->data[0])*(newCap)); \
         (daPtr)->cap  = (newCap);                                                                 \
         if ((daPtr)->len > (daPtr)->cap) (daPtr)->len = (daPtr)->cap;                             \
     } while(0)
@@ -90,7 +90,7 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 #define ail_da_maybe_grow(daPtr, n)     ail_da_maybe_grow_a(daPtr, n, (daPtr)->allocator)
 #define ail_da_maybe_grow_a(daPtr, n, al) do {                                         \
         if ((daPtr)->len + (n) > (daPtr)->cap)                                         \
-            ail_da_resize_a(daPtr, AIL_MAX(2*(daPtr)->cap, (daPtr)->cap + (n)), (al)); \
+            ail_da_resize_a(daPtr, ail_max(2*(daPtr)->cap, (daPtr)->cap + (n)), (al)); \
     } while(0)
 
 
@@ -121,7 +121,7 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
     } while(0)
 
 #define ail_ca_grow_with_gap(caPtr, gapStart, gapLen, newCap, al) do {                                                                           \
-        (caPtr)->data = AIL_CALL_REALLOC((al), sizeof((caPtr)->data[0])*(newCap));                                                               \
+        (caPtr)->data = ail_call_realloc((al), sizeof((caPtr)->data[0])*(newCap));                                                               \
         (caPtr)->cap  = (newCap);                                                                                                                \
         AIL_ASSERT((caPtr)->data != NULL);                                                                                                       \
         ail_mem_copy(&(caPtr)->data[((gapStart) + (gapLen))], &(caPtr)->data[(gapStart)], sizeof((caPtr)->data[0])*((caPtr)->len - (gapStart))); \
@@ -132,7 +132,7 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 
 #define ail_ca_maybe_grow_with_gap(caPtr, idx, n, al) do {                                                    \
         if ((caPtr)->len + (n) > (caPtr)->cap) {                                                              \
-            ail_ca_grow_with_gap((caPtr), (idx), (n), AIL_MAX(2*(caPtr)->cap, (caPtr)->cap + (n)), (al));     \
+            ail_ca_grow_with_gap((caPtr), (idx), (n), ail_max(2*(caPtr)->cap, (caPtr)->cap + (n)), (al));     \
         } else {                                                                                              \
             for (unsigned int _ail_da_i_ = 1; _ail_da_i_ <= ((caPtr)->len - (idx)); _ail_da_i_++) {           \
                 (caPtr)->data[((caPtr)->len + (n)) - _ail_da_i_] =  (caPtr)->data[(caPtr)->len - _ail_da_i_]; \
@@ -175,6 +175,6 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 #define ail_da_rm_swap(daPtr, idx) ail_ca_rm_swap(daPtr, idx)
 
 
-#include "ail_mem.h" // @Note: Must be included at the end, to include definitions of type templates first
+#include "ail_alloc.h" // @Note: Must be included at the end, to include definitions of type templates first
 
 #endif // _AIL_ARR_H_
