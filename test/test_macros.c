@@ -1,27 +1,29 @@
-#include "../ail.h"
+#include "../src/base/ail_base.h"
+#include "../src/base/ail_base_math.h"
 #include "./assert.h"
-#include <string.h>
-#include <stdio.h>
+#include <stdlib.h> // For atoi
+#include <string.h> // For strcmp
+#include <stdio.h>  // For printf
 
 bool test_arrlen(void)
 {
     u32 a[77] = { 1, 2, 0 };
-    ASSERT(AIL_ARRLEN(a) == 77);
+    ASSERT(ail_arrlen(a) == 77);
     u8 b[24];
-    ASSERT(AIL_ARRLEN(b) == 24);
+    ASSERT(ail_arrlen(b) == 24);
     struct { b32 b; f64 f; } c[AIL_KB(2) - 63] = { 0 };
-    ASSERT(AIL_ARRLEN(c) == AIL_KB(2) - 63);
+    ASSERT(ail_arrlen(c) == AIL_KB(2) - 63);
     return true;
 }
 
 bool test_typeof(void)
 {
-#ifndef AIL_TYPEOF
-    printf("\033[33mCannot test AIL_TYPEOF, as the current compiler does not support a typeof intrinsic\033[0m\n");
+#ifndef ail_typeof
+    printf("\033[33mCannot test ail_typeof, as the current compiler does not support a typeof intrinsic\033[0m\n");
 #else
     u32 a = UINT32_MAX;
     u32 b = 420;
-    AIL_TYPEOF(a) c = a;
+    ail_typeof(a) c = a;
     a = b;
     b = c;
     ASSERT(a == 420);
@@ -35,18 +37,18 @@ bool test_offsetof(void)
     struct T { f64 f; b32 b; pchar s; };
     struct T t;
     ASSERT(sizeof(t) == 24);
-    ASSERT(AIL_OFFSETOF(&t, f) == 0);
-    ASSERT(AIL_OFFSETOF(&t, b) == 8);
-    ASSERT(AIL_OFFSETOF(&t, s) == 16);
+    ASSERT(ail_offset_of(&t, f) == 0);
+    ASSERT(ail_offset_of(&t, b) == 8);
+    ASSERT(ail_offset_of(&t, s) == 16);
     struct S { u8 a; struct T t; i64 *p; };
     struct S s;
     ASSERT(sizeof(s) == 40);
-    ASSERT(AIL_OFFSETOF(&s, a)   == 0);
-    ASSERT(AIL_OFFSETOF(&s, t)   == 8);
-    ASSERT(AIL_OFFSETOF(&s, t.f) == 8);
-    ASSERT(AIL_OFFSETOF(&s, t.b) == 16);
-    ASSERT(AIL_OFFSETOF(&s, t.s) == 24);
-    ASSERT(AIL_OFFSETOF(&s, p)   == 32);
+    ASSERT(ail_offset_of(&s, a)   == 0);
+    ASSERT(ail_offset_of(&s, t)   == 8);
+    ASSERT(ail_offset_of(&s, t.f) == 8);
+    ASSERT(ail_offset_of(&s, t.b) == 16);
+    ASSERT(ail_offset_of(&s, t.s) == 24);
+    ASSERT(ail_offset_of(&s, p)   == 32);
     return true;
 }
 
@@ -61,17 +63,17 @@ bool test_swap(void)
     struct T tb_og = { .a = INT16_MAX, .b = "bar" };
     struct T ta = ta_og;
     struct T tb = tb_og;
-    AIL_SWAP_PORTABLE(f64, fa, fb);
+    ail_swap(f64, fa, fb);
     ASSERT(fa == fb_og);
     ASSERT(fb == fa_og);
-    AIL_SWAP_PORTABLE(struct T, ta, tb);
+    ail_swap(struct T, ta, tb);
     ASSERT(ta.a == tb_og.a && ta.b == tb_og.b);
     ASSERT(tb.a == ta_og.a && tb.b == ta_og.b);
-#ifdef AIL_TYPEOF
-    AIL_SWAP(fa, fb);
+#ifdef ail_typeof
+    ail_swap(fa, fb);
     ASSERT(fa == fa_og);
     ASSERT(fb == fb_og);
-    AIL_SWAP(ta, tb);
+    ail_swap(ta, tb);
     ASSERT(ta.a == ta_og.a && ta.b == ta_og.b);
     ASSERT(tb.a == tb_og.a && tb.b == tb_og.b);
 #endif
@@ -86,96 +88,96 @@ bool test_minmax(void)
     b32 d = true;
     i8  e = 0;
     i32 f = -17;
-    ASSERT(AIL_MAX(a, b) == a);
-    ASSERT(AIL_MIN(a, b) == b);
-    ASSERT(AIL_MAX(a, c) == a);
-    ASSERT(AIL_MIN(a, c) == c);
-    ASSERT(AIL_MAX(a, d) == a);
-    ASSERT(AIL_MIN(a, d) == d);
-    ASSERT(AIL_MAX(a, e) == a);
-    ASSERT(AIL_MIN(a, e) == e);
-    ASSERT(AIL_MAX(a, f) == a);
-    ASSERT(AIL_MIN(a, f) == f);
-    ASSERT(AIL_MAX(b, c) == b);
-    ASSERT(AIL_MIN(b, c) == c);
-    ASSERT(AIL_MAX(b, d) == b);
-    ASSERT(AIL_MIN(b, d) == d);
-    ASSERT(AIL_MAX(b, e) == b);
-    ASSERT(AIL_MIN(b, e) == e);
-    ASSERT(AIL_MAX(b, f) == b);
-    ASSERT(AIL_MIN(b, f) == f);
-    ASSERT(AIL_MAX(c, d) == c);
-    ASSERT(AIL_MIN(c, d) == d);
-    ASSERT(AIL_MAX(c, e) == c);
-    ASSERT(AIL_MIN(c, e) == e);
-    ASSERT(AIL_MAX(c, f) == c);
-    ASSERT(AIL_MIN(c, f) == f);
-    ASSERT(AIL_MAX(d, e) == d);
-    ASSERT(AIL_MIN(d, e) == e);
-    ASSERT(AIL_MAX((i32)d, f) == d);
-    ASSERT(AIL_MIN((i32)d, f) == f);
-    ASSERT(AIL_MAX(e, f) == e);
-    ASSERT(AIL_MIN(e, f) == f);
+    ASSERT(ail_max(a, b) == a);
+    ASSERT(ail_min(a, b) == b);
+    ASSERT(ail_max(a, c) == a);
+    ASSERT(ail_min(a, c) == c);
+    ASSERT(ail_max(a, d) == a);
+    ASSERT(ail_min(a, d) == d);
+    ASSERT(ail_max(a, e) == a);
+    ASSERT(ail_min(a, e) == e);
+    ASSERT(ail_max(a, f) == a);
+    ASSERT(ail_min(a, f) == f);
+    ASSERT(ail_max(b, c) == b);
+    ASSERT(ail_min(b, c) == c);
+    ASSERT(ail_max(b, d) == b);
+    ASSERT(ail_min(b, d) == d);
+    ASSERT(ail_max(b, e) == b);
+    ASSERT(ail_min(b, e) == e);
+    ASSERT(ail_max(b, f) == b);
+    ASSERT(ail_min(b, f) == f);
+    ASSERT(ail_max(c, d) == c);
+    ASSERT(ail_min(c, d) == d);
+    ASSERT(ail_max(c, e) == c);
+    ASSERT(ail_min(c, e) == e);
+    ASSERT(ail_max(c, f) == c);
+    ASSERT(ail_min(c, f) == f);
+    ASSERT(ail_max(d, e) == d);
+    ASSERT(ail_min(d, e) == e);
+    ASSERT(ail_max((i32)d, f) == d);
+    ASSERT(ail_min((i32)d, f) == f);
+    ASSERT(ail_max(e, f) == e);
+    ASSERT(ail_min(e, f) == f);
     return true;
 }
 
 bool test_clamp(void)
 {
-    ASSERT(AIL_CLAMP(3, 0, 6) == 3);
-    ASSERT(AIL_CLAMP(-3, 0, 6) == 0);
-    ASSERT(AIL_CLAMP(9, 0, 6) == 6);
-    ASSERT(AIL_CLAMP(3, -1, 6) == 3);
-    ASSERT(AIL_CLAMP(UINT64_MAX, INT64_MIN, INT8_MIN) == INT8_MIN);
-    ASSERT(AIL_CLAMP(6.9f, 69, 420) == 69);
-    ASSERT(AIL_CLAMP(6.9f, 0, 69) == 6.9f);
-    ASSERT(AIL_CLAMP(-6.9f, -7.8f, -6.99f) == -6.99f);
-    ASSERT(AIL_CLAMP(6.9f, -1e+10, -0.0f) == -0.0f);
+    ASSERT(ail_clamp(3, 0, 6) == 3);
+    ASSERT(ail_clamp(-3, 0, 6) == 0);
+    ASSERT(ail_clamp(9, 0, 6) == 6);
+    ASSERT(ail_clamp(3, -1, 6) == 3);
+    ASSERT(ail_clamp(UINT64_MAX, INT64_MIN, INT8_MIN) == INT8_MIN);
+    ASSERT(ail_clamp(6.9f, 69, 420) == 69);
+    ASSERT(ail_clamp(6.9f, 0, 69) == 6.9f);
+    ASSERT(ail_clamp(-6.9f, -7.8f, -6.99f) == -6.99f);
+    ASSERT(ail_clamp(6.9f, -1e+10, -0.0f) == -0.0f);
     return true;
 }
 
 bool test_is2power(void)
 {
-    ASSERT(!AIL_IS_2POWER(0));
-    ASSERT(AIL_IS_2POWER(1));
-    ASSERT(AIL_IS_2POWER(2));
-    ASSERT(AIL_IS_2POWER(-2));
-    ASSERT(AIL_IS_2POWER(-256));
-    ASSERT(!AIL_IS_2POWER(3));
-    ASSERT(AIL_IS_2POWER(-1));
-    ASSERT(!AIL_IS_2POWER(-3));
-    ASSERT(!AIL_IS_2POWER(255));
-    ASSERT(AIL_IS_2POWER(0x800000));
-    ASSERT(AIL_IS_2POWER(-0x800000));
-    ASSERT(!AIL_IS_2POWER(0x900000));
-    ASSERT(!AIL_IS_2POWER(-0x900000));
-    ASSERT(!AIL_IS_2POWER(0x800200));
-    ASSERT(!AIL_IS_2POWER(0x2222));
+    ASSERT(!ail_is_2power(0));
+    ASSERT(ail_is_2power(1));
+    ASSERT(ail_is_2power(2));
+    ASSERT(ail_is_2power(-2));
+    ASSERT(ail_is_2power(-256));
+    ASSERT(!ail_is_2power(3));
+    ASSERT(ail_is_2power(-1));
+    ASSERT(!ail_is_2power(-3));
+    ASSERT(!ail_is_2power(255));
+    ASSERT(ail_is_2power(0x800000));
+    ASSERT(ail_is_2power(-0x800000));
+    ASSERT(!ail_is_2power(0x900000));
+    ASSERT(!ail_is_2power(-0x900000));
+    ASSERT(!ail_is_2power(0x800200));
+    ASSERT(!ail_is_2power(0x2222));
     return true;
 }
 
 bool test_next2Power(void)
 {
     u64 u;
-    AIL_NEXT_2POWER_POS(0x7BA42ACD251B7129, u);
+    ail_next_2power_pos(0x7BA42ACD251B7129, u);
     ASSERT(u == 0x8000000000000000);
-    AIL_NEXT_2POWER_POS(0xf2, u);
+    ail_next_2power_pos(0xf2, u);
     ASSERT(u == 0x100);
-    AIL_NEXT_2POWER_POS(0, u);
+    ail_next_2power_pos(0, u);
     ASSERT(u == 1);
-    AIL_NEXT_2POWER_POS(1, u);
+    ail_next_2power_pos(1, u);
     ASSERT(u == 2);
-    AIL_NEXT_2POWER_POS(12, u);
+    ail_next_2power_pos(12, u);
     ASSERT(u == 16);
-    AIL_NEXT_2POWER_POS(10, u);
+    ail_next_2power_pos(10, u);
     ASSERT(u == 16);
     i64 i;
-    AIL_NEXT_2POWER(-1, i);
+    ail_next_2power(-1, i);
     ASSERT(i == -2);
-    AIL_NEXT_2POWER(-12, i);
+    ail_next_2power(-12, i);
     ASSERT(i == -16);
-    AIL_NEXT_2POWER(-15, i);
+    ail_next_2power(-15, i);
     ASSERT(i == -16);
-    AIL_NEXT_2POWER(-2000, i);
+    ail_next_2power(-2000, i);
     ASSERT(i == -2048);
     return true;
 }
@@ -184,16 +186,16 @@ bool test_next2Power(void)
 
 bool test_lerp(void)
 {
-    ASSERT(AIL_LERP(0, 33, 69) == 33);
-    ASSERT(AIL_INV_LERP(33, 33, 69) == 0);
-    ASSERT(AIL_LERP(1, 33, 69) == 69);
-    ASSERT(AIL_INV_LERP(69, 33, 69) == 1);
-    ASSERT(AIL_LERP(0.5f, 4, 20) == 12);
-    ASSERT(AIL_INV_LERP(12, 4, 20) == 0.5f);
-    ASSERT(AIL_LERP(0.66f, 4, 104) == 70);
-    ASSERT(float_eq(AIL_INV_LERP(70, 4, 104), 0.66f, 0.001f));
-    ASSERT(AIL_LERP(0.2f, -77, 23) == -57);
-    ASSERT(float_eq(AIL_INV_LERP(-57, -77, 23), 0.2f, 0.001f));
+    ASSERT(ail_lerp(0, 33, 69) == 33);
+    ASSERT(ail_inv_lerp(33, 33, 69) == 0);
+    ASSERT(ail_lerp(1, 33, 69) == 69);
+    ASSERT(ail_inv_lerp(69, 33, 69) == 1);
+    ASSERT(ail_lerp(0.5f, 4, 20) == 12);
+    ASSERT(ail_inv_lerp(12, 4, 20) == 0.5f);
+    ASSERT(ail_lerp(0.66f, 4, 104) == 70);
+    ASSERT(float_eq(ail_inv_lerp(70, 4, 104), 0.66f, 0.001f));
+    ASSERT(ail_lerp(0.2f, -77, 23) == -57);
+    ASSERT(float_eq(ail_inv_lerp(-57, -77, 23), 0.2f, 0.001f));
     return true;
 }
 
@@ -239,7 +241,7 @@ bool test_misc(void)
     switch (true) {
         case 1 == 2:
             x = 67;
-            AIL_FALLTHROUGH;
+            fallthrough;
         case 1 == 1:
             ASSERT(true);
             break;
@@ -268,8 +270,10 @@ bool test_misc(void)
 
 int main(void)
 {
+#if AIL_COMP_GCC
     #define X(func) if (func()) printf("\033[32m" AIL_STRINGIFY(func) " succesful :)\033[0m\n"); else printf("\033[31m" AIL_STRINGIFY(func) " failed :(\033[0m\n");
         TESTS
     #undef X
+#endif
     return 0;
 }

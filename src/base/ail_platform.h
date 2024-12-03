@@ -66,91 +66,6 @@
 #   error "Compiling on a platform that is neither 32 nor 64 bit. Please change ail.h if you wish to compile on such a platform"
 #endif
 
-#if defined(__clang__)
-#   define AIL_COMP_CLANG 1
-#else
-#   define AIL_COMP_CLANG 0
-#endif
-#if defined(_MSC_VER)
-#   define AIL_COMP_MSVC 1
-#else
-#   define AIL_COMP_MSVC 0
-#endif
-#if defined(__GNUC__) && !AIL_COMP_CLANG
-#   define AIL_COMP_GCC 1
-#else
-#   define AIL_COMP_GCC 0
-#endif
-#if defined(__TINYC__)
-#   define AIL_COMP_TCC 1
-#else
-#   define AIL_COMP_TCC 0
-#endif
-#if defined(__POCC__)
-#   define AIL_COMP_PELLES 1
-#else
-#   define AIL_COMP_PELLES 0
-#endif
-#if defined(__DMC__)
-#   define AIL_COMP_DIGITAL_MARS 1
-#else
-#   define AIL_COMP_DIGITAL_MARS 0
-#endif
-#if defined(__INTEL_COMPILER)
-#   define AIL_COMP_INTEL 1
-#else
-#   define AIL_COMP_INTEL 0
-#endif
-#if defined(__EMSCRIPTEN__)
-#   define AIL_COMP_EMSCRIPTEN 1
-#else
-#   define AIL_COMP_EMSCRIPTEN 0
-#endif
-
-#if defined(__OBJC__)
-#   define AIL_LANG_OBJC 1
-#   define AIL_LANG_CPP  0
-#   define AIL_LANG_C    0
-    // @Note: I do not know of any way to get the version for Objective-C from within C
-#   define AIL_LANG_STANDARD 1
-#elif defined(__cplusplus)
-#   define AIL_LANG_OBJC 0
-#   define AIL_LANG_CPP  1
-#   define AIL_LANG_C    0
-#   if __cplusplus == 1
-#       define AIL_LANG_STANDARD 1985
-#   elif __cplusplus == 199711L
-#       define AIL_LANG_STANDARD 1998
-#   elif __cplusplus == 201103L
-#       define AIL_LANG_STANDARD 2011
-#   elif __cplusplus == 201402L
-#       define AIL_LANG_STANDARD 2014
-#   elif __cplusplus == 201703L
-#       define AIL_LANG_STANDARD 2017
-#   elif __cplusplus == 202002L
-#       define AIL_LANG_STANDARD 2020
-#   elif __cplusplus >= 202302L
-#       define AIL_LANG_STANDARD 2023
-#   else
-#       define AIL_LANG_STANDARD 1989
-#   endif
-#else
-#   define AIL_LANG_OBJC 0
-#   define AIL_LANG_CPP 0
-#   define AIL_LANG_C   1
-#   if __STDC_VERSION__ == 199901L
-#       define AIL_LANG_STANDARD 1999
-#   elif __STDC_VERSION__ == 201112L
-#       define AIL_LANG_STANDARD 2011
-#   elif __STDC_VERSION__ == 201710L
-#       define AIL_LANG_STANDARD 2017
-#   elif __STDC_VERSION__ >= 202311L
-#       define AIL_LANG_STANDARD 2023
-#   else
-#       define AIL_LANG_STANDARD 1989
-#   endif
-#endif
-
 #if defined(_WIN32) || defined(__WIN32__) || defined(_WIN64)
 #	define AIL_OS_WIN 1
 #else
@@ -227,6 +142,91 @@
 #else
 #   define AIL_OS_SPARC   0
 #   define AIL_ARCH_SPARC 0
+#endif
+
+#if defined(__clang__)
+#   define AIL_COMP_CLANG 1
+#else
+#   define AIL_COMP_CLANG 0
+#endif
+#if defined(_MSC_VER)
+#   define AIL_COMP_MSVC 1
+#else
+#   define AIL_COMP_MSVC 0
+#endif
+#if (defined(__GNUC__) && !AIL_COMP_CLANG) || AIL_OS_MINGW
+#   define AIL_COMP_GCC 1
+#else
+#   define AIL_COMP_GCC 0
+#endif
+#if defined(__TINYC__)
+#   define AIL_COMP_TCC 1
+#else
+#   define AIL_COMP_TCC 0
+#endif
+#if defined(__POCC__)
+#   define AIL_COMP_PELLES 1
+#else
+#   define AIL_COMP_PELLES 0
+#endif
+#if defined(__DMC__)
+#   define AIL_COMP_DIGITAL_MARS 1
+#else
+#   define AIL_COMP_DIGITAL_MARS 0
+#endif
+#if defined(__INTEL_COMPILER)
+#   define AIL_COMP_INTEL 1
+#else
+#   define AIL_COMP_INTEL 0
+#endif
+#if defined(__EMSCRIPTEN__)
+#   define AIL_COMP_EMSCRIPTEN 1
+#else
+#   define AIL_COMP_EMSCRIPTEN 0
+#endif
+
+#if defined(__OBJC__)
+#   define AIL_LANG_OBJC 1
+#   define AIL_LANG_CPP  0
+#   define AIL_LANG_C    0
+    // @Note: I do not know of any way to get the version for Objective-C from within C
+#   define AIL_LANG_STANDARD 1
+#elif defined(__cplusplus)
+#   define AIL_LANG_OBJC 0
+#   define AIL_LANG_CPP  1
+#   define AIL_LANG_C    0
+#   if __cplusplus == 1
+#       define AIL_LANG_STANDARD 1985
+#   elif __cplusplus == 199711L
+#       define AIL_LANG_STANDARD 1998
+#   elif __cplusplus == 201103L
+#       define AIL_LANG_STANDARD 2011
+#   elif __cplusplus == 201402L
+#       define AIL_LANG_STANDARD 2014
+#   elif __cplusplus == 201703L
+#       define AIL_LANG_STANDARD 2017
+#   elif __cplusplus == 202002L
+#       define AIL_LANG_STANDARD 2020
+#   elif __cplusplus >= 202302L
+#       define AIL_LANG_STANDARD 2023
+#   else
+#       define AIL_LANG_STANDARD 1989
+#   endif
+#else
+#   define AIL_LANG_OBJC 0
+#   define AIL_LANG_CPP 0
+#   define AIL_LANG_C   1
+#   if __STDC_VERSION__ == 199901L
+#       define AIL_LANG_STANDARD 1999
+#   elif __STDC_VERSION__ == 201112L
+#       define AIL_LANG_STANDARD 2011
+#   elif __STDC_VERSION__ == 201710L
+#       define AIL_LANG_STANDARD 2017
+#   elif __STDC_VERSION__ >= 202311L
+#       define AIL_LANG_STANDARD 2023
+#   else
+#       define AIL_LANG_STANDARD 1989
+#   endif
 #endif
 
 #if defined(__i386) || defined(_M_IX86) || defined(_X86_) || defined(__X86__) || defined(__I86__) || defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(__amd64) || defined(_M_AMD64) || defined(_M_X64)

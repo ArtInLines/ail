@@ -98,7 +98,7 @@
 * Hedley's SPDX-License-Identifier: CC0-1.0
 */
 
-#ifndef _AIL_BASE_H
+#ifndef _AIL_BASE_H_
 #define _AIL_BASE_H_
 
 #include <stdint.h> // For sized integer types
@@ -165,7 +165,7 @@ typedef char     c8;
     typedef i32 c32;
 #endif
 typedef char* pchar;
-#if (!AIL_LANG_C || AIL_LANG_STANDARD < 2017) && !defined(bool)
+#if 1 || ((!AIL_LANG_C || AIL_LANG_STANDARD < 2017) && !defined(false))
 #   define bool _Bool
 #   define true  1
 #   define false 0
@@ -485,7 +485,7 @@ typedef char* pchar;
 #   define ail_typeof(x) typeof_unqual(x)
 #elif AIL_LANG_CPP
 #   define ail_typeof(x) decltype(x)
-#elif AIL_COMP_GCC || AIL_OS_MINGW || AIL_COMP_CLANG
+#elif AIL_COMP_GCC || AIL_COMP_CLANG
 #   define ail_typeof(x) __typeof__(x)
 #else
 // No typeof possible
