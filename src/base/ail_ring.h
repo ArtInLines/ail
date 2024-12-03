@@ -66,14 +66,14 @@ AIL_RingBuffer ail_ring_from_data(u8 *buffer, u64 buffer_size)
 AIL_RingBuffer ail_ring_new(u64 buffer_size, AIL_Allocator allocator)
 {
     return (AIL_RingBuffer) {
-        .data = AIL_CALL_ALLOC(allocator, buffer_size),
+        .data = ail_call_alloc(allocator, buffer_size),
         .buffer_size = buffer_size,
     };
 }
 
 void ail_buf_free(AIL_RingBuffer rb, AIL_Allocator allocator)
 {
-    AIL_CALL_FREE(allocator, rb.data);
+    ail_call_free(allocator, rb.data);
 }
 
 u64 ail_ring_len(AIL_RingBuffer rb)
@@ -206,7 +206,7 @@ void ail_ring_readn(AIL_RingBuffer *rb, u64 n, u8 *buf)
 void ail_ring_write_at(AIL_RingBuffer *rb, u64 offset, u8 x)
 {
     rb->data[(rb->end + offset)%rb->buffer_size] = x;
-    AIL_RING_ASSERT((rb->end < rb->start) == (rb->end + offset < rb->start));
+    ail_assert((rb->end < rb->start) == (rb->end + offset < rb->start));
 }
 
 void ail_ring_write1(AIL_RingBuffer *rb, u8 x)
@@ -280,7 +280,7 @@ void ail_ring_writen(AIL_RingBuffer *rb, u64 n, u8 *buf)
         rb->data[rb->end] = buf[i];
 
         u8 tmp = (rb->end+1)%rb->buffer_size;
-        AIL_RING_ASSERT(tmp != rb->start);
+        ail_assert(tmp != rb->start);
     }
 }
 

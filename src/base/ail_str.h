@@ -32,6 +32,7 @@
 #define _AIL_SV_H_
 
 #include "ail_base.h"
+#include "ail_base_math.h"
 #include "ail_arr.h"
 
 #ifndef AIL_SB_INIT_CAP
@@ -389,7 +390,7 @@ AIL_SV ail_sv_from_cstr(char *str)
 
 AIL_Str ail_str_from_parts(char *s, u64 len)
 {
-    AIL_ASSERT(s[len] == 0);
+    ail_assert(s[len] == 0);
     return (AIL_Str) {
         .str = s,
         .len = len,
@@ -403,7 +404,7 @@ AIL_Str ail_str_from_cstr(char *s)
 
 AIL_Str ail_str_from_da_nil_term(AIL_DA(char) str)
 {
-    AIL_ASSERT(str.data[str.len] == 0);
+    ail_assert(str.data[str.len] == 0);
     return ail_str_from_parts(str.data, str.len);
 }
 
@@ -419,7 +420,7 @@ AIL_Str ail_str_new_cstr_a(char *str, AIL_Allocator allocator)
 
 AIL_Str ail_str_new_sv_a(AIL_SV sv, AIL_Allocator allocator)
 {
-    char *buf = AIL_CALL_ALLOC(allocator, sv.len + 1);
+    char *buf = ail_call_alloc(allocator, sv.len + 1);
     memcpy(buf, sv.str, sv.len);
     buf[sv.len] = 0;
     return ail_str_from_parts(buf, sv.len);
@@ -427,7 +428,7 @@ AIL_Str ail_str_new_sv_a(AIL_SV sv, AIL_Allocator allocator)
 
 void ail_str_free_a(AIL_Str str, AIL_Allocator allocator)
 {
-    AIL_CALL_FREE(allocator, str.str);
+    ail_call_free(allocator, str.str);
 }
 
 char* ail_sv_to_cstr_a(AIL_SV sv, AIL_Allocator allocator)
@@ -446,7 +447,7 @@ void ail_sb_print(AIL_SB *sb, char *format, ...)
     persist char buffer[AIL_KB(2)];
     va_list args;
     va_start(args, format);
-    int n = vsnprintf(buffer, AIL_caLEN(buffer), format, args);
+    int n = vsnprintf(buffer, ail_arrlen(buffer), format, args);
     ail_da_pushn(sb, buffer, n);
     va_end(args);
 }
@@ -576,7 +577,7 @@ AIL_SB ail_sb_new_cstr_a(char *str, AIL_Allocator allocator)
 AIL_SB ail_sb_new_str_a(AIL_Str str, AIL_Allocator allocator)
 {
     u64 cap;
-    if (str.len < 2048) AIL_NEXT_2POWER_POS(str.len, cap);
+    if (str.len < 2048) ail_next_2power_pos(str.len, cap);
     else cap = str.len;
     AIL_SB res = ail_sb_new_cap_a(cap, allocator);
     res.len = str.len;
@@ -789,11 +790,9 @@ AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, bool ignore_empty)
         j++;
         if (sv->str[tmp_idx] == split_by) break;
     }
+    AIL_SV res = ail_sv_from_parts(&sv->str[i], j - i);
     *sv = ail_sv_offset(*sv, j);
-    return (AIL_SV) {
-        .str = &sv->str[i],
-        .len = j - i,
-    };
+    return res;
 }
 
 AIL_SV ail_sv_split_next(AIL_SV *sv, AIL_SV split_by, bool ignore_empty)
@@ -975,7 +974,7 @@ AIL_Str ail_sv_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allocato
     if (n == 0) return ail_str_from_parts("", 0);
     u64 res_len = joiner.len*(n - 1);
     for (u64 i = 0; i < n; i++) res_len += list[i].len;
-    char *res = AIL_CALL_ALLOC(allocator, res_len + 1);
+    char *res = ail_call_alloc(allocator, res_len + 1);
     for (u64 i = 0, j = 0; i < n; i++) {
         memcpy(&res[j], list[i].str, list[i].len);
         j += list[i].len;
@@ -993,7 +992,7 @@ AIL_Str ail_sv_rev_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allo
     if (n == 0) return ail_str_from_parts("", 0);
     u64 res_len = joiner.len*(n - 1);
     for (u64 i = 0; i < n; i++) res_len += list[i].len;
-    char *res = AIL_CALL_ALLOC(allocator, res_len + 1);
+    char *res = ail_call_alloc(allocator, res_len + 1);
     for (u64 i = n-1, j = res_len; i > 0; i--) {
         u64 el_len = list[i].len;
         memcpy(&res[j - el_len], list[i].str, el_len);
@@ -1010,7 +1009,7 @@ AIL_Str ail_sv_rev_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Allocator allo
 
 AIL_Str ail_sv_concat2_full_a(char *astr, u64 alen, char *bstr, u64 blen, AIL_Allocator allocator)
 {
-    char *s = AIL_CALL_ALLOC(allocator, alen + blen + 1);
+    char *s = ail_call_alloc(allocator, alen + blen + 1);
     memcpy(&s[0],     astr, alen);
     memcpy(&s[alen], bstr, blen);
     s[alen + blen] = 0;
@@ -1023,13 +1022,13 @@ AIL_Str ail_sv_concat_list_full_a(AIL_Allocator allocator, u32 sv_count, AIL_SV 
     for (u32 i = 0; i < sv_count; i++) {
         size += svs[i].len;
     }
-    char *s = AIL_CALL_ALLOC(allocator, size + 1);
+    char *s = ail_call_alloc(allocator, size + 1);
     u64 filled_count = 0;
     for (u32 i = 0; i < sv_count; i++) {
         memcpy(s + filled_count, svs[i].str, svs[i].len);
         filled_count += svs[i].len;
     }
-    AIL_ASSERT(filled_count == size);
+    ail_assert(filled_count == size);
     s[filled_count] = 0;
     return ail_str_from_parts(s, filled_count);
 }
@@ -1044,7 +1043,7 @@ AIL_Str ail_sv_concat_full_a(AIL_Allocator allocator, u32 sv_count, ...)
         size += va_arg(args, u64);
     }
     va_end(args);
-    char *s = AIL_CALL_ALLOC(allocator, size + 1);
+    char *s = ail_call_alloc(allocator, size + 1);
     u64 filled_count = 0;
     va_start(args, sv_count);
     for (u32 i = 0; i < sv_count; i++) {
@@ -1054,7 +1053,7 @@ AIL_Str ail_sv_concat_full_a(AIL_Allocator allocator, u32 sv_count, ...)
         filled_count += len;
     }
     va_end(args);
-    AIL_ASSERT(filled_count == size);
+    ail_assert(filled_count == size);
     s[filled_count] = 0;
     return ail_str_from_parts(s, filled_count);
 }
@@ -1069,7 +1068,7 @@ AIL_Str ail_sv_concat_a(AIL_Allocator allocator, u32 sv_count, ...)
         size += sv.len;
     }
     va_end(args);
-    char *s = AIL_CALL_ALLOC(allocator, size + 1);
+    char *s = ail_call_alloc(allocator, size + 1);
     u64 filled_count = 0;
     va_start(args, sv_count);
     for (u32 i = 0; i < sv_count; i++) {
@@ -1078,7 +1077,7 @@ AIL_Str ail_sv_concat_a(AIL_Allocator allocator, u32 sv_count, ...)
         filled_count += sv.len;
     }
     va_end(args);
-    AIL_ASSERT(filled_count == size);
+    ail_assert(filled_count == size);
     s[filled_count] = 0;
     return ail_str_from_parts(s, filled_count);
 }

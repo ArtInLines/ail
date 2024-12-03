@@ -61,6 +61,8 @@ internal void ail_idxbuf_writecstr(AIL_IdxBuffer *buf, char *str);
 
 
 #if !defined(AIL_NO_IDXBUF_IMPL) && !defined(AIL_NO_BASE_IMPL) && !defined(AIL_NO_IMPL)
+#ifndef _AIL_IDXBUF_IMPL_GUARD_
+#define _AIL_IDXBUF_IMPL_GUARD_
 
 // @TODO: Copy to fs module
 // AIL_IdxBuffer ail_idxbuf_from_file(const char *filename)
@@ -369,4 +371,5 @@ void ail_idxbuf_writecstr(AIL_IdxBuffer *buf, char *str)
     if (AIL_LIKELY(buf->idx > buf->len)) buf->len = buf->idx;
 }
 
+#endif // _AIL_IDXBUF_IMPL_GUARD_
 #endif // AIL_NO_IDXBUF_IMPL

@@ -65,9 +65,9 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 #define ail_da_from_struct_t(T, st)         (AIL_DA(T))ail_da_from_struct(st)
 #define ail_da_from_parts_t(T, d, l, c, al) (AIL_DA(T))ail_da_from_parts(d, l, c, al)
 
-#define ail_sa_free(saPtr, al) do { ail_call_free((al), (saPtr)->data); (saPtr)->data = NULL; (saPtr)->len = 0; } while(0);
-#define ail_ca_free(caPtr, al) do { ail_sa_free(caPtr, al); (caPtr)->cap = 0; }
-#define ail_da_free(daPtr) ail_ca_free_a(daPtr, (daPtr)->allocator)
+#define ail_sa_free(saPtr, al) do { ail_call_free((al), (saPtr)->data); (saPtr)->data = NULL; (saPtr)->len = 0; } while(0)
+#define ail_ca_free(caPtr, al) do { ail_sa_free(caPtr, al); (caPtr)->cap = 0; } while(0)
+#define ail_da_free(daPtr) ail_ca_free(daPtr, (daPtr)->allocator)
 #define ail_da_free_a(daPtr, al) ail_ca_free(daPtr, al)
 
 #define ail_sa_setn(sa, idx, elems, n) do {                                                \

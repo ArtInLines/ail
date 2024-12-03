@@ -12,6 +12,7 @@
 #define _AIL_HM_H_
 
 #include "ail_base.h"
+#include "ail_base_math.h"
 #include "ail_alloc.h"
 
 #ifndef AIL_HM_INIT_CAP
@@ -174,7 +175,7 @@ internal u32 ail_hm_next_u32_2power(u32 x);
 
 u32 ail_hm_next_u32_2power(u32 x)
 {
-    AIL_NEXT_2POWER_POS(x, x);
+    ail_next_2power_pos(x, x);
     return x;
 }
 

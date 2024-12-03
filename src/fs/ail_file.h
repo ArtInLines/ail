@@ -145,7 +145,7 @@ b32 ail_fs_dirent_is_nil(AIL_FS_Dirent a)
 
 AIL_FS_Read_Dir_Res ail_fs_read_dir_init(const char *dirpath)
 {
-    AIL_ASSERT(dirpath);
+    ail_assert(dirpath);
     AIL_FS_Read_Dir_Res res = { 0 };
 #if AIL_OS_WIN
     WCHAR buffer[MAX_PATH];
@@ -178,8 +178,8 @@ AIL_FS_Dirent ail_fs_read_dir_next(AIL_FS_Read_Dir_Res dir)
                 res.err = AIL_FS_ERR_NO_ENTRY;
             }
         } else {
-            AIL_ASSERT(AIL_ARRLEN(res.name) >= AIL_ARRLEN(ffd.cFileName));
-            ail_mem_copy(res.name, ffd.cFileName, AIL_ARRLEN(ffd.cFileName));
+            ail_assert(ail_arrlen(res.name) >= ail_arrlen(ffd.cFileName));
+            ail_mem_copy(res.name, ffd.cFileName, ail_arrlen(ffd.cFileName));
             res.type = (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? AIL_FS_ENTRY_DIR : AIL_FS_ENTRY_FILE;
         }
 #else
