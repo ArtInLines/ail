@@ -180,12 +180,14 @@ internal f64 ail_sv_parse_float   (AIL_SV sv, u32 *len);
 
 #define ail_sv_eq(a, b)  ail_sv_full_eq ((a).str, (a).len, (b).str, (b).len)
 #define ail_sv_cmp(a, b) ail_sv_full_cmp((a).str, (a).len, (b).str, (b).len)
-internal bool ail_sv_full_eq (char *astr, u64 alen, char *bstr, u64 blen);
-internal i32  ail_sv_full_cmp(char *astr, u64 alen, char *bstr, u64 blen);
-internal bool ail_sv_starts_with     (AIL_SV str, AIL_SV prefix);
-internal bool ail_sv_starts_with_char(AIL_SV str, char   prefix);
-internal bool ail_sv_ends_with     (AIL_SV str, AIL_SV suffix);
-internal bool ail_sv_ends_with_char(AIL_SV str, char   suffix);
+internal b32 ail_sv_full_eq (char *astr, u64 alen, char *bstr, u64 blen);
+internal i32 ail_sv_full_cmp(char *astr, u64 alen, char *bstr, u64 blen);
+internal b32 ail_sv_starts_with     (AIL_SV str, AIL_SV prefix);
+internal b32 ail_sv_starts_with_char(AIL_SV str, char   prefix);
+internal b32 ail_sv_ends_with     (AIL_SV str, AIL_SV suffix);
+internal b32 ail_sv_ends_with_char(AIL_SV str, char   suffix);
+internal b32 ail_sv_contains     (AIL_SV str, AIL_SV needle);
+internal b32 ail_sv_contains_char(AIL_SV str, char   needle);
 
 
 ///////////
@@ -219,7 +221,7 @@ internal AIL_SV_Find_Of_Res ail_sv_find_last_of_chars(AIL_SV str, char *needles,
 // After calling a split_next function, the original SV is changed to point at the start of the string
 // afer the first splitting result. Take the following example:
 /*
-    bool ignore_empty = true;
+    b32 ignore_empty = true;
     AIL_SV sv     = ail_sv_from_cstr(",,Hello,World,");
     AIL_SV first  = ail_sv_split_next_char(&sv, ',', ignore_empty);
     // sv points at ",World," now
@@ -231,12 +233,12 @@ internal AIL_SV_Find_Of_Res ail_sv_find_last_of_chars(AIL_SV str, char *needles,
 // @Note: Every splitting function further takes a boolean parameter determining whether empty values should be ignored
 // If `ignore_empty` was false in the above example, first would be an empty string and second would be "Hello"
 
-internal AIL_SV ail_sv_split_next_char(AIL_SV *sv, char   split_by, bool ignore_empty);
-internal AIL_SV ail_sv_split_next     (AIL_SV *sv, AIL_SV split_by, bool ignore_empty);
-internal AIL_DA(AIL_SV) ail_sv_split_char_a(AIL_SV sv, char   split_by, bool ignore_empty, AIL_Allocator allocator);
-internal AIL_DA(AIL_SV) ail_sv_split_a     (AIL_SV sv, AIL_SV split_by, bool ignore_empty, AIL_Allocator allocator);
-internal AIL_DA(AIL_SV) ail_sv_split_lines_a(AIL_SV sv, bool ignore_empty, AIL_Allocator allocator);
-internal AIL_DA(AIL_SV) ail_sv_split_whitespace_a(AIL_SV sv, bool ignore_empty, AIL_Allocator allocator);
+internal AIL_SV ail_sv_split_next_char(AIL_SV *sv, char   split_by, b32 ignore_empty);
+internal AIL_SV ail_sv_split_next     (AIL_SV *sv, AIL_SV split_by, b32 ignore_empty);
+internal AIL_DA(AIL_SV) ail_sv_split_char_a(AIL_SV sv, char   split_by, b32 ignore_empty, AIL_Allocator allocator);
+internal AIL_DA(AIL_SV) ail_sv_split_a     (AIL_SV sv, AIL_SV split_by, b32 ignore_empty, AIL_Allocator allocator);
+internal AIL_DA(AIL_SV) ail_sv_split_lines_a(AIL_SV sv, b32 ignore_empty, AIL_Allocator allocator);
+internal AIL_DA(AIL_SV) ail_sv_split_whitespace_a(AIL_SV sv, b32 ignore_empty, AIL_Allocator allocator);
 #define ail_sv_split_char(sv, split_by, ignore_empty) ail_sv_split_char_a(sv, split_by, ignore_empty, ail_default_allocator)
 #define ail_sv_split(sv, split_by, ignore_empty)      ail_sv_split_a(sv, split_by, ignore_empty, ail_default_allocator)
 #define ail_sv_split_lines(sv, ignore_empty)          ail_sv_split_lines_a(sv, ignore_empty, ail_default_allocator)
@@ -259,9 +261,9 @@ internal AIL_Str ail_sv_rev_join_a(AIL_SV *list, u64 n, AIL_SV joiner, AIL_Alloc
 internal ail_print_format(2, 3) void ail_sb_print(AIL_SB *sb, char *format, ...);
 internal AIL_Str ail_sb_to_str(AIL_SB sb);
 
-internal bool ail_sv_is_space(char c);
-internal bool ail_sv_is_alpha(char c);
-internal bool ail_sv_is_digit(char c);
+internal b32 ail_sv_is_space(char c);
+internal b32 ail_sv_is_alpha(char c);
+internal b32 ail_sv_is_digit(char c);
 
 // Receive a new SV, that points at the same underlying string as `sv` but offset by `offset` bytes.
 // If `offset` is greater than the length of `sv`, then a SV with zero length is returned
@@ -479,7 +481,7 @@ AIL_DA(char) _ail_da_from_signed_a(i64 num, AIL_Allocator allocator)
     if (num == 0) {
         ail_da_push(&da, '0');
     } else {
-        bool is_neg = num < 0;
+        b32 is_neg = num < 0;
         if (is_neg) {
             ail_da_push(&da, '-');
             num *= -1;
@@ -626,7 +628,7 @@ u64 ail_sv_parse_unsigned(AIL_SV sv, u32 *len)
 
 i64 ail_sv_parse_signed(AIL_SV sv, u32 *len)
 {
-    bool is_neg = false;
+    b32 is_neg = false;
     u64 out = 0;
     u64 i   = 0;
     if (sv.len) {
@@ -655,7 +657,7 @@ f64 ail_sv_parse_float(AIL_SV sv, u32 *len)
     return 0;
 }
 
-bool ail_sv_full_eq(char *astr, u64 alen, char *bstr, u64 blen)
+b32 ail_sv_full_eq(char *astr, u64 alen, char *bstr, u64 blen)
 {
     if (alen != blen) return false;
     for (u64 i = 0; i < alen; i++) {
@@ -674,7 +676,7 @@ i32  ail_sv_full_cmp(char *astr, u64 alen, char *bstr, u64 blen)
     else                   return bstr[alen];
 }
 
-bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
+b32 ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
 {
     if (prefix.len > str.len) return false;
     for (u64 i = 0; i < prefix.len; i++) {
@@ -683,12 +685,12 @@ bool ail_sv_starts_with(AIL_SV str, AIL_SV prefix)
     return true;
 }
 
-bool ail_sv_starts_with_char(AIL_SV str, char prefix)
+b32 ail_sv_starts_with_char(AIL_SV str, char prefix)
 {
     return str.len > 0 && str.str[0] == prefix;
 }
 
-bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
+b32 ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
 {
     if (suffix.len > str.len) return false;
     for (u64 i = suffix.len; i > 0; i--) {
@@ -697,9 +699,26 @@ bool ail_sv_ends_with(AIL_SV str, AIL_SV suffix)
     return true;
 }
 
-bool ail_sv_ends_with_char(AIL_SV str, char suffix)
+b32 ail_sv_ends_with_char(AIL_SV str, char suffix)
 {
     return str.len > 0 && str.str[str.len - 1] == suffix;
+}
+
+b32 ail_sv_contains(AIL_SV str, AIL_SV needle)
+{
+    if (needle.len > str.len) return false;
+    for (u64 i = 0; i < str.len - needle.len; i++) {
+        if (ail_sv_eq(ail_sv_offset(str, i), needle)) return true;
+    }
+    return false;
+}
+
+b32 ail_sv_contains_char(AIL_SV str, char needle)
+{
+    for (u64 i = 0; i < str.len; i++) {
+        if (str.str[i] == needle) return true;
+    }
+    return false;
 }
 
 i64 ail_sv_find(AIL_SV str, AIL_SV needle)
@@ -778,7 +797,7 @@ AIL_SV_Find_Of_Res ail_sv_find_last_of_chars(AIL_SV str, char *needles, i32 need
     return (AIL_SV_Find_Of_Res){ -1, -1 };
 }
 
-AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, bool ignore_empty)
+AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, b32 ignore_empty)
 {
     size_t i = 0;
     if (ignore_empty) {
@@ -795,7 +814,7 @@ AIL_SV ail_sv_split_next_char(AIL_SV *sv, char split_by, bool ignore_empty)
     return res;
 }
 
-AIL_SV ail_sv_split_next(AIL_SV *sv, AIL_SV split_by, bool ignore_empty)
+AIL_SV ail_sv_split_next(AIL_SV *sv, AIL_SV split_by, b32 ignore_empty)
 {
     size_t i = 0;
     if (ignore_empty) {
@@ -814,7 +833,7 @@ AIL_SV ail_sv_split_next(AIL_SV *sv, AIL_SV split_by, bool ignore_empty)
     };
 }
 
-AIL_DA(AIL_SV) ail_sv_split_char_a(AIL_SV sv, char split_by, bool ignore_empty, AIL_Allocator allocator)
+AIL_DA(AIL_SV) ail_sv_split_char_a(AIL_SV sv, char split_by, b32 ignore_empty, AIL_Allocator allocator)
 {
     AIL_DA(AIL_SV) res = ail_da_new_with_alloc(AIL_SV, AIL_DA_INIT_CAP, allocator);
     u64 lstart = 0;
@@ -836,7 +855,7 @@ AIL_DA(AIL_SV) ail_sv_split_char_a(AIL_SV sv, char split_by, bool ignore_empty, 
     return res;
 }
 
-AIL_DA(AIL_SV) ail_sv_split_a(AIL_SV sv, AIL_SV split_by, bool ignore_empty, AIL_Allocator allocator)
+AIL_DA(AIL_SV) ail_sv_split_a(AIL_SV sv, AIL_SV split_by, b32 ignore_empty, AIL_Allocator allocator)
 {
     AIL_DA(AIL_SV) res = ail_da_new_with_alloc(AIL_SV, AIL_DA_INIT_CAP, allocator);
     u64 lstart = 0;
@@ -865,7 +884,7 @@ AIL_DA(AIL_SV) ail_sv_split_a(AIL_SV sv, AIL_SV split_by, bool ignore_empty, AIL
     return res;
 }
 
-AIL_DA(AIL_SV) ail_sv_split_lines_a(AIL_SV sv, bool ignore_empty, AIL_Allocator allocator)
+AIL_DA(AIL_SV) ail_sv_split_lines_a(AIL_SV sv, b32 ignore_empty, AIL_Allocator allocator)
 {
     // @Cleanup: Almost identical to ail_sv_split - maybe we can unite them somehow
     AIL_DA(AIL_SV) res = ail_da_new_with_alloc(AIL_SV, AIL_DA_INIT_CAP, allocator);
@@ -875,7 +894,16 @@ AIL_DA(AIL_SV) ail_sv_split_lines_a(AIL_SV sv, bool ignore_empty, AIL_Allocator 
         for (u64 i = 0; i < sv.len; i++) {
             if (sv.str[i] == '\n') {
                 if (!ignore_empty || llen > 0) {
-                    ail_da_push(&res, ail_sv_from_parts(&sv.str[lstart], llen));
+                    do {
+                        do {
+                            if ((&res)->len + (1) > (&res)->cap) do {
+                                (&res)->data = (((((&res)->allocator)))).alloc((((((&res)->allocator)))).data, AIL_MEM_REALLOC, (sizeof((&res)->data[0])*((((2*(&res)->cap) > ((&res)->cap + (1))) ? (2*(&res)->cap) : ((&res)->cap + (1))))), ((&res)->data));
+                                (&res)->cap = ((((2*(&res)->cap) > ((&res)->cap + (1))) ? (2*(&res)->cap) : ((&res)->cap + (1))));
+                                if ((&res)->len > (&res)->cap) (&res)->len = (&res)->cap;
+                            } while(0);
+                        } while(0);
+                        (&res)->data[(&res)->len++] = (ail_sv_from_parts(&sv.str[lstart], llen));
+                    } while(0);
                 }
                 lstart = i + 1;
                 llen   = 0;
@@ -893,7 +921,7 @@ AIL_DA(AIL_SV) ail_sv_split_lines_a(AIL_SV sv, bool ignore_empty, AIL_Allocator 
     return res;
 }
 
-AIL_DA(AIL_SV) ail_sv_split_whitespace_a(AIL_SV sv, bool ignore_empty, AIL_Allocator allocator)
+AIL_DA(AIL_SV) ail_sv_split_whitespace_a(AIL_SV sv, b32 ignore_empty, AIL_Allocator allocator)
 {
     // @Cleanup: Almost identical to ail_sv_split_lines - maybe we can unite them somehow
     AIL_DA(AIL_SV) res = ail_da_new_with_alloc(AIL_SV, AIL_DA_INIT_CAP, allocator);
@@ -926,17 +954,17 @@ AIL_SV ail_sv_offset(AIL_SV sv, u64 offset)
         return ail_sv_from_parts(sv.str + offset, sv.len - offset);
 }
 
-bool ail_sv_is_space(char c)
+b32 ail_sv_is_space(char c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-bool ail_sv_is_digit(char c)
+b32 ail_sv_is_digit(char c)
 {
     return '0' <= c && c <= '9';
 }
 
-bool ail_sv_is_alpha(char c)
+b32 ail_sv_is_alpha(char c)
 {
     return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
 }
