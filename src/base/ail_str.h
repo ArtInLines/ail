@@ -43,27 +43,32 @@
 #   endif // AIL_DA_INIT_CAP
 #endif // AIL_SB_INIT_CAP
 
+// Sized Strings
+typedef struct AIL_Str8 {
+    u8 *data;
+    u64 len;
+} AIL_Str8;
+AIL_SA_INIT(AIL_Str8); AIL_CA_INIT(AIL_Str8); AIL_DA_INIT(AIL_Str8);
 
-typedef struct AIL_SV { // Sized String View
-    char *str;
-    u64   len;
-} AIL_SV;
-AIL_SA_INIT(AIL_SV);
-AIL_CA_INIT(AIL_SV);
-AIL_DA_INIT(AIL_SV);
+typedef struct AIL_Str16 {
+    u16 *data;
+    u64  len;
+} AIL_Str16;
+AIL_SA_INIT(AIL_Str16); AIL_CA_INIT(AIL_Str16); AIL_DA_INIT(AIL_Str16);
 
-typedef struct AIL_Str { // Sized String (with nul-terminator for std/os interop)
-    char *str;
-    u64   len;
-} AIL_Str;
-AIL_SA_INIT(AIL_Str);
-AIL_CA_INIT(AIL_Str);
-AIL_DA_INIT(AIL_Str);
+typedef struct AIL_Str32 {
+    u32 *data;
+    u64  len;
+} AIL_Str32;
+AIL_SA_INIT(AIL_Str32); AIL_CA_INIT(AIL_Str32); AIL_DA_INIT(AIL_Str32);
 
-typedef AIL_DA(char) AIL_SB; // String Builder
-AIL_SA_INIT(AIL_SB);
-AIL_CA_INIT(AIL_SB);
-AIL_DA_INIT(AIL_SB);
+// String-Builders
+typedef AIL_DA(u8)  AIL_SB8;
+typedef AIL_DA(u16) AIL_SB16;
+typedef AIL_DA(u32) AIL_SB32;
+AIL_SA_INIT(AIL_SB8);  AIL_CA_INIT(AIL_SB8);  AIL_DA_INIT(AIL_SB8);
+AIL_SA_INIT(AIL_SB16); AIL_CA_INIT(AIL_SB16); AIL_DA_INIT(AIL_SB16);
+AIL_SA_INIT(AIL_SB32); AIL_CA_INIT(AIL_SB32); AIL_DA_INIT(AIL_SB32);
 
 typedef struct AIL_SV_Find_Of_Res { // Result from ail_sv_find* functions
     i64 sv_idx;
@@ -81,25 +86,23 @@ typedef struct AIL_SV_Find_Of_Res { // Result from ail_sv_find* functions
 // Creating a Str //
 ////////////////////
 
-#define AIL_STR_FROM_LITERAL(clit) { .str = (clit), .len = sizeof(clit)-1 }
-#define AIL_STR_FROM_LITERAL_T(clit) (AIL_Str)AIL_STR_FROM_LITERAL(clit)
-inline_func AIL_Str ail_str_from_parts(char *s, u64 len);       // @Assert: s[len] == '\0'
-inline_func AIL_Str ail_str_from_da_nil_term(AIL_DA(char) str); // @Assert: str.data[str.len] == '\0'
-inline_func AIL_Str ail_str_from_cstr (char *s);
-#define ail_str_from_sv(sv) ail_str_from_parts(sv.str, sv.len)
+#define ail_str8_from_lit(lit)  { .str = (lit), .len = (sizeof(lit)/sizeof(*lit)) - 1 }
+#define ail_str16_from_lit(lit) { .str = (lit), .len = (sizeof(lit)/sizeof(*lit)) - 1 }
+#define ail_str32_from_lit(lit) { .str = (lit), .len = (sizeof(lit)/sizeof(*lit)) - 1 }
+#define ail_str8_from_lit_t(lit)  ((AIL_Str8)  ail_str8_from_lit(lit))
+#define ail_str16_from_lit_t(lit) ((AIL_Str16) ail_str16_from_lit(lit))
+#define ail_str32_from_lit_t(lit) ((AIL_Str32) ail_str32_from_lit(lit))
 
-inline_func AIL_SA(u8) ail_sa_from_sv(AIL_SV sv);
-inline_func AIL_SA(u8) ail_sa_from_str(AIL_Str str);
-inline_func AIL_CA(u8) ail_ca_from_sv(AIL_SV sv);
-inline_func AIL_CA(u8) ail_ca_from_str(AIL_Str str);
+internal u64 ail_cstr_len(char *cstr);
 
 // @Important: Copies the underlying string to a new memory region. Remember to free the Str with ail_str_free
-internal AIL_Str ail_str_new_sv_a(AIL_SV sv, AIL_Allocator allocator);
-internal AIL_Str ail_str_new_cstr_a(char *str, AIL_Allocator allocator);
-internal AIL_Str ail_str_new_da_a(AIL_DA(char) str, AIL_Allocator allocator);
-internal AIL_Str ail_str_new_unsigned_a(u64 num, AIL_Allocator allocator);
-internal AIL_Str ail_str_new_signed_a  (i64 num, AIL_Allocator allocator);
-internal AIL_Str ail_str_new_float_a   (f64 num, AIL_Allocator allocator);
+internal AIL_Str8 ail_str8_new_cstr_a(char *str, AIL_Allocator allocator);
+internal AIL_Str8 ail_str8_new_from_parts_a(u8 *data, u64 len, AIL_Allocator allocator);
+internal AIL_Str8 ail_str8_new_unsigned_a(u64 num, AIL_Allocator allocator);
+internal AIL_Str8 ail_str8_new_signed_a  (i64 num, AIL_Allocator allocator);
+internal AIL_Str8 ail_str8_new_float_a   (f64 num, AIL_Allocator allocator);
+#define ail_str8_new_arr_a(arr, al) ail_str8_new_from_parts_a((arr).data, (arr).len, (al))
+#define ail_str8_new_cstr_a(cstr, al) ail_str8_new_from_parts_a((cstr), ail_cstr_len(cstr), (al))
 #define ail_str_new_sv(sv)        ail_str_new_sv_a(sv,    ail_default_allocator)
 #define ail_str_new_cstr(str)     ail_str_new_cstr_a(str, ail_default_allocator)
 #define ail_str_new_da(str)       ail_str_new_da_a(str,   ail_default_allocator)
