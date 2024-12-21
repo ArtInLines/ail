@@ -32,8 +32,7 @@ typedef enum Warn_Kind {
     #undef X
 } Warn_Kind;
 
-static char* warn_names_clang[] = {
-    [0 ... AIL_WARN_COUNT] = NULL,
+static char* warn_names_clang[AIL_WARN_COUNT] = {
     [AIL_WARN_UNKNOWN_PRAGMA] = "-Wunknown-pragmas",
     [AIL_WARN_DEPRECATED] = "-Wdeprecated-declarations",
     [AIL_WARN_UNUSED_FUNCTION] = "-Wunused-function",
@@ -41,8 +40,7 @@ static char* warn_names_clang[] = {
     [AIL_WARN_ZERO_LENGTH_ARRAY] = "-Wzero-length-array",
     [AIL_WARN_CAST_QUAL] = "-Wcast-qual",
 };
-static char* warn_names_gcc[] = {
-    [0 ... AIL_WARN_COUNT] = NULL,
+static char* warn_names_gcc[AIL_WARN_COUNT] = {
     [AIL_WARN_UNKNOWN_PRAGMA] = "-Wunknown-pragmas",
     [AIL_WARN_DEPRECATED] = "-Wdeprecated-declarations",
     [AIL_WARN_UNUSED_FUNCTION] = "-Wunused-function",
@@ -50,8 +48,7 @@ static char* warn_names_gcc[] = {
     [AIL_WARN_ZERO_LENGTH_ARRAY] = "-Wpedantic",
     [AIL_WARN_CAST_QUAL] = "-Wcast-qual",
 };
-static char* warn_names_msvc[] = {
-    [0 ... AIL_WARN_COUNT] = NULL,
+static char* warn_names_msvc[AIL_WARN_COUNT] = {
     [AIL_WARN_EXHAUSTIVE_SWITCH] = "4061 4062 5262",
     [AIL_WARN_UNSAFE_CONVERSION] = "4191 4242 4254 4287 4388 5219",
     [AIL_WARN_MISSING_ARGLIST] = "4546",
@@ -69,7 +66,7 @@ static char* warn_names_msvc[] = {
     [AIL_WARN_ZERO_LENGTH_ARRAY] = "4200",
     [AIL_WARN_CAST_QUAL] = "5266",
     [AIL_WARN_IMPLICIT_INT] = "4431",
-    [AIL_WARN_UNREACHABLE_CODE] = "4702"
+    [AIL_WARN_UNREACHABLE_CODE] = "4702",
 };
 
 #define LEN(arr) (sizeof(arr)/sizeof(arr[0]))
@@ -110,7 +107,18 @@ static Comp comps[] = {
 
 int main(void)
 {
-    printf("// AIL_Warn_Kinds\n");
+    printf(
+        "/*\n"
+        "*** Warning Kinds ***\n"
+        "* A list of useful warnings of different compilers\n"
+        "* Use AIL_Warn_Kind enum for disabling/enabling/erroring a specific warning in your code\n"
+        "*\n"
+        "* AIL_Warn_Kind is also used by `ail_build`\n"
+        "*/\n"
+        "\n"
+        "#ifndef _AIL_WARN_H_\n"
+        "#define _AIL_WARN_H_\n"
+    );
     printf("typedef enum AIL_Warn_Kinds {\n");
     #define X(warn) printf("    " STR(warn) ",\n");
         WARNINGS
@@ -124,5 +132,6 @@ int main(void)
         #undef X
     }
     printf("#endif\n");
+    printf("\n#endif // _AIL_WARN_H_\n");
     return 0;
 }

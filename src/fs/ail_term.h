@@ -71,87 +71,90 @@ internal AIL_TermState ail_term_state_sub_mode(AIL_TermState state, AIL_TermMode
 #if !defined(AIL_NO_TERM_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef AIL_TERM_IMPL_GUARD
 #define AIL_TERM_IMPL_GUARD
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
-internal void term_init(void)
+internal void ail_term_init(void)
 {
-	ail_term_global_handles       = term_get_handles();
-	ail_term_global_initial_state = _term_get_state();
+	ail_term_global_handles       = ail_term_get_handles();
+	ail_term_global_initial_state = _ail_term_get_state();
 	ail_term_global_current_state = ail_term_global_initial_state;
 }
 
-internal void term_deinit(void)
+internal void ail_term_deinit(void)
 {
-	term_set_state(ail_term_global_initial_state);
+	ail_term_set_state(ail_term_global_initial_state);
 }
 
-internal AIL_TermMode term_get_mode(void)
+internal AIL_TermMode ail_term_get_mode(void)
 {
-	return term_state_get_mode(ail_term_global_current_state);
+	return ail_term_state_get_mode(ail_term_global_current_state);
 }
 
-internal AIL_TermState term_state_add_mode(AIL_TermState state, AIL_TermMode mode)
+internal AIL_TermState ail_term_state_add_mode(AIL_TermState state, AIL_TermMode mode)
 {
-	AIL_TermMode cur = term_state_get_mode(ail_term_global_current_state);
-	return term_state_set_mode(state, cur | mode);
+	AIL_TermMode cur = ail_term_state_get_mode(ail_term_global_current_state);
+	return ail_term_state_set_mode(state, cur | mode);
 }
 
-internal AIL_TermState term_state_sub_mode(AIL_TermState state, AIL_TermMode mode)
+internal AIL_TermState ail_term_state_sub_mode(AIL_TermState state, AIL_TermMode mode)
 {
-	AIL_TermMode cur = term_state_get_mode(ail_term_global_current_state);
-	return term_state_set_mode(state, cur & ~mode);
+	AIL_TermMode cur = ail_term_state_get_mode(ail_term_global_current_state);
+	return ail_term_state_set_mode(state, cur & ~mode);
 }
 
-internal void term_set_mode(AIL_TermMode mode)
+internal void ail_term_set_mode(AIL_TermMode mode)
 {
-	term_set_state(term_state_set_mode(ail_term_global_current_state, mode));
+	ail_term_set_state(ail_term_state_set_mode(ail_term_global_current_state, mode));
 }
 
-internal void term_add_mode(AIL_TermMode mode)
+internal void ail_term_add_mode(AIL_TermMode mode)
 {
-	term_set_state(term_state_add_mode(ail_term_global_current_state, mode));
+	ail_term_set_state(ail_term_state_add_mode(ail_term_global_current_state, mode));
 }
 
-internal void term_sub_mode(AIL_TermMode mode)
+internal void ail_term_sub_mode(AIL_TermMode mode)
 {
-	term_set_state(term_state_sub_mode(ail_term_global_current_state, mode));
+	ail_term_set_state(ail_term_state_sub_mode(ail_term_global_current_state, mode));
 }
 
-internal int term_get_char(void)
+internal u32 ail_term_get_char(void)
 {
-	return getchar(); // @TODO: Rewrite without libc
+	int x = getchar(); // @TODO: Rewrite without libc
+	return *(u32*)&x;
 }
 
 
-#if defined(_WIN32) || defined(__WIN32__)
+#if AIL_OS_WIN
 //////////////////////////
 // Windows Implementation
 //////////////////////////
 
-internal AIL_TermHandles term_get_handles(void)
+internal AIL_TermHandles ail_term_get_handles(void)
 {
 	AIL_TermHandles res = {
 		.in  = GetStdHandle(STD_INPUT_HANDLE),
 		.out = GetStdHandle(STD_OUTPUT_HANDLE),
 		.err = GetStdHandle(STD_ERROR_HANDLE),
 	};
-	AIL_ASSERT(res.in  != INVALID_HANDLE_VALUE);
-	AIL_ASSERT(res.out != INVALID_HANDLE_VALUE);
-	AIL_ASSERT(res.err != INVALID_HANDLE_VALUE);
+	ail_assert(res.in  != INVALID_HANDLE_VALUE);
+	ail_assert(res.out != INVALID_HANDLE_VALUE);
+	ail_assert(res.err != INVALID_HANDLE_VALUE);
 	return res;
 }
 
-internal AIL_TermState _term_get_state(void)
+internal AIL_TermState _ail_term_get_state(void)
 {
 	AIL_TermState state;
-	AIL_ASSERT(GetConsoleMode(ail_term_global_handles.in,  &state.in));
-	AIL_ASSERT(GetConsoleMode(ail_term_global_handles.out, &state.out));
-	AIL_ASSERT(GetConsoleMode(ail_term_global_handles.err, &state.err));
+	ail_assert(GetConsoleMode(ail_term_global_handles.in,  &state.in));
+	ail_assert(GetConsoleMode(ail_term_global_handles.out, &state.out));
+	ail_assert(GetConsoleMode(ail_term_global_handles.err, &state.err));
 	return state;
 }
 
-internal AIL_TermMode term_state_get_mode(AIL_TermState state)
+internal AIL_TermMode ail_term_state_get_mode(AIL_TermState state)
 {
-	AIL_STATIC_ASSERT(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
+	ail_static_assert(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
 	AIL_TermMode mode = 0;
 	if (state.in  & ENABLE_ECHO_INPUT)      mode |= AIL_TERM_MODE_ECHO;
 	if (state.in  & ENABLE_LINE_INPUT)      mode |= AIL_TERM_MODE_LINE_INPUT;
@@ -165,9 +168,9 @@ internal AIL_TermMode term_state_get_mode(AIL_TermState state)
 	return mode;
 }
 
-internal AIL_TermState term_state_set_mode(AIL_TermState state, AIL_TermMode mode)
+internal AIL_TermState ail_term_state_set_mode(AIL_TermState state, AIL_TermMode mode)
 {
-	AIL_STATIC_ASSERT(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
+	ail_static_assert(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
 	if (mode & AIL_TERM_MODE_ECHO)       state.in |=  ENABLE_ECHO_INPUT;
 	else                             state.in &= ~ENABLE_ECHO_INPUT;
 	if (mode & AIL_TERM_MODE_LINE_INPUT) state.in |=  ENABLE_LINE_INPUT;
@@ -188,7 +191,7 @@ internal AIL_TermState term_state_set_mode(AIL_TermState state, AIL_TermMode mod
 	return state;
 }
 
-internal void term_set_state(AIL_TermState state)
+internal void ail_term_set_state(AIL_TermState state)
 {
 	if (!SetConsoleMode(ail_term_global_handles.in,  state.in)) {
 		printf("Error in setting console mode for STDIN (handle: %p, state: %lu): %lu\n", ail_term_global_handles.in, state.in, GetLastError());
@@ -208,7 +211,7 @@ internal void term_set_state(AIL_TermState state)
 // POSIX Implementation
 ////////////////////////
 
-internal AIL_TermHandles term_get_handles(void)
+internal AIL_TermHandles ail_term_get_handles(void)
 {
 	return (AIL_TermHandles) {
 		.in  = STDIN_FILENO,
@@ -217,16 +220,16 @@ internal AIL_TermHandles term_get_handles(void)
 	};
 }
 
-internal AIL_TermState _term_get_state(void)
+internal AIL_TermState _ail_term_get_state(void)
 {
 	AIL_TermState state;
-	AIL_ASSERT(!tcgetattr(ail_term_global_handles.in, &state));
+	ail_assert(!tcgetattr(ail_term_global_handles.in, &state));
 	return state;
 }
 
-internal AIL_TermMode term_state_get_mode(AIL_TermState state)
+internal AIL_TermMode ail_term_state_get_mode(AIL_TermState state)
 {
-	AIL_STATIC_ASSERT(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
+	ail_static_assert(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
 	AIL_TermMode mode = 0;
 	if (state.c_lflag & ECHO)   mode |= AIL_TERM_MODE_ECHO;
 	if (state.c_lflag & ICANON) mode |= AIL_TERM_MODE_LINE_INPUT | AIL_TERM_MODE_INSERT;
@@ -236,9 +239,9 @@ internal AIL_TermMode term_state_get_mode(AIL_TermState state)
 	return mode;
 }
 
-internal AIL_TermState term_state_set_mode(AIL_TermState state, AIL_TermMode mode)
+internal AIL_TermState ail_term_state_set_mode(AIL_TermState state, AIL_TermMode mode)
 {
-	AIL_STATIC_ASSERT(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
+	ail_static_assert(AIL_TERM_MODE_FLAG_COUNT == (1 << 6));
 	if (mode & AIL_TERM_MODE_ECHO)       state.c_lflag |=   ECHO | ECHONL;
 	else                             state.c_lflag &= ~(ECHO | ECHONL);
 	// @TODO: One of the following modes might turn ICANON on and the other turn it off again
@@ -251,15 +254,16 @@ internal AIL_TermState term_state_set_mode(AIL_TermState state, AIL_TermMode mod
 	return state;
 }
 
-internal void term_set_state(AIL_TermState state)
+internal void ail_term_set_state(AIL_TermState state)
 {
 	// @TODO: Maybe use TCSADRAIN instead of TCSANOW?
-	AIL_ASSERT(!tcsetattr(ail_term_global_handles.in, TCSANOW, &state));
+	ail_assert(!tcsetattr(ail_term_global_handles.in, TCSANOW, &state));
 	ail_term_global_current_state = state;
 }
 
 #endif
 
 
+AIL_WARN_POP
 #endif // AIL_TERM_IMPL_GUARD
 #endif // AIL_NO_TERM_IMPL

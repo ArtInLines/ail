@@ -5,22 +5,6 @@
 * Define AIL_ALLOC_ALIGNMENT to change the alignment used by all custom allocators
 * Define AIL_ALLOC_PRINT_MEM to track (all) allocations
 *
-*
-*** Allocator Interface ***
-* The interface for allocators that are used throughout ail
-* AIL_Allcoator:      Structure containing context & alloc function
-* AIL_Allocator_Mode: Enum containing all different operations that can be used with allocators
-* @Note: Certain allocators do not support all operations. See notes on the specific allocators you wish to use
-* Macros for calling the different operations on an allocator:
-* @Note: `al` Refers to the allocator instance in the following macros
-  * ail_call_alloc(al, size):        Allocate at least `size` bytes
-  * ail_call_calloc(al, size):       Allocate at least `size` bytes that are all cleared to zero
-  * ail_call_realloc(al, ptr, size): Move a previously allocated memory-region somewhere with at least `size` bytes available
-  * ail_call_shrink(al, ptr, size):  Like reallocing to a smaller size, but with the guarantuee that no new allocation will be made
-  * ail_call_free(al, ptr):          Free a single chunk of memory
-  * ail_call_clear_all(al):          Marks all internally held memory as free
-  * ail_call_free_all(al):           Like clear_all, but might free internally held memory as well
-*
 * Implementation of the Arena Allocator was inspired by tsoding's arena library (https://github.com/tsoding/arena/)
 * and by gingerBill's blog post on Arena Allocators (https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/)
 *
@@ -35,71 +19,40 @@
 #ifndef _AIL_ALLOC_H_
 #define _AIL_ALLOC_H_
 
+//////////////
+// Initial Includes
+//////////////
+
 #include "ail_base.h"
 #include "ail_base_math.h"
 #include "ail_mem.h"
 
-/////////////////////////
-// Allocator Interface
-/////////////////////////
-// Allocate a region of memory holding at least <size> bytes
-#define ail_call_alloc(al, size) (al).alloc((al).data, AIL_MEM_ALLOC, (size), NULL)
-
-#define _ail_call_calloc_3(al, nelem, size_el) (al).alloc((al).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
-#define _ail_call_calloc_2(al, size)           (al).alloc((al).data, AIL_MEM_CALLOC, (size),            NULL)
-// Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
-#define ail_call_calloc(al, ...) AIL_VFUNC(_ail_call_calloc_, al, __VA_ARGS__)
-
-// Move a previously allocated region of memory to a new place with at least <new_size> bytes
-#define ail_call_realloc(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_REALLOC, (new_size), (old_ptr))
-
-// Provide a hint to the allocator, that the previously allocated region of memory can be shrunk to only contain <new_size> bytes.
-// The purpose of this is to reduce memory usage when finding out later that less memory than expected was needed.
-// Some allcoators treat this as a no-op
-#define ail_call_shrink(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_SHRINK, (new_size), (old_ptr))
-
-// Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
-#define ail_call_free(al, ptr) (al).alloc((al).data, AIL_MEM_FREE, 0, (ptr))
-
-// If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
-#define ail_call_clear_all(al) (al).alloc((al).data, AIL_MEM_CLEAR_ALL, 0, NULL)
-
-// If the allocator holds several memory regions, it frees all of them except for one
-#define ail_call_free_all(al) (al).alloc((al).data, AIL_MEM_FREE_ALL, 0, NULL)
-
-// The action that should be executed when calling the allocator proc
-// @TODO: Potential other functions:
-//   - RESERVE (only really makes sense for pager)
-//   - MARK/RESET (only really makes sense for linear allocators)
-typedef enum AIL_Allocator_Mode {
-    AIL_MEM_ALLOC,
-    AIL_MEM_CALLOC,
-    AIL_MEM_REALLOC,
-    AIL_MEM_SHRINK,
-    AIL_MEM_FREE,
-    AIL_MEM_FREE_ALL,
-    AIL_MEM_CLEAR_ALL,
-    AIL_MEM_MODE_COUNT,
-} AIL_Allocator_Mode;
-
-typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr);
-typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr);
-
-typedef struct AIL_Allocator {
-    void *data; // Metadata required by allocator and provided in all function calls
-    AIL_Allocator_Func_Ptr alloc;
-} AIL_Allocator;
-
-
-/////////////////////////
-// Allocator Implementations
-/////////////////////////
 #ifndef AIL_ALLOC_ALIGNMENT
 #   define AIL_ALLOC_ALIGNMENT 8 // Reasonable default for all 64bit machines
 #endif // AIL_ALLOC_ALIGNMENT
 #if !ail_is_2power(AIL_ALLOC_ALIGNMENT)
 #   warning "AIL_ALLOC_ALIGNMENT should best be set to a power of two for almost all computer architectures"
 #endif
+
+//////////////
+// Utility Functions
+//////////////
+
+// Aligns size to AIL_ALLOC_ALIGNMENT
+internal u64 ail_alloc_align_size(u64 size);
+// @Note: Alignment must be greater than 0 and a power of 2
+internal u64 ail_alloc_align_forward(u64 n, u64 alignment);
+// @Note: Alignment must be greater than 0 and a power of 2
+internal u64 ail_alloc_align_backward(u64 n, u64 alignment);
+// Returns padding from aligning to AIL_ALLOC_ALIGNMENT
+internal u64 ail_alloc_size_aligned_pad(u64 size);
+internal u64 ail_alloc_size_aligned_backward_pad(u64 size, u64 alignment);
+internal u64 ail_alloc_size_aligned_forward_pad(u64 size, u64 alignment);
+
+
+/////////////////////////
+// Allocator Implementations
+/////////////////////////
 
 #define AIL_ALLOC_GET_HEADER(ptr, headerType) ((headerType *)(ptr) - 1)
 
@@ -165,21 +118,6 @@ typedef struct AIL_Alloc_Freelist_Node_Couple {
 
 void* _ail_alloc_get_last_region_(u8 *list, u32 region_head_offset, u32 region_next_offset);
 void* _ail_alloc_region_of_(u8 *list, u32 region_head_offset, u32 region_next_offset, u32 mem_offset, u32 region_size_offset, u8 *ptr);
-
-//////////////
-// Utility Functions
-//////////////
-
-// Aligns size to AIL_ALLOC_ALIGNMENT
-internal u64 ail_alloc_align_size(u64 size);
-// @Note: Alignment must be greater than 0 and a power of 2
-internal u64 ail_alloc_align_forward(u64 n, u64 alignment);
-// @Note: Alignment must be greater than 0 and a power of 2
-internal u64 ail_alloc_align_backward(u64 n, u64 alignment);
-// Returns padding from aligning to AIL_ALLOC_ALIGNMENT
-internal u64 ail_alloc_size_aligned_pad(u64 size);
-internal u64 ail_alloc_size_aligned_backward_pad(u64 size, u64 alignment);
-internal u64 ail_alloc_size_aligned_forward_pad(u64 size, u64 alignment);
 
 
 //////////////
@@ -251,6 +189,10 @@ internal AIL_Allocator ail_alloc_freelist_new(u64 cap, AIL_Allocator *backing_al
 internal AIL_Allocator_Func ail_alloc_freelist_alloc;
 
 
+//////////////
+// Additional Includes
+//////////////
+
 #include "ail_arr.h"
 
 #endif // _AIL_ALLOC_H_
@@ -261,6 +203,7 @@ internal AIL_Allocator_Func ail_alloc_freelist_alloc;
 #define _AIL_ALLOC_IMPL_GUARD_
 AIL_WARN_PUSH
 AIL_WARN_DISABLE(AIL_WARN_UNREACHABLE_CODE)
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 #include <stdlib.h> // For std_allocator
 
@@ -311,6 +254,9 @@ AIL_WARN_POP
             case AIL_MEM_FREE_ALL:                                   \
                 AIL_ALLOC_LOG_FREE_ALL(allocator, osize);            \
                 break;                                               \
+            case AIL_MEM_MODE_COUNT:                                 \
+                    AIL_UNREACHABLE();                               \
+                    break;                                           \
         }                                                            \
     } while(0)
 
@@ -462,9 +408,10 @@ void* ail_alloc_std_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *o
         case AIL_MEM_CALLOC:    res = calloc(size, 1); break;
         case AIL_MEM_REALLOC:   res = realloc(old_ptr, size); break;
         case AIL_MEM_FREE:      free(old_ptr); break;
-        case AIL_MEM_SHRINK:    break;
-        case AIL_MEM_CLEAR_ALL: break;
-        case AIL_MEM_FREE_ALL:  break;
+        case AIL_MEM_SHRINK:     break;
+        case AIL_MEM_CLEAR_ALL:  break;
+        case AIL_MEM_FREE_ALL:   break;
+        case AIL_MEM_MODE_COUNT: AIL_UNREACHABLE(); break;
     }
     AIL_ALLOC_LOG("std", mode, res, size, size, old_ptr);
     return res;
@@ -565,8 +512,9 @@ void* ail_alloc_page_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
             size = header->size;
             _ail_alloc_internal_free_pages_(old_ptr, header->size);
         } break;
-        case AIL_MEM_CLEAR_ALL: break;
-        case AIL_MEM_FREE_ALL:  break;
+        case AIL_MEM_CLEAR_ALL:  break;
+        case AIL_MEM_FREE_ALL:   break;
+        case AIL_MEM_MODE_COUNT: AIL_UNREACHABLE(); break;
     }
     AIL_ALLOC_LOG("page", mode, res, size, size, old_ptr);
     return res;
@@ -633,7 +581,8 @@ void *ail_alloc_buffer_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void
         case AIL_MEM_SHRINK: break;
         case AIL_MEM_FREE: break;
         case AIL_MEM_CLEAR_ALL:
-        case AIL_MEM_FREE_ALL: buffer->idx = 0;
+        case AIL_MEM_FREE_ALL: buffer->idx = 0; break;
+        case AIL_MEM_MODE_COUNT: AIL_UNREACHABLE(); break;
     }
     AIL_ALLOC_LOG("buffer", mode, ptr, size, size, old_ptr);
     return ptr;
@@ -690,7 +639,8 @@ void *ail_alloc_ring_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
         case AIL_MEM_SHRINK: break;
         case AIL_MEM_FREE: break;
         case AIL_MEM_CLEAR_ALL:
-        case AIL_MEM_FREE_ALL: ring->idx = 0;
+        case AIL_MEM_FREE_ALL: ring->idx = 0; break;
+        case AIL_MEM_MODE_COUNT: AIL_UNREACHABLE(); break;
     }
     AIL_ALLOC_LOG("ring", mode, ptr, size, size, old_ptr);
     return ptr;
@@ -826,6 +776,7 @@ void* ail_alloc_arena_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void 
             arena->region_head.region_next = NULL;
             arena->region_head.used = 0;
         } break;
+        case AIL_MEM_MODE_COUNT: AIL_UNREACHABLE(); break;
     }
 done:
     AIL_ALLOC_LOG("arena", mode, ptr, old_size, size, old_ptr);
@@ -947,6 +898,7 @@ void* ail_alloc_pool_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
             pool->region_head.region_next = NULL;
             _ail_alloc_pool_internal_clear_region_(&pool->region_head, pool->bucket_amount, pool->bucket_size);
         } break;
+        case AIL_MEM_MODE_COUNT: AIL_UNREACHABLE(); break;
     }
 done:
     AIL_ALLOC_LOG("pool", mode, ptr, old_size, size, old_ptr);
@@ -1251,17 +1203,19 @@ void *ail_alloc_freelist_alloc(void *data, AIL_Allocator_Mode mode, u64 size, vo
             fl->region_head.region_next = NULL;
             _ail_alloc_freelist_internal_clear_region_(&fl->region_head);
         } break;
+        case AIL_MEM_MODE_COUNT: AIL_UNREACHABLE(); break;
     }
 #if 0
     if (mode == AIL_MEM_FREE) {
         printf("Mode: ");
         switch (mode) {
-            case AIL_MEM_ALLOC:     printf("Alloc");    break;
-            case AIL_MEM_CALLOC:    printf("Calloc");   break;
-            case AIL_MEM_REALLOC:   printf("Realloc");  break;
-            case AIL_MEM_FREE:      printf("Free");     break;
-            case AIL_MEM_CLEAR_ALL: printf("ClearAll"); break;
-            case AIL_MEM_FREE_ALL:  printf("FreeAll");  break;
+            case AIL_MEM_ALLOC:      printf("Alloc");     break;
+            case AIL_MEM_CALLOC:     printf("Calloc");    break;
+            case AIL_MEM_REALLOC:    printf("Realloc");   break;
+            case AIL_MEM_FREE:       printf("Free");      break;
+            case AIL_MEM_CLEAR_ALL:  printf("ClearAll");  break;
+            case AIL_MEM_FREE_ALL:   printf("FreeAll");   break;
+            case AIL_MEM_MODE_COUNT: printf("ModeCount"); break;
         }
         printf("  ");
         _ail_alloc_freelist_print_(fl);

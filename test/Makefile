@@ -50,7 +50,7 @@ endif
 
 C ?= $(COMP)
 
-all: da macros math sv fs hm alloc buf ring pm
+all: da macros math str fs hm alloc buf ring pm
 
 da: test_da.c
 	$(C) $(CFLAGS) -o test_da test_da.c
@@ -61,8 +61,8 @@ macros: test_macros.c
 math: test_math.c
 	$(C) $(CFLAGS) -o test_math test_math.c
 
-sv: test_sv.c
-	$(C) $(CFLAGS) -o test_sv test_sv.c
+str: test_str.c
+	$(C) $(CFLAGS) -o test_str test_str.c
 
 fs: test_fs.c
 	$(C) $(CFLAGS) -o test_fs test_fs.c

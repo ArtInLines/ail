@@ -55,3 +55,7 @@
 # Debugger files
 *.rdbg
 *.raddbg
+
+# Editor project files
+*.sublime-workspace
+*.sublime-project

@@ -107,7 +107,7 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
     } while(0)
 
 #define ail_ca_maybe_pushn(caPtr, elems, n) do {                                                                                \
-        ail_mem_copy((caPtr)->data + (caPtr)->len, (elems), sizeof(*((caPtr)->data)) * AIL_MIN(n, (caPtr)->cap - (caPtr)->len)) \
+        ail_mem_copy((caPtr)->data + (caPtr)->len, (elems), sizeof((caPtr)->data[0]) * AIL_MIN(n, (caPtr)->cap - (caPtr)->len)) \
         (caPtr)->len += AIL_MIN(n, (caPtr)->cap - (caPtr)->len);                                                                \
     } while(0)
 #define ail_da_maybe_pushn(daPtr, elems, n) ail_ca_maybe_pushn(daPtr, elems, n)
@@ -121,9 +121,9 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
     } while(0)
 
 #define ail_ca_grow_with_gap(caPtr, gapStart, gapLen, newCap, al) do {                                                                           \
-        (caPtr)->data = ail_call_realloc((al), sizeof((caPtr)->data[0])*(newCap));                                                               \
+        (caPtr)->data = ail_call_realloc((al), (caPtr)->data, sizeof((caPtr)->data[0])*(newCap));                                                               \
         (caPtr)->cap  = (newCap);                                                                                                                \
-        AIL_ASSERT((caPtr)->data != NULL);                                                                                                       \
+        ail_assert((caPtr)->data != NULL);                                                                                                       \
         ail_mem_copy(&(caPtr)->data[((gapStart) + (gapLen))], &(caPtr)->data[(gapStart)], sizeof((caPtr)->data[0])*((caPtr)->len - (gapStart))); \
         (caPtr)->len += (gapLen);                                                                                                                \
     } while(0)
@@ -152,7 +152,7 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 
 #define ail_ca_insertn(caPtr, idx, elems, n, al) do {  \
         ail_ca_maybe_grow_with_gap(caPtr, idx, n, al); \
-        ail_ca_setn(caPtr, idx, elems, n);             \
+        ail_ca_setn((*(caPtr)), idx, elems, n);             \
     } while(0)
 #define ail_da_insertn(daPtr, idx, elems, n)       ail_ca_insertn(daPtr, idx, elems, n, (daPtr)->allocator)
 #define ail_da_insertn_a(daPtr, idx, elems, n, al) ail_ca_insertn(daPtr, idx, elems, n, al)
@@ -161,13 +161,13 @@ AIL_DA_INIT(char);  AIL_SA_INIT(char);  AIL_CA_INIT(char);
 
 #define ail_ca_rm(caPtr, idx) do {                                                            \
         (caPtr)->len--;                                                                       \
-        ail_mem_copy(&(caPtr)->data[(idx)], &(caPtr)->data[(idx) + 1], (caPtr)->len - (idx)); \
+        ail_mem_copy(&(caPtr)->data[(idx)], &(caPtr)->data[(idx) + 1], sizeof((caPtr)->data[0])*((caPtr)->len - (idx))); \
     } while(0)
 #define ail_da_rm(daPtr, idx) ail_ca_rm(daPtr, idx)
 
 #define ail_ca_rmn(caPtr, idx, n) do {                                                        \
         (caPtr)->len -= (n);                                                                  \
-        ail_mem_copy(&(caPtr)->data[(idx)], &(caPtr)->data[(idx) + 1], (caPtr)->len - (idx)); \
+        ail_mem_copy(&(caPtr)->data[(idx)], &(caPtr)->data[(idx) + 1], sizeof((caPtr)->data[0])*((caPtr)->len - (idx))); \
     } while(0)
 #define ail_da_rmn(daPtr, idx) ail_ca_rmn(daPtr, idx)
 

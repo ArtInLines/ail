@@ -14,6 +14,8 @@
 #ifndef _AIL_BASE_MATH_H_
 #define _AIL_BASE_MATH_H_
 
+#include "ail_base.h"
+
 // @Note: Not safe to use with expressions, that have side-effects (e.g. ail_max(x++, y++))
 #define ail_max(a, b) (((a) > (b)) ? (a) : (b))
 #define ail_min(a, b) (((a) < (b)) ? (a) : (b))

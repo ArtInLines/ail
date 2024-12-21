@@ -99,7 +99,7 @@ internal b32 ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actua
 
 // Same as ail_fs_read_file(), except that it checks the file's size first and allocates an output buffer of the appropriate size for it
 // Returns NULL on error
-internal char* ail_fs_read_entire_file(const char *fpath, u64 *size, AIL_Allocator allocator);
+internal u8* ail_fs_read_entire_file(const char *fpath, u64 *size, AIL_Allocator allocator);
 
 // Write `size` many bytes from `buf` into `fpath`
 internal b32  ail_fs_write_file(const char *fpath, const char *buf, u64 size);
@@ -290,10 +290,10 @@ b32 ail_fs_read_file(const char *fpath, void *buf, u64 maxN, u64 *actualN)
     return res;
 }
 
-char* ail_fs_read_entire_file(const char *fpath, u64 *size, AIL_Allocator allocator)
+u8* ail_fs_read_entire_file(const char *fpath, u64 *size, AIL_Allocator allocator)
 {
     // Adapted from https://stackoverflow.com/a/68156485/13764271
-    char* buf = NULL;
+    u8* buf = NULL;
     *size = 0;
     struct stat sb;
     if (stat(fpath, &sb) != -1) {

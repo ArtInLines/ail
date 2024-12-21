@@ -221,12 +221,12 @@ inline_func b32   ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b);
 #define ail_pm_compile(p, plen, exp_type) ail_pm_compile_a(p, plen, exp_type, ail_default_allocator)
 #define ail_pm_free(pattern)              ail_pm_free_a(pattern, ail_default_allocator)
 
-internal AIL_PM_Comp_Res ail_pm_compile_sv_a(AIL_SV pattern, AIL_PM_Exp_Type type, AIL_Allocator allocator);
-internal AIL_PM_Match ail_pm_match_greedy_sv(AIL_PM_Pattern pattern, AIL_SV sv);
-internal AIL_PM_Match ail_pm_match_lazy_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
-internal AIL_PM_Match ail_pm_match_sv  (AIL_PM_Pattern pattern, AIL_SV sv);
-internal b32          ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv);
-#define ail_pm_compile_sv(pattern, type) ail_pm_compile_sv_a(pattern, type, ail_default_allocator)
+internal AIL_PM_Comp_Res ail_pm_compile_str_a(AIL_Str pattern, AIL_PM_Exp_Type type, AIL_Allocator allocator);
+internal AIL_PM_Match ail_pm_match_greedy_str(AIL_PM_Pattern pattern, AIL_Str str);
+internal AIL_PM_Match ail_pm_match_lazy_str  (AIL_PM_Pattern pattern, AIL_Str str);
+internal AIL_PM_Match ail_pm_match_str  (AIL_PM_Pattern pattern, AIL_Str str);
+internal b32          ail_pm_matches_str(AIL_PM_Pattern pattern, AIL_Str str);
+#define ail_pm_compile_str(pattern, type) ail_pm_compile_str_a(pattern, type, ail_default_allocator)
 
 internal AIL_PM_Comp_Char_Res _ail_pm_comp_range_char(const char *p, u32 plen, u32 *idx);
 internal AIL_PM_Comp_El_Res   _ail_pm_comp_range(const char *p, u32 plen, u32 *idx, AIL_Allocator allocator);
@@ -243,6 +243,8 @@ internal u32 _ail_pm_match_immediate_greedy(AIL_PM_El *els, u32 ellen, const cha
 #if !defined(AIL_NO_PM_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_PM_IMPL_GUARD_
 #define _AIL_PM_IMPL_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 void ail_pm_init(u64 tmp_allocater_default_cap)
 {
@@ -517,9 +519,9 @@ AIL_PM_Comp_Res ail_pm_compile_a(const char *p, u32 plen, AIL_PM_Exp_Type exp_ty
     }};
 }
 
-AIL_PM_Comp_Res ail_pm_compile_sv_a(AIL_SV pattern, AIL_PM_Exp_Type type, AIL_Allocator allocator)
+AIL_PM_Comp_Res ail_pm_compile_str_a(AIL_Str pattern, AIL_PM_Exp_Type type, AIL_Allocator allocator)
 {
-    return ail_pm_compile_a(pattern.str, pattern.len, type, allocator);
+    return ail_pm_compile_a((char*)pattern.data, pattern.len, type, allocator);
 }
 
 void ail_pm_free_a(AIL_PM_Pattern pattern, AIL_Allocator allocator)
@@ -529,21 +531,23 @@ void ail_pm_free_a(AIL_PM_Pattern pattern, AIL_Allocator allocator)
 
 b32 _ail_pm_match_el(AIL_PM_El el, char c)
 {
+    u8 u = *(u8*)&c;
     switch (el.type) {
-        case AIL_PM_EL_CHAR:         return el.c == c;
-        case AIL_PM_EL_RANGE:        return el.r.start <= c && c <= el.r.end;
-        case AIL_PM_EL_ONE_OF_CHAR:  return ail_sv_find_char(ail_sv_from_parts(el.cs.data, el.cs.len), c) >= 0;
+        case AIL_PM_EL_CHAR:         return el.c == u;
+        case AIL_PM_EL_RANGE:        return el.r.start <= u && u <= el.r.end;
+        case AIL_PM_EL_ONE_OF_CHAR:  return ail_str_find_char(ail_str_from_parts((u8*)el.cs.data, el.cs.len), u) >= 0;
         case AIL_PM_EL_ONE_OF_RANGE:
             for (u32 i = 0; i < el.rs.len; i++) {
                 AIL_PM_Range r = el.rs.data[i];
-                if (r.start <= c && c <= r.end) return true;
+                if (r.start <= u && u <= r.end) return true;
             }
             return false;
         case AIL_PM_EL_ANY:          return c != '\n' && c != '\r';
-        case AIL_PM_EL_DIGIT:        return ail_sv_is_digit(c);
-        case AIL_PM_EL_ALPHA:        return ail_sv_is_alpha(c);
-        case AIL_PM_EL_ALPHANUM:     return ail_sv_is_alpha(c) || ail_sv_is_digit(c);
-        case AIL_PM_EL_WHITESPACE:   return ail_sv_is_space(c);
+        case AIL_PM_EL_DIGIT:        return ail_str_is_digit(c);
+        case AIL_PM_EL_ALPHA:        return ail_str_is_alpha(c);
+        case AIL_PM_EL_ALPHANUM:     return ail_str_is_alpha(c) || ail_str_is_digit(c);
+        case AIL_PM_EL_WHITESPACE:   return ail_str_is_space(c);
+        case AIL_PM_EL_GROUP:        AIL_TODO(); break;
         case AIL_PM_EL_COUNT:        AIL_UNREACHABLE();
     }
     return false;
@@ -642,19 +646,19 @@ AIL_PM_Match ail_pm_match(AIL_PM_Pattern pattern, const char *s, u32 len)
     return ail_pm_match_greedy(pattern, s, len);
 }
 
-AIL_PM_Match ail_pm_match_sv(AIL_PM_Pattern pattern, AIL_SV sv)
+AIL_PM_Match ail_pm_match_str(AIL_PM_Pattern pattern, AIL_Str str)
 {
-    return ail_pm_match(pattern, sv.str, sv.len);
+    return ail_pm_match(pattern, (char*)str.data, str.len);
 }
 
-AIL_PM_Match ail_pm_match_greedy_sv(AIL_PM_Pattern pattern, AIL_SV sv)
+AIL_PM_Match ail_pm_match_greedy_str(AIL_PM_Pattern pattern, AIL_Str str)
 {
-    return ail_pm_match_greedy(pattern, sv.str, sv.len);
+    return ail_pm_match_greedy(pattern, (char*)str.data, str.len);
 }
 
-AIL_PM_Match ail_pm_match_lazy_sv(AIL_PM_Pattern pattern, AIL_SV sv)
+AIL_PM_Match ail_pm_match_lazy_str(AIL_PM_Pattern pattern, AIL_Str str)
 {
-    return ail_pm_match_lazy(pattern, sv.str, sv.len);
+    return ail_pm_match_lazy(pattern, (char*)str.data, str.len);
 }
 
 b32 ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u32 slen)
@@ -662,9 +666,9 @@ b32 ail_pm_matches(AIL_PM_Pattern pattern, const char *s, u32 slen)
     return ail_pm_match(pattern, s, slen).len > 0;
 }
 
-b32 ail_pm_matches_sv(AIL_PM_Pattern pattern, AIL_SV sv)
+b32 ail_pm_matches_str(AIL_PM_Pattern pattern, AIL_Str str)
 {
-    return ail_pm_match(pattern, sv.str, sv.len).len > 0;
+    return ail_pm_match(pattern, (char*)str.data, str.len).len > 0;
 }
 
 b32 ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b)
@@ -673,5 +677,6 @@ b32 ail_pm_match_eq(AIL_PM_Match a, AIL_PM_Match b)
     return a.len == b.len && (!a.len || a.idx == b.idx);
 }
 
+AIL_WARN_POP
 #endif // _AIL_PM_IMPL_GUARD_
 #endif // AIL_NO_PM_IMPL

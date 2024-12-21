@@ -1,5 +1,6 @@
 #define AIL_HM_LOAD_FACTOR 80
-#include "../ail_hm.h"
+#include "../src/base/ail_alloc.h"
+#include "../src/base/ail_hm.h"
 #include "assert.h"
 #include <stdio.h>
 #include <stdbool.h>
@@ -84,7 +85,7 @@ bool miniTest(void)
 #define MINI_MAGIC 8
     AIL_HM(pchar, u32) hm = ail_hm_new_with_cap(pchar, u32, 0, &miniTestHash, &miniTestEq);
     for (u32 i = 0; i < MINI_MAGIC*16; i++) {
-        pchar k = malloc(8);
+        pchar k = ail_call_alloc(ail_default_allocator, 8);
         sprintf(k, "hi-%d", i%16);
         u32 *val;
         ail_hm_get_ptr(&hm, k, val);
@@ -102,6 +103,7 @@ bool miniTest(void)
 
 int main(void)
 {
+    ail_default_allocator = ail_alloc_std;
     if (miniTest())   printf("\033[32mMini-Test succesful         :)\033[0m\n");
     else              printf("\033[31mMini-Test failed            :(\033[0m\n");
     if (strTest())    printf("\033[32mTest with strings succesful :)\033[0m\n");

@@ -14,7 +14,7 @@
 #ifndef _AIL_MATH_H_
 #define _AIL_MATH_H_
 
-#include "ail_base.h"
+#include "../base/ail_base.h"
 
 
 ///////////////////////////////////

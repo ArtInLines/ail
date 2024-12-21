@@ -8,7 +8,7 @@
 
 #include "ail_base.h"
 
-void ail_mem_set(void *dst, u64 size, u8 value);
+void ail_mem_set(void *dst, u8 value, u64 size);
 void ail_mem_copy(void *dst, void *src, u64 size);
 
 #endif // _AIL_MEM_H_
@@ -22,7 +22,7 @@ void ail_mem_copy(void *dst, void *src, u64 size);
 #include <stdlib.h>
 #include <string.h>
 
-void ail_mem_set(void *dst, u64 size, u8 value)
+void ail_mem_set(void *dst, u8 value, u64 size)
 {
 	memset(dst, value, size);
 }

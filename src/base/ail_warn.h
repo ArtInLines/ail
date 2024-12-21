@@ -9,7 +9,7 @@
 #ifndef _AIL_WARN_H_
 #define _AIL_WARN_H_
 
-typedef enum AIL_Warn_Kind {
+typedef enum AIL_Warn_Kinds {
     AIL_WARN_NONE,
     AIL_WARN_ALL,
     AIL_WARN_EXHAUSTIVE_SWITCH,
@@ -31,7 +31,7 @@ typedef enum AIL_Warn_Kind {
     AIL_WARN_IMPLICIT_INT,
     AIL_WARN_UNREACHABLE_CODE,
     AIL_WARN_COUNT,
-} AIL_Warn_Kind;
+} AIL_Warn_Kinds;
 
 #if AIL_COMP_CLANG
 #   define _AIL_WARN_ENABLE_AIL_WARN_NONE
@@ -222,9 +222,9 @@ typedef enum AIL_Warn_Kind {
 #   define _AIL_WARN_ENABLE_AIL_WARN_UNREACHABLE_CODE _Pragma("warning(4702)")
 #   define _AIL_WARN_DISABLE_AIL_WARN_UNREACHABLE_CODE _Pragma("warning(disable:4702)")
 #   define _AIL_WARN_ERROR_AIL_WARN_UNREACHABLE_CODE _Pragma("warning(error:4702)")
-#   define _AIL_WARN_ENABLE_AIL_WARN_COUNT
-#   define _AIL_WARN_DISABLE_AIL_WARN_COUNT
-#   define _AIL_WARN_ERROR_AIL_WARN_COUNT
+#   define _AIL_WARN_ENABLE_AIL_WARN_COUNT _Pragma("warning(clang diagnostic warning \")")
+#   define _AIL_WARN_DISABLE_AIL_WARN_COUNT _Pragma("warning(disable:clang diagnostic warning \")")
+#   define _AIL_WARN_ERROR_AIL_WARN_COUNT _Pragma("warning(error:clang diagnostic warning \")")
 #endif
 
 #endif // _AIL_WARN_H_
