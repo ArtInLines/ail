@@ -2,9 +2,9 @@
 #define AIL_HM_IMPL
 #define AIL_BENCH_IMPL
 #define AIL_BENCH_PROFILE
-#include "../ail_hm.h"
-#include "../ail_fs.h"
-#include "../ail_bench.h"
+#include "../src/base/ail_hm.h"
+#include "../src/fs/ail_file.h"
+#include "../src/bench/ail_bench.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -55,7 +55,7 @@ void txtFileTest(const char *fpath)
 {
     u64 fsize;
     AIL_BENCH_PROFILE_START(ReadFile);
-    char *text = ail_fs_read_entire_file(fpath, &fsize);
+    u8 *text = ail_fs_read_entire_file(fpath, &fsize, ail_default_allocator);
     AIL_BENCH_PROFILE_END(ReadFile);
 
     hm = ail_hm_new_with_cap(String, u32, 64, &djb2, &strEq);
@@ -114,9 +114,11 @@ void txtFileTest(const char *fpath)
 
 int main(void)
 {
+    ail_default_allocator = ail_alloc_std;
+    ail_bench_init();
     ail_bench_begin_profile();
     txtFileTest("shakespeare.txt");
-    ail_bench_end_and_print_profile(false);
+    ail_bench_end_and_print_profile(16, false);
     // Expected result:
     // Tokens: 901326
     // Unique Tokens: 67506

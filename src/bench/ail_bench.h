@@ -83,7 +83,7 @@ internal void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, 
 #define AIL_BENCH_PROFILE_MEM_START(name, mem_size) AIL_Bench_Profile_Block AIL_BENCH_PROFILE_BLOCK_NAME(name) = ail_bench_profile_block_start(AIL_STRINGIFY(name), __COUNTER__ + 1, (mem_size))
 #define AIL_BENCH_PROFILE_START(name) AIL_BENCH_PROFILE_MEM_START(name, 0)
 #define AIL_BENCH_PROFILE_END(name) ail_bench_profile_block_end(&AIL_BENCH_PROFILE_BLOCK_NAME(name))
-#define AIL_BENCH_END_OF_COMPILATION_UNIT() AIL_STATIC_ASSERT(__COUNTER__ < AIL_BENCH_PROFILE_ANCHOR_COUNT, "Number of profile points exceeds size of profiler::Anchors array")
+#define AIL_BENCH_END_OF_COMPILATION_UNIT() ail_static_assert(__COUNTER__ < AIL_BENCH_PROFILE_ANCHOR_COUNT, "Number of profile points exceeds size of profiler::Anchors array")
 #endif // AIL_BENCH_PROFILE
 
 
@@ -225,11 +225,11 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, b32 clear
             u32 elapsed_ms_len     = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(anchor->elapsed_wo_children), float_print_precision);
             u32 min_elapsed_ms_len = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(anchor->min_wo_children), float_print_precision);
             u32 bandwidth_len      = ail_bench_f64_len((f64)anchor->mem_size / (f64)(AIL_GB(1) * (ail_bench_cpu_elapsed_to_ms(elapsed)/1000)), float_print_precision);
-            max_name_hit_count_len = AIL_MAX(max_name_hit_count_len, name_len + hit_count_len);
-            max_elapsed_cycles_len = AIL_MAX(max_elapsed_cycles_len, elapsed_cycles_len);
-            max_elapsed_ms_len     = AIL_MAX(max_elapsed_ms_len,     elapsed_ms_len);
-            max_min_elapsed_ms_len = AIL_MAX(max_min_elapsed_ms_len, min_elapsed_ms_len);
-            max_bandwidth_len      = AIL_MAX(max_bandwidth_len,      bandwidth_len);
+            max_name_hit_count_len = ail_max(max_name_hit_count_len, name_len + hit_count_len);
+            max_elapsed_cycles_len = ail_max(max_elapsed_cycles_len, elapsed_cycles_len);
+            max_elapsed_ms_len     = ail_max(max_elapsed_ms_len,     elapsed_ms_len);
+            max_min_elapsed_ms_len = ail_max(max_min_elapsed_ms_len, min_elapsed_ms_len);
+            max_bandwidth_len      = ail_max(max_bandwidth_len,      bandwidth_len);
             any_with_children     |= (anchor->child_depth < depth) && (anchor->elapsed_with_children != anchor->elapsed_wo_children);
         }
     }
