@@ -18,12 +18,43 @@ The structure of the library is explained in [src/README.md](./src/README.md)
 
 ## Conventions
 
-TBD
+The general naming scheme for function is as follows: `<ail>_<type>_<action>_<modifier>+`.
 
-## Notes on Generic Data Structures
+Anything named with leading underscores is not meant as part of the module's public interface. Even once this library is at a point where it doesn't change much anymore, these functions/variables/types/macros may be changed or removed at any point.
 
-TBD
+### Naming Conventions
+
+- `new`: in a function name indicates an allocation for an object
+- `from`: in a function name indicates creation of an object without any allocation
+- `init`: Initializes a data-structure or module, potentially setting some hidden state - might allocate stuff
+- `deinit`: Resets whatever the corresponding `init` function set and free what it allocated
+
+### Upper-/Lowercase?
+
+- Functions: **lower-snake-case**
+- Function-like macros: (usually) **lower-snake-case**
+- Other Macros: **upper-snake-case**
+- Variables: **lower-snake-case**
+- Typenames: **upper-snake-case**
+- Primitive Type Aliases: **lower-case**
+
+### Generic Data-Structures
+
+There are several implementations for generic data-structures in this library (e.g. dynamic arrays in [ail_arr.h](./src/base/ail_arr.h)).
+These are implemented as duck-typed templates using C macro system.
+For explanation, the dynamic array implementation from [ail_arr.h](./src/base/ail_arr.h) shall be taken as an example:
+
+To create a dynamic array of `T`s (where `T` is any type), you need to create a new struct for this dynamic array of `T`s.
+This struct must have at least the following attributes:
+- `T *data`
+- `u64 len`
+- `u64 cap`
+- `AIL_Allocator al`
+Any function for dynamic arrays, works with any struct that has these attributes.
+
+To streamline this use-case, the `AIL_DA_INIT(T)` macro creates a struct with only exactly those attributes.
+The name of this templated type is `AIL_DA_T` and can be used with `AIL_DA(T)` as well.
 
 ## Why is it named 'ail'?
 
-It's the shortform for my github name [ArtInLines](https://github.com/ArtInLines).
+It's the acronym for my github name [ArtInLines](https://github.com/ArtInLines).

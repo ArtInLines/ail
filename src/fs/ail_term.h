@@ -56,7 +56,7 @@ internal void ail_term_set_mode(AIL_TermMode mode);
 internal void ail_term_add_mode(AIL_TermMode mode);
 internal void ail_term_sub_mode(AIL_TermMode mode);
 
-internal c32 ail_term_get_char(void);
+internal u32 ail_term_get_char(void);
 
 internal void          ail_term_set_state(AIL_TermState state);
 internal AIL_TermMode  ail_term_state_get_mode(AIL_TermState state);

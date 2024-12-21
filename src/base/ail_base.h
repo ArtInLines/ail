@@ -15,7 +15,6 @@
 * Integers:   u8, u16, u32, u64, i8, i16, i32, i64
 * Floats:     f32, f64
 * Boolean:    b32, bool, true, false
-* Characters: c8, c16, c32
 * Nul-terminated C-Strings: pchar
 *
 *
@@ -155,15 +154,6 @@ typedef int32_t  i32;
 typedef int64_t  i64;
 typedef float    f32;
 typedef double   f64;
-typedef char     c8;
-#if AIL_LANG_C && AIL_LANG_STANDARD >= 2011
-#   include <uchar.h>
-    typedef char16_t c16;
-    typedef char32_t c32;
-#else
-    typedef i16 c16;
-    typedef i32 c32;
-#endif
 typedef char* pchar;
 #if 1 || ((!AIL_LANG_C || AIL_LANG_STANDARD < 2017) && !defined(false))
 #   define bool _Bool
@@ -585,7 +575,7 @@ typedef char* pchar;
 #   include <assert.h>
 #   define _ail_static_assert_2(expr, msg) _Static_assert(!!(expr), msg)
 #else
-#   define _ail_static_assert_msg_2(expr, msg, line) c8 __ail_static_assertion_at_line##line[((!!(expr))*2)-1]; c8 *__ail_static_assertion_at_line##line_message = AIL_STRINGIFY(msg)
+#   define _ail_static_assert_msg_2(expr, msg, line) char __ail_static_assertion_at_line##line[((!!(expr))*2)-1]; char *__ail_static_assertion_at_line##line_message = AIL_STRINGIFY(msg)
 #   define _ail_static_assert_msg_1(expr, msg, line) _ail_static_assert_msg_2(expr, msg, line)
 #   define _ail_static_assert_2(expr, msg)           _ail_static_assert_msg_1(expr, msg, __LINE__)
 #endif
