@@ -8,6 +8,9 @@
 #include "ail_base.h"
 #include "ail_alloc.h"
 
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
+
 typedef struct AIL_IdxBuffer {
     u8 *data;
     u64 idx;
@@ -57,12 +60,15 @@ internal void ail_idxbuf_write8msb(AIL_IdxBuffer *buf, u64 val);
 internal void ail_idxbuf_writestr (AIL_IdxBuffer *buf, char *str, u64 len);
 internal void ail_idxbuf_writecstr(AIL_IdxBuffer *buf, char *str);
 
+AIL_WARN_POP
 #endif // _AIL_IDXBUF_H_
 
 
 #if !defined(AIL_NO_IDXBUF_IMPL) && !defined(AIL_NO_BASE_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_IDXBUF_IMPL_GUARD_
 #define _AIL_IDXBUF_IMPL_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 // @TODO: Copy to fs module
 // AIL_IdxBuffer ail_idxbuf_from_file(const char *filename)
@@ -371,5 +377,6 @@ void ail_idxbuf_writecstr(AIL_IdxBuffer *buf, char *str)
     if (AIL_LIKELY(buf->idx > buf->len)) buf->len = buf->idx;
 }
 
+AIL_WARN_POP
 #endif // _AIL_IDXBUF_IMPL_GUARD_
 #endif // AIL_NO_IDXBUF_IMPL

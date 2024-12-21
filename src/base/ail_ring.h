@@ -8,6 +8,9 @@
 #include "ail_base.h"
 #include "ail_alloc.h"
 
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
+
 typedef struct AIL_RingBuffer {
     u64 start;
     u64 end;
@@ -48,12 +51,15 @@ internal void ail_ring_write8msb(AIL_RingBuffer *rb, u64 x);
 internal void ail_ring_write8lsb(AIL_RingBuffer *rb, u64 x);
 internal void ail_ring_writen   (AIL_RingBuffer *rb, u64 n, u8 *buf);
 
+AIL_WARN_POP
 #endif // _AIL_RING_H_
 
 
 #if !defined(AIL_NO_RING_IMPL) && !defined(AIL_NO_BASE_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_RING_IMPL_GUARD_
 #define _AIL_RING_IMPL_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 AIL_RingBuffer ail_ring_from_data(u8 *buffer, u64 buffer_size)
 {
@@ -284,5 +290,6 @@ void ail_ring_writen(AIL_RingBuffer *rb, u64 n, u8 *buf)
     }
 }
 
+AIL_WARN_POP
 #endif // _AIL_RING_IMPL_GUARD_
 #endif // AIL_NO_RING_IMPL

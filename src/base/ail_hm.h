@@ -15,6 +15,9 @@
 #include "ail_base_math.h"
 #include "ail_alloc.h"
 
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
+
 #ifndef AIL_HM_INIT_CAP
 #define AIL_HM_INIT_CAP 256
 #endif // AIL_HM_INIT_CAP
@@ -166,12 +169,15 @@ internal u32 ail_hm_next_u32_2power(u32 x);
     } while(0)
 
 
+AIL_WARN_POP
 #endif // _AIL_HM_H_
 
 
 #if !defined(AIL_NO_HM_IMPL) && !defined(AIL_NO_BASE_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef AIL_HM_IMPL_GUARD
 #define AIL_HM_IMPL_GUARD
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 u32 ail_hm_next_u32_2power(u32 x)
 {
@@ -179,5 +185,6 @@ u32 ail_hm_next_u32_2power(u32 x)
     return x;
 }
 
+AIL_WARN_POP
 #endif // AIL_HM_IMPL_GUARD
 #endif // AIL_NO_HM_IMPL

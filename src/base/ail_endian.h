@@ -33,6 +33,8 @@ internal AIL_Endian ail_endian(void);
 #if !defined(AIL_NO_ENDIAN_IMPL) && !defined(AIL_NO_BASE_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_ENDIAN_GUARD_
 #define _AIL_ENDIAN_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 AIL_Endian ail_endian(void)
 {
@@ -71,5 +73,6 @@ AIL_Endian ail_endian(void)
 #endif
 }
 
+AIL_WARN_POP
 #endif // _AIL_ENDIAN_GUARD_
 #endif // AIL_NO_ENDIAN_IMPL
