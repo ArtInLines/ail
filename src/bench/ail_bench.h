@@ -15,6 +15,9 @@
 #define _AIL_BENCH_H_
 
 #include "../base/ail_base.h"
+#include "../base/ail_base_math.h"
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 #if AIL_OS_WIN
 #   include <windows.h>
@@ -57,9 +60,13 @@ typedef struct AIL_Bench_Profile_Anchor {
     u64 old_elapsed_wo_children;
     u64 min_with_children;
     u64 min_wo_children;
+    u64 avg_with_children;
+    u64 avg_wo_children;
+    u64 max_with_children;
+    u64 max_wo_children;
     u64 mem_size;
     u32 hit_count;
-    u32 child_depth;
+    u32 child_depth; // @TODO: Does this really work all that well? There could be different depths depending on the codepath after all...
 } AIL_Bench_Profile_Anchor;
 
 typedef struct AIL_Bench_Profile_Block {
@@ -79,14 +86,21 @@ internal AIL_Bench_Profile_Block ail_bench_profile_block_start(const char *label
 internal void ail_bench_profile_block_end(AIL_Bench_Profile_Block *block);
 internal void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, b32 clear_anchors);
 
-#define AIL_BENCH_PROFILE_BLOCK_NAME(name) AIL_CONCAT(ail_bench_profile_block_, name)
-#define AIL_BENCH_PROFILE_MEM_START(name, mem_size) AIL_Bench_Profile_Block AIL_BENCH_PROFILE_BLOCK_NAME(name) = ail_bench_profile_block_start(AIL_STRINGIFY(name), __COUNTER__ + 1, (mem_size))
-#define AIL_BENCH_PROFILE_START(name) AIL_BENCH_PROFILE_MEM_START(name, 0)
-#define AIL_BENCH_PROFILE_END(name) ail_bench_profile_block_end(&AIL_BENCH_PROFILE_BLOCK_NAME(name))
-#define AIL_BENCH_END_OF_COMPILATION_UNIT() ail_static_assert(__COUNTER__ < AIL_BENCH_PROFILE_ANCHOR_COUNT, "Number of profile points exceeds size of profiler::Anchors array")
+#   define AIL_BENCH_PROFILE_BLOCK_NAME(name) AIL_CONCAT(ail_bench_profile_block_, name)
+#   define AIL_BENCH_PROFILE_MEM_START(name, mem_size) AIL_Bench_Profile_Block AIL_BENCH_PROFILE_BLOCK_NAME(name) = ail_bench_profile_block_start(AIL_STRINGIFY(name), __COUNTER__ + 1, (mem_size))
+#   define AIL_BENCH_PROFILE_START(name) AIL_BENCH_PROFILE_MEM_START(name, 0)
+#   define AIL_BENCH_PROFILE_END(name) ail_bench_profile_block_end(&AIL_BENCH_PROFILE_BLOCK_NAME(name))
+#   define AIL_BENCH_END_OF_COMPILATION_UNIT() ail_static_assert(__COUNTER__ < AIL_BENCH_PROFILE_ANCHOR_COUNT, "Number of profile points exceeds size of profiler::Anchors array")
+#else
+#   define AIL_BENCH_PROFILE_BLOCK_NAME(...)
+#   define AIL_BENCH_PROFILE_MEM_START(...)
+#   define AIL_BENCH_PROFILE_START(...)
+#   define AIL_BENCH_PROFILE_END(...)
+#   define AIL_BENCH_END_OF_COMPILATION_UNIT(...)
 #endif // AIL_BENCH_PROFILE
 
 
+AIL_WARN_POP
 #endif // _AIL_BENCH_H_
 
 
@@ -94,6 +108,9 @@ internal void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, 
 #if !defined(AIL_NO_BENCH_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_BENCH_IMPL_GUARD_
 #define _AIL_BENCH_IMPL_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
+
 global AIL_Bench_Global_Info ail_bench_global_info = {0};
 
 #ifdef AIL_BENCH_PROFILE
@@ -129,13 +146,13 @@ AIL_Bench_Profile_Block ail_bench_profile_block_start(const char *label, u32 anc
 {
     AIL_Bench_Profile_Block block;
     AIL_Bench_Profile_Anchor *anchor = &ail_bench_global_anchors[anchor_idx];
-    anchor->mem_size += mem_size;
-    block.label       = label,
-    block.anchor_idx  = anchor_idx;
-    block.old_elapsed = anchor->elapsed_with_children,
-    block.parent_idx  = ail_bench_gloabl_parent_idx,
+    anchor->mem_size           += mem_size;
+    block.label                 = label,
+    block.anchor_idx            = anchor_idx;
+    block.old_elapsed           = anchor->elapsed_with_children,
+    block.parent_idx            = ail_bench_gloabl_parent_idx,
     ail_bench_gloabl_parent_idx = anchor_idx;
-    block.start_time  = ail_bench_cpu_timer();
+    block.start_time            = ail_bench_cpu_timer();
     return block;
 }
 
@@ -151,12 +168,18 @@ void ail_bench_profile_block_end(AIL_Bench_Profile_Block *block)
     anchor->elapsed_wo_children     += elapsed;
     anchor->elapsed_with_children    = block->old_elapsed + elapsed;
 
-    u64 cur_elapsed_wo_children      = anchor->elapsed_wo_children - anchor->old_elapsed_wo_children;
-    anchor->old_elapsed_wo_children  = anchor->elapsed_wo_children;
-    if (!anchor->min_wo_children   || anchor->min_wo_children   < cur_elapsed_wo_children) anchor->min_wo_children   = cur_elapsed_wo_children;
-    if (!anchor->min_with_children || anchor->min_with_children < elapsed)                 anchor->min_with_children = elapsed;
+
+    u64 elapsed_wo = anchor->elapsed_wo_children - anchor->old_elapsed_wo_children;
+    anchor->old_elapsed_wo_children = anchor->elapsed_wo_children;
+    if (!anchor->min_wo_children   || anchor->min_wo_children   > elapsed_wo) anchor->min_wo_children   = elapsed_wo;
+    if (!anchor->min_with_children || anchor->min_with_children > elapsed)    anchor->min_with_children = elapsed;
+    if (!anchor->max_wo_children   || anchor->max_wo_children   < elapsed_wo) anchor->max_wo_children   = elapsed_wo;
+    if (!anchor->max_with_children || anchor->max_with_children < elapsed)    anchor->max_with_children = elapsed;
 
     ++anchor->hit_count;
+    u32 n = anchor->hit_count;
+    anchor->avg_wo_children   = (anchor->avg_wo_children  *(n-1)/n) + (elapsed_wo/n);
+    anchor->avg_with_children = (anchor->avg_with_children*(n-1)/n) + (elapsed/n);
     anchor->label = block->label;
 }
 
@@ -167,6 +190,10 @@ void _ail_bench_clear_anchor(AIL_Bench_Profile_Anchor *anchor)
     anchor->elapsed_with_children   = 0;
     anchor->min_wo_children         = 0;
     anchor->min_with_children       = 0;
+    anchor->max_wo_children         = 0;
+    anchor->max_with_children       = 0;
+    anchor->avg_wo_children         = 0;
+    anchor->avg_with_children       = 0;
     anchor->old_elapsed_wo_children = 0;
     anchor->mem_size                = 0;
 }
@@ -209,10 +236,15 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, b32 clear
 {
     // Calculate max lengths for proper alignment
     static const u32 float_print_precision = 4;
+    u32 with_children_str_len  = sizeof("(ms w/children)");
     u32 max_name_hit_count_len = 0;
-    u32 max_elapsed_cycles_len = 0;
     u32 max_elapsed_ms_len     = 0;
-    u32 max_min_elapsed_ms_len = 0;
+    u32 max_min_ms_len         = 0;
+    u32 max_min_children_len   = 0;
+    u32 max_avg_ms_len         = 0;
+    u32 max_avg_children_len   = 0;
+    u32 max_max_ms_len         = 0;
+    u32 max_max_children_len   = 0;
     u32 max_bandwidth_len      = 0;
     b32 any_with_children      = 0;
     for (u32 anchor_idx = 0; anchor_idx < AIL_BENCH_PROFILE_ANCHOR_COUNT; anchor_idx++) {
@@ -221,15 +253,28 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, b32 clear
             u32 name_len           = ail_bench_str_len(anchor->label);
             u32 hit_count_len      = ail_bench_u64_len(anchor->hit_count);
             u64 elapsed            = (anchor->child_depth == depth) ? anchor->elapsed_with_children : anchor->elapsed_wo_children;
-            u32 elapsed_cycles_len = ail_bench_u64_len(elapsed);
-            u32 elapsed_ms_len     = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(anchor->elapsed_wo_children), float_print_precision);
-            u32 min_elapsed_ms_len = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(anchor->min_wo_children), float_print_precision);
+            u32 elapsed_ms_len     = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(elapsed), float_print_precision);
             u32 bandwidth_len      = ail_bench_f64_len((f64)anchor->mem_size / (f64)(AIL_GB(1) * (ail_bench_cpu_elapsed_to_ms(elapsed)/1000)), float_print_precision);
+            max_bandwidth_len      = ail_max(max_bandwidth_len, bandwidth_len);
             max_name_hit_count_len = ail_max(max_name_hit_count_len, name_len + hit_count_len);
-            max_elapsed_cycles_len = ail_max(max_elapsed_cycles_len, elapsed_cycles_len);
-            max_elapsed_ms_len     = ail_max(max_elapsed_ms_len,     elapsed_ms_len);
-            max_min_elapsed_ms_len = ail_max(max_min_elapsed_ms_len, min_elapsed_ms_len);
-            max_bandwidth_len      = ail_max(max_bandwidth_len,      bandwidth_len);
+            max_elapsed_ms_len     = ail_max(max_elapsed_ms_len, elapsed_ms_len);
+            if (anchor->hit_count > 1) {
+                u64 min              = (anchor->child_depth == depth) ? anchor->min_with_children : anchor->min_wo_children;
+                u64 avg              = (anchor->child_depth == depth) ? anchor->avg_with_children : anchor->avg_wo_children;
+                u64 max              = (anchor->child_depth == depth) ? anchor->max_with_children : anchor->max_wo_children;
+                u32 min_ms_len       = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(min), float_print_precision);
+                u32 max_ms_len       = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(max), float_print_precision);
+                u32 avg_ms_len       = ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(avg), float_print_precision);
+                u32 min_children_len = (anchor->min_with_children != min) ? ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(anchor->min_with_children), float_print_precision) : 0;
+                u32 max_children_len = (anchor->max_with_children != max) ? ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(anchor->max_with_children), float_print_precision) : 0;
+                u32 avg_children_len = (anchor->avg_with_children != avg) ? ail_bench_f64_len(ail_bench_cpu_elapsed_to_ms(anchor->avg_with_children), float_print_precision) : 0;
+                max_min_ms_len       = ail_max(max_min_ms_len, min_ms_len);
+                max_avg_ms_len       = ail_max(max_avg_ms_len, avg_ms_len);
+                max_max_ms_len       = ail_max(max_max_ms_len, max_ms_len);
+                max_min_children_len = ail_max(max_min_children_len, min_children_len);
+                max_avg_children_len = ail_max(max_avg_children_len, avg_children_len);
+                max_max_children_len = ail_max(max_max_children_len, max_children_len);
+            }
             any_with_children     |= (anchor->child_depth < depth) && (anchor->elapsed_with_children != anchor->elapsed_wo_children);
         }
     }
@@ -238,20 +283,16 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, b32 clear
         AIL_Bench_Profile_Anchor *anchor = &ail_bench_global_anchors[anchor_idx];
         if (anchor->elapsed_with_children) {
             if (anchor->child_depth <= depth) {
-                u64 elapsed_wo_children = (anchor->child_depth == depth) ? anchor->elapsed_with_children : anchor->elapsed_wo_children;
-                f64 perc_wo_children = 100.0 * ((f64)elapsed_wo_children / (f64)total_tsc_elapsed);
                 printf("  %s[%d]: ", anchor->label, anchor->hit_count);
                 i32 len_diff = max_name_hit_count_len - (ail_bench_str_len(anchor->label) + ail_bench_u64_len(anchor->hit_count));
                 while (len_diff-- > 0) printf(" ");
-                // @Note: The commented-out lines print the elapsed amount of cycles, which seems a relatively unnecessary info to print
-                // len_diff = max_elapsed_cycles_len - ail_bench_u64_len(elapsed_wo_children);
-                // while (len_diff-- > 0) printf(" ");
-                // printf("%zu cycles, ", elapsed_wo_children);
-                f64 elapsed_in_ms = ail_bench_cpu_elapsed_to_ms(elapsed_wo_children);
+
+                u64 elapsed_wo_children = (anchor->child_depth == depth) ? anchor->elapsed_with_children : anchor->elapsed_wo_children;
+                f64 perc_wo_children    = 100.0 * ((f64)elapsed_wo_children / (f64)total_tsc_elapsed);
+                f64 elapsed_in_ms       = ail_bench_cpu_elapsed_to_ms(elapsed_wo_children);
                 len_diff = max_elapsed_ms_len - ail_bench_f64_len(elapsed_in_ms, float_print_precision);
                 while (len_diff-- > 0) printf(" ");
                 printf("%0.*fms ", float_print_precision, elapsed_in_ms);
-                printf(" ");
 
                 b32 has_children = (anchor->elapsed_with_children != elapsed_wo_children);
                 if (!has_children) {
@@ -262,17 +303,51 @@ void ail_bench_profile_print_anchors(u64 total_tsc_elapsed, u32 depth, b32 clear
                     printf("(%-8s%5.2f%% w/children) ", tmp_str, perc_with_children);
                 }
                 printf(" ");
-
                 if (!has_children && any_with_children) printf("                   ");
-                f64 min_elapsed_in_ms = ail_bench_cpu_elapsed_to_ms((anchor->child_depth == depth) ? anchor->min_with_children : anchor->min_wo_children);
-                len_diff = max_min_elapsed_ms_len - ail_bench_f64_len(min_elapsed_in_ms, float_print_precision);
-                printf("Min: ");
-                while (len_diff-- > 0) printf(" ");
-                printf("%0.*fms ", float_print_precision, min_elapsed_in_ms);
-                if (has_children && anchor->min_with_children != anchor->min_wo_children) {
-                    printf("(%0.*fms w/children) ", float_print_precision, ail_bench_cpu_elapsed_to_ms(anchor->min_with_children));
+
+                if (anchor->hit_count > 1) {
+                    f64 min_elapsed_in_ms = ail_bench_cpu_elapsed_to_ms((anchor->child_depth == depth) ? anchor->min_with_children : anchor->min_wo_children);
+                    printf("Min: ");
+                    len_diff = max_min_ms_len - ail_bench_f64_len(min_elapsed_in_ms, float_print_precision);
+                    while (len_diff-- > 0) printf(" ");
+                    printf("%0.*fms ", float_print_precision, min_elapsed_in_ms);
+                    len_diff = max_min_children_len + with_children_str_len;
+                    if (has_children && anchor->min_with_children != anchor->min_wo_children) {
+                        f64 ms = ail_bench_cpu_elapsed_to_ms(anchor->min_with_children);
+                        printf("(%0.*fms w/children) ", float_print_precision, ms);
+                        len_diff = max_min_children_len - ail_bench_f64_len(ms, float_print_precision);
+                    }
+                    while (len_diff-- > 0) printf(" ");
+                    printf(" ");
+
+                    f64 max_elapsed_in_ms = ail_bench_cpu_elapsed_to_ms((anchor->child_depth == depth) ? anchor->max_with_children : anchor->max_wo_children);
+                    printf("Max: ");
+                    len_diff = max_max_ms_len - ail_bench_f64_len(max_elapsed_in_ms, float_print_precision);
+                    while (len_diff-- > 0) printf(" ");
+                    printf("%0.*fms ", float_print_precision, max_elapsed_in_ms);
+                    len_diff = max_max_children_len + with_children_str_len;
+                    if (has_children && anchor->max_with_children != anchor->max_wo_children) {
+                        f64 ms = ail_bench_cpu_elapsed_to_ms(anchor->max_with_children);
+                        printf("(%0.*fms w/children) ", float_print_precision, ms);
+                        len_diff = max_max_children_len - ail_bench_f64_len(ms, float_print_precision);
+                    }
+                    while (len_diff-- > 0) printf(" ");
+                    printf(" ");
+
+                    f64 avg_elapsed_in_ms = ail_bench_cpu_elapsed_to_ms((anchor->child_depth == depth) ? anchor->avg_with_children : anchor->avg_wo_children);
+                    printf("Avg: ");
+                    len_diff = max_avg_ms_len - ail_bench_f64_len(avg_elapsed_in_ms, float_print_precision);
+                    while (len_diff-- > 0) printf(" ");
+                    printf("%0.*fms ", float_print_precision, avg_elapsed_in_ms);
+                    len_diff = max_avg_children_len + with_children_str_len;
+                    if (has_children && anchor->avg_with_children != anchor->avg_wo_children) {
+                        f64 ms = ail_bench_cpu_elapsed_to_ms(anchor->avg_with_children);
+                        printf("(%0.*fms w/children) ", float_print_precision, ms);
+                        len_diff = max_avg_children_len - ail_bench_f64_len(ms, float_print_precision);
+                    }
+                    while (len_diff-- > 0) printf(" ");
+                    printf(" ");
                 }
-                printf(" ");
 
                 if (anchor->mem_size) {
                     printf("Bandwidth: ");
@@ -391,5 +466,6 @@ u64 ail_bench_cpu_timer(void)
 #endif
 }
 
+AIL_WARN_POP
 #endif // _AIL_BENCH_IMPL_GUARD_
 #endif // AIL_NO_BENCH_IMPL
