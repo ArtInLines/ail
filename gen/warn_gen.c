@@ -68,6 +68,7 @@ static char* warn_names_msvc[AIL_WARN_COUNT] = {
     [AIL_WARN_IMPLICIT_INT] = "4431",
     [AIL_WARN_UNREACHABLE_CODE] = "4702",
 };
+static char* warn_names_empty[AIL_WARN_COUNT] = {0};
 
 #define LEN(arr) (sizeof(arr)/sizeof(arr[0]))
 
@@ -84,11 +85,13 @@ typedef struct {
 
 static Comp comps[] = {
     COMP("AIL_COMP_CLANG", warn_names_clang, "clang diagnostic warning \\\"", "\\\"", "clang diagnostic ignored \\\"", "\\\"", "clang diagnostic error \\\"", "\\\"", NULL, NULL, NULL),
-    COMP("AIL_COMP_GCC", warn_names_gcc, "GCC diagnostic warning \\\"", "\\\"", "GCC diagnostic ignored \\\"", "\\\"", "GCC diagnostic error \\\"", "\\\"", NULL, NULL, NULL),
+    COMP("AIL_COMP_GCC",   warn_names_gcc,   "GCC diagnostic warning \\\"",    "\\\"", "GCC diagnostic ignored \\\"",   "\\\"", "GCC diagnostic error \\\"",  "\\\"", NULL, NULL, NULL),
     COMP("AIL_COMP_MSVC || AIL_COMP_INTEL", warn_names_msvc, "warning(", ")", "warning(disable:", ")", "warning(error:", ")", "warning(push, 4)", "warning(push, 0)", "warning(error: 4061 4062 5262 4191 4242 4254 4287 4388 5219 4546 4574 4619 4668 4767 4774 4777 4826 4905 4906 5031 5032 4996 4505 5245 5264 4200 5266 4431)"),
 };
+Comp empty_comp = COMP("", warn_names_empty, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 #define PRINT_WARN_DEFS(warn, comp) do { \
+    if (warn != AIL_WARN_COUNT) { \
         if (warn == AIL_WARN_ALL && comp.all_enable)  { \
             printf("#   define _AIL_WARN_ENABLE_"  STR(warn) " _Pragma(\"%s\")\n", comp.all_enable); \
             printf("#   define _AIL_WARN_DISABLE_" STR(warn) " _Pragma(\"%s\")\n", comp.all_disable); \
@@ -103,6 +106,7 @@ static Comp comps[] = {
             printf("#   define _AIL_WARN_DISABLE_" STR(warn) "\n"); \
             printf("#   define _AIL_WARN_ERROR_"   STR(warn) "\n"); \
         } \
+    } \
     } while(0);
 
 int main(void)
@@ -131,6 +135,10 @@ int main(void)
             WARNINGS
         #undef X
     }
+    printf("#else\n");
+    #define X(warn) PRINT_WARN_DEFS(warn, empty_comp)
+        WARNINGS
+    #undef X
     printf("#endif\n");
     printf("\n#endif // _AIL_WARN_H_\n");
     return 0;
