@@ -23,7 +23,7 @@
 COMP ?= gcc
 
 ifeq ($(COMP),msvc)
-C := cl
+COMP := cl
 endif
 
 ifeq ($(COMP),cl)
@@ -45,15 +45,12 @@ else ifeq ($(COMP),pelles)
 C      := cc
 
 else
-$(error Unknown option for COMP. Please use gcc, cl, clang, tcc or zig instead.)
+$(error Unknown option for COMP. Please use gcc, cl, clang, tcc, zig, dmc or pelles instead.)
 endif
 
 C ?= $(COMP)
 
-all: da macros math str fs hm alloc buf ring pm
-
-da: test_da.c
-	$(C) $(CFLAGS) -o test_da test_da.c
+all: macros math str fs hm alloc buf ring pm arr
 
 macros: test_macros.c
 	$(C) $(CFLAGS) -o test_macros test_macros.c
@@ -81,3 +78,6 @@ ring: test_ring.c
 
 pm: test_pm.c
 	$(C) $(CFLAGS) -o test_pm test_pm.c
+
+arr: test_arr.c
+	$(C) $(CFLAGS) -o test_arr test_arr.c

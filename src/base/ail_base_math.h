@@ -25,14 +25,25 @@
 #define ail_is_2power(x)     ((x < 0) ? ail_is_2power_pos(-(x)) : ail_is_2power_pos(x))
 #define ail_next_2power_pos(x, out) do {                                                                                                      \
         out = (x) - 1;                                                                                                                        \
-        for (size_t _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
+        for (u64 _ail_next_2power_shift_ = 1; _ail_next_2power_shift_ < 8 * sizeof(x); _ail_next_2power_shift_ += _ail_next_2power_shift_) \
             out |= out >> _ail_next_2power_shift_;                                                                                            \
         out += (out+1 <= 1) + 1;                                                                                                              \
     } while(0)
 #define ail_next_2power(x, out) do { if (x >= 0) ail_next_2power_pos(x, out); else { ail_next_2power_pos(-(x), out); out = -out; } } while(0)
 
+u64 ail_next_2power_u64(u64 x)
+{
+
+    u64 out = x - 1;
+    for (u64 shift = 1; shift < 8*sizeof(x); shift += shift) {
+        out |= out >> shift;
+    }
+    out += (out+1 <= 1) + 1;
+    return out;
+}
+
 // ail_lerp(ail_inv_lerp(x, min, max), min, max) = x
 #define ail_lerp(t, min, max) ((min) + (t)*((max) - (min)))
-#define ail_inv_lerp(x, min, max) (((double)(x) - (double)(min)) / ((double)(max) - (double)(min)))
+#define ail_inv_lerp(x, min, max) (((f64)(x) - (f64)(min)) / ((f64)(max) - (f64)(min)))
 
 #endif // _AIL_BASE_MATH_H_

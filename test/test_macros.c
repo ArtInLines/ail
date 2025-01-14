@@ -112,9 +112,9 @@ bool test_minmax(void)
     ASSERT(ail_min(c, e) == e);
     ASSERT(ail_max(c, f) == c);
     ASSERT(ail_min(c, f) == f);
-    ASSERT(ail_max(d, e) == d);
-    ASSERT(ail_min(d, e) == e);
-    ASSERT(ail_max((i32)d, f) == d);
+    ASSERT(ail_max((i8)d, e)  == (i32)d);
+    ASSERT(ail_min((i8)d, e)  == e);
+    ASSERT(ail_max((i32)d, f) == (i32)d);
     ASSERT(ail_min((i32)d, f) == f);
     ASSERT(ail_max(e, f) == e);
     ASSERT(ail_min(e, f) == f);

@@ -10,6 +10,8 @@
 #include "../base/ail_alloc.h" // For ail_mem_copy
 #include <fcntl.h>    // For file access flags
 #include <sys/stat.h> // For file stats
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 #ifndef AIL_FS_READ_TIMEOUT
 #   define AIL_FS_READ_TIMEOUT 500 // in milliseconds
@@ -116,6 +118,7 @@ internal const char *ail_fs_get_file_ext(const char *filename);
 internal b32 ail_fs_is_file_ext(const char *restrict filename, const char *restrict ext);
 internal b32 ail_fs_is_file(const char *path);
 
+AIL_WARN_POP
 #endif // _AIL_FILE_H_
 
 
@@ -123,6 +126,8 @@ internal b32 ail_fs_is_file(const char *path);
 #if !defined(AIL_NO_FS_IMPL) && !defined(AIL_NO_IMPL)
 #ifndef _AIL_FS_IMPL_GUARD_
 #define _AIL_FS_IMPL_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 
 ///////////////////////
 // Utility functions //
@@ -404,5 +409,6 @@ b32 ail_fs_is_file(const char *path)
     return S_ISREG(result.st_mode);
 }
 
+AIL_WARN_POP
 #endif // _AIL_FS_IMPL_GUARD_
 #endif // AIL_NO_FS_IMPL
