@@ -40,11 +40,11 @@ AIL_WARN_PUSH
 AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 AIL_WARN_DISABLE(AIL_WARN_UNUSED_VARIABLE)
 #ifndef AIL_SB_INIT_CAP
-#   ifdef AIL_DA_INIT_CAP
-#       define AIL_SB_INIT_CAP AIL_DA_INIT_CAP
+#   ifdef AIL_ARR_INIT_CAP
+#       define AIL_SB_INIT_CAP AIL_ARR_INIT_CAP
 #   else
 #       define AIL_SB_INIT_CAP 256
-#   endif // AIL_DA_INIT_CAP
+#   endif // AIL_ARR_INIT_CAP
 #endif // AIL_SB_INIT_CAP
 
 // Sized Strings
@@ -715,7 +715,7 @@ AIL_Str8 ail_str_split_next(AIL_Str8 *str, AIL_Str8 split_by, b32 ignore_empty)
 
 AIL_DA(AIL_Str) ail_str_split_char_a(AIL_Str str, char split_by, b32 ignore_empty, AIL_Allocator allocator)
 {
-    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_DA_INIT_CAP, allocator);
+    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_ARR_INIT_CAP, allocator);
     u64 lstart = 0;
     u64 llen   = 0;
     for (u64 i = 0; i < str.len; i++) {
@@ -737,7 +737,7 @@ AIL_DA(AIL_Str) ail_str_split_char_a(AIL_Str str, char split_by, b32 ignore_empt
 
 AIL_DA(AIL_Str) ail_str_split_a(AIL_Str str, AIL_Str split_by, b32 ignore_empty, AIL_Allocator allocator)
 {
-    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_DA_INIT_CAP, allocator);
+    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_ARR_INIT_CAP, allocator);
     u64 lstart = 0;
     u64 llen   = 0;
     if (str.len >= split_by.len) {
@@ -767,7 +767,7 @@ AIL_DA(AIL_Str) ail_str_split_a(AIL_Str str, AIL_Str split_by, b32 ignore_empty,
 AIL_DA(AIL_Str) ail_str_split_lines_a(AIL_Str str, b32 ignore_empty, AIL_Allocator allocator)
 {
     // @Cleanup: Almost identical to ail_str_split - maybe we can unite them somehow
-    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_DA_INIT_CAP, allocator);
+    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_ARR_INIT_CAP, allocator);
     u64 lstart = 0;
     u64 llen   = 0;
     if (str.len > 0) {
@@ -804,7 +804,7 @@ AIL_DA(AIL_Str) ail_str_split_lines_a(AIL_Str str, b32 ignore_empty, AIL_Allocat
 AIL_DA(AIL_Str) ail_str_split_whitespace_a(AIL_Str str, b32 ignore_empty, AIL_Allocator allocator)
 {
     // @Cleanup: Almost identical to ail_str_split_lines - maybe we can unite them somehow
-    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_DA_INIT_CAP, allocator);
+    AIL_DA(AIL_Str) res = ail_da_new_with_alloc(AIL_Str, AIL_ARR_INIT_CAP, allocator);
     u64 lstart = 0;
     u64 llen   = 0;
     if (str.len > 0) {

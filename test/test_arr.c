@@ -1,7 +1,6 @@
-// Test the AIL_DA macros in ail.h
-
 #include "../src/base/ail_base.h"
 #include "../src/base/ail_arr.h"
+#include "../src/base/ail_alloc.h"
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -21,19 +20,19 @@ bool intTest(void)
     for (u32 i = 0; i < LEN; i++) ail_da_push(&da, 1);
     ail_da_insert(&da, 1, EL_TO_INSERT);
     ail_da_pushn(&da, buf, LEN);
-    ail_da_insertn(&da, 12, buf, 5);
+    // ail_da_insertn(&da, 12, buf, 5);
 
     i32 expected = LEN + 55 + 15 + EL_TO_INSERT;
     i32 sum = 0;
     for (u32 i = 0; i < da.len; i++) sum += da.data[i];
-    // printf("sum: %d == %d?\n", sum, expected);
+    printf("sum: %d == %d?\n", sum, expected);
     return sum == expected;
 }
 
 bool structTest(void)
 {
     Vec2 buf[2] = { (Vec2){2, 2}, (Vec2){3, 3} };
-    AIL_DA(Vec2) da = ail_da_new_empty(Vec2);
+    AIL_DA(Vec2) da = ail_da_empty(Vec2);
     for (u32 i = 0; i < LEN; i++) ail_da_push(&da, ((Vec2){1, 2}));
     ail_da_insertn(&da, 3, buf, 2);
     ail_da_pushn(&da, buf, 2);
@@ -46,7 +45,7 @@ bool structTest(void)
         sum.x += da.data[i].x;
         sum.y += da.data[i].y;
     }
-    // printf("sum: (%d, %d) == (%d, %d)?\n", sum.x, sum.y, expected.x, expected.y);
+    printf("sum: (%d, %d) == (%d, %d)?\n", sum.x, sum.y, expected.x, expected.y);
     return sum.x == expected.x && sum.y == expected.y;
 }
 
