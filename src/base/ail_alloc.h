@@ -121,14 +121,6 @@ void* _ail_alloc_region_of_(u8 *list, u32 region_head_offset, u32 region_next_of
 
 
 //////////////
-// Default Allocator
-// @Note: Needs to be initialized with `ail_alloc_init()`
-//////////////
-global AIL_Allocator ail_default_allocator;
-inline_func void ail_alloc_init(u64 initial_default_cap);
-
-
-//////////////
 // Std Allocator
 // C's stdlib allocator
 // @Note: free_all, clear_all are not supported
@@ -518,16 +510,6 @@ void* ail_alloc_page_alloc(void *data, AIL_Allocator_Mode mode, u64 size, void *
     }
     AIL_ALLOC_LOG("page", mode, res, size, size, old_ptr);
     return res;
-}
-
-
-/////////////
-// Default //
-/////////////
-
-void ail_alloc_init(u64 initial_default_cap)
-{
-    ail_default_allocator = ail_alloc_arena_new(initial_default_cap, &ail_alloc_pager);
 }
 
 

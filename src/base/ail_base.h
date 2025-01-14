@@ -32,6 +32,7 @@
   * ail_call_free(al, ptr):          Free a single chunk of memory
   * ail_call_clear_all(al):          Marks all internally held memory as free
   * ail_call_free_all(al):           Like clear_all, but might free internally held memory as well
+* ail_default_allocator: global Allocator instance, that is used as default if you don't specify a specific allocator
 *
 *
 *** Useful Macros ***
@@ -43,6 +44,8 @@
   * ail_typeof(x):       Get the type of x (only available on certain compilers or with C++/C23)
   * ail_offset_of(ptr, field_name):          Get the offset of a field in bytes from a pointer to a struct
   * ail_offset_of_type(T, field_name):       Get the offset of a field in bytes from the struct Type
+  * ail_field_ptr(base_ptr, offset):         Get a pointer to the field of a struct by the offset of the field in bytes
+  * ail_field_ptr_of(base_ptr, field_name):  Get a pointer to the field of a struct by the field's name
   * ail_base_from_field(T, field_name, ptr): Get a pointer to the base of a struct from a pointer to the field field_name
   * ail_swap(x, y):    Swap x and y (without providing their type) (only works when ail_typeof works)
   * ail_swap(T, x, y): Swap x and y (requires you to provide their type T)
@@ -120,7 +123,6 @@
 #include "./ail_platform.h" // For platform detection
 #include "./ail_warn.h"     // For generated WarnKinds
 
-
 /////////////////////////
 // Keywords
 // internal, inline_func, persist, global, export, import
@@ -176,58 +178,6 @@ typedef char* pchar;
 #   define true  1
 #   define false 0
 #endif
-
-
-/////////////////////////
-// Allocator Interface
-/////////////////////////
-// Allocate a region of memory holding at least <size> bytes
-#define ail_call_alloc(al, size) (al).alloc((al).data, AIL_MEM_ALLOC, (size), NULL)
-
-#define _ail_call_calloc_3(al, nelem, size_el) (al).alloc((al).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
-#define _ail_call_calloc_2(al, size)           (al).alloc((al).data, AIL_MEM_CALLOC, (size),            NULL)
-// Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
-#define ail_call_calloc(al, ...) AIL_VFUNC(_ail_call_calloc_, al, __VA_ARGS__)
-
-// Move a previously allocated region of memory to a new place with at least <new_size> bytes
-#define ail_call_realloc(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_REALLOC, (new_size), (old_ptr))
-
-// Provide a hint to the allocator, that the previously allocated region of memory can be shrunk to only contain <new_size> bytes.
-// The purpose of this is to reduce memory usage when finding out later that less memory than expected was needed.
-// Some allcoators treat this as a no-op
-#define ail_call_shrink(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_SHRINK, (new_size), (old_ptr))
-
-// Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
-#define ail_call_free(al, ptr) (al).alloc((al).data, AIL_MEM_FREE, 0, (ptr))
-
-// If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
-#define ail_call_clear_all(al) (al).alloc((al).data, AIL_MEM_CLEAR_ALL, 0, NULL)
-
-// If the allocator holds several memory regions, it frees all of them except for one
-#define ail_call_free_all(al) (al).alloc((al).data, AIL_MEM_FREE_ALL, 0, NULL)
-
-// The action that should be executed when calling the allocator proc
-// @TODO: Potential other functions:
-//   - RESERVE (only really makes sense for pager)
-//   - MARK/RESET (only really makes sense for linear allocators)
-typedef enum AIL_Allocator_Mode {
-    AIL_MEM_ALLOC,
-    AIL_MEM_CALLOC,
-    AIL_MEM_REALLOC,
-    AIL_MEM_SHRINK,
-    AIL_MEM_FREE,
-    AIL_MEM_FREE_ALL,
-    AIL_MEM_CLEAR_ALL,
-    AIL_MEM_MODE_COUNT,
-} AIL_Allocator_Mode;
-
-typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr);
-typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr);
-
-typedef struct AIL_Allocator {
-    void *data; // Metadata required by allocator and provided in all function calls
-    AIL_Allocator_Func_Ptr alloc;
-} AIL_Allocator;
 
 
 /////////////////////////
@@ -400,7 +350,7 @@ typedef struct AIL_Allocator {
 #   define ail_no_return
 #endif
 
-// ail_print_format(str_idx, first_arg_idx)
+// ail_print_format(str_idx, first_arg_idx) - @Note: The indices are counted from 1 onward, so that C's standard printf would have ail_print_format(1, 2);
 #if defined(__MINGW32__) && ail_has_attribute(format)
 #   if defined(__USE_MINGW_ANSI_STDIO)
 #       define ail_print_format(str_idx, first_arg_idx) __attribute__((__format__(ms_printf, str_idx, first_arg_idx)))
@@ -576,6 +526,8 @@ typedef struct AIL_Allocator {
 #define ail_ptr_from_int(i) (void*)(((u8*)0) + i)
 #define ail_offset_of(ptr, field_name)    ail_int_from_ptr((u8*)&(ptr)->field_name - (u8*)(ptr))
 #define ail_offset_of_type(T, field_name) ail_int_from_ptr(((T *)0)->field_name)
+#define ail_field_ptr(base_ptr, offset)   ((void*)((u8*)base_ptr + offset))
+#define ail_field_ptr_of(base_ptr, field_name) ail_field_ptr(base_ptr, ail_offset_of(base_ptr, field_name))
 #define ail_base_from_field(T, field_name, ptr) (T*)((u8*)(ptr) - ail_offset_of_type(T, field_name))
 #define _ail_swap_3(T, x, y) do { T _swap_tmp_ = x; x = y; y = _swap_tmp_; } while(0);
 #ifdef ail_typeof
@@ -676,4 +628,85 @@ typedef struct AIL_Allocator {
 #define AIL_WARN_DISABLE(warning_name) AIL_EXPAND(AIL_CONCAT(_AIL_WARN_DISABLE_, warning_name))
 #define AIL_WARN_ERROR(warning_name)   AIL_EXPAND(AIL_CONCAT(_AIL_WARN_ERROR_,   warning_name))
 
+
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_VARIABLE)
+
+/////////////////////////
+// Allocator Interface
+/////////////////////////
+// Allocate a region of memory holding at least <size> bytes
+#define ail_call_alloc(al, size) (al).alloc((al).data, AIL_MEM_ALLOC, (size), NULL)
+
+#define _ail_call_calloc_3(al, nelem, size_el) (al).alloc((al).data, AIL_MEM_CALLOC, (nelem)*(size_el), NULL)
+#define _ail_call_calloc_2(al, size)           (al).alloc((al).data, AIL_MEM_CALLOC, (size),            NULL)
+// Allocate a chunk of memory, that is cleared to zero, either by providing the size of the amount of elements and size of each element
+#define ail_call_calloc(al, ...) AIL_VFUNC(_ail_call_calloc_, al, __VA_ARGS__)
+
+// Move a previously allocated region of memory to a new place with at least <new_size> bytes
+#define ail_call_realloc(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_REALLOC, (new_size), (old_ptr))
+
+// Provide a hint to the allocator, that the previously allocated region of memory can be shrunk to only contain <new_size> bytes.
+// The purpose of this is to reduce memory usage when finding out later that less memory than expected was needed.
+// Some allcoators treat this as a no-op
+#define ail_call_shrink(al, old_ptr, new_size) (al).alloc((al).data, AIL_MEM_SHRINK, (new_size), (old_ptr))
+
+// Frees a single chunk of memory. Many allocators only mark the given memory-chunk as allocatable again, without actually freeing it
+#define ail_call_free(al, ptr) (al).alloc((al).data, AIL_MEM_FREE, 0, (ptr))
+
+// If the allocator holds several memory regions, it keeps all these regions, but marks them as unused
+#define ail_call_clear_all(al) (al).alloc((al).data, AIL_MEM_CLEAR_ALL, 0, NULL)
+
+// If the allocator holds several memory regions, it frees all of them except for one
+#define ail_call_free_all(al) (al).alloc((al).data, AIL_MEM_FREE_ALL, 0, NULL)
+
+// The action that should be executed when calling the allocator proc
+// @TODO: Potential other functions:
+//   - RESERVE (only really makes sense for pager)
+//   - MARK/RESET (only really makes sense for linear allocators)
+typedef enum AIL_Allocator_Mode {
+    AIL_MEM_ALLOC,
+    AIL_MEM_CALLOC,
+    AIL_MEM_REALLOC,
+    AIL_MEM_SHRINK,
+    AIL_MEM_FREE,
+    AIL_MEM_FREE_ALL,
+    AIL_MEM_CLEAR_ALL,
+    AIL_MEM_MODE_COUNT,
+} AIL_Allocator_Mode;
+
+typedef void* (AIL_Allocator_Func)(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr);
+typedef void* (*AIL_Allocator_Func_Ptr)(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr);
+
+typedef struct AIL_Allocator {
+    void *data; // Metadata required by allocator and provided in all function calls
+    AIL_Allocator_Func_Ptr alloc;
+} AIL_Allocator;
+
+void* ail_alloc_empty(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr);
+global AIL_Allocator ail_default_allocator = { 0, ail_alloc_empty };
+
+AIL_WARN_POP
 #endif // _AIL_BASE_H_
+
+
+#if !defined(AIL_NO_BASE_IMPL) && !defined(AIL_NO_IMPL)
+#ifndef _AIL_BASE_IMPL_GUARD_
+#define _AIL_BASE_IMPL_GUARD_
+AIL_WARN_PUSH
+AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
+
+void* ail_alloc_empty(void *data, AIL_Allocator_Mode mode, u64 size, void *old_ptr)
+{
+    AIL_UNUSED(data);
+    AIL_UNUSED(mode);
+    AIL_UNUSED(size);
+    AIL_UNUSED(old_ptr);
+    AIL_UNREACHABLE();
+    return NULL;
+}
+
+AIL_WARN_POP
+#endif // _AIL_BASE_IMPL_GUARD_
+#endif // AIL_NO_BASE_IMPL

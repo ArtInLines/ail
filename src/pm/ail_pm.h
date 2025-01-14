@@ -41,6 +41,7 @@
 #include "../base/ail_base.h"
 #include "../base/ail_str.h"
 #include "../base/ail_arr.h"
+#include "../base/ail_alloc.h"
 
 typedef enum AIL_PM_Exp_Type {
     AIL_PM_EXP_REGEX,
