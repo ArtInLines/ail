@@ -53,8 +53,7 @@ SOFTWARE.
 #ifndef AIL_BUILD_H_
 #define AIL_BUILD_H_
 
-#define AIL_ALL_IMPL
-#include "ail.h"
+#include "src/base/ail_base_all.h"
 
 #ifndef AIL_BUILD_DEF
 #ifdef  AIL_DEF
@@ -159,6 +158,8 @@ b32 ail_build_streq_i(const char *restrict a, u64 alen, const char *restrict b, 
 
 void  ail_build_rebuild_urself(i32 argc, char **argv)
 {
+    AIL_UNUSED(argc);
+    AIL_UNUSED(argv);
     AIL_TODO();
 }
 
@@ -201,7 +202,7 @@ char* ail_build_get_exe_name(const char *s, u32 n, AIL_Allocator allocator)
 #   define _AIL_BUILD_EXE_EXT ""
 #endif
     u32 ext_len = 1; // extension assumed to be '.c'
-    char *buf = AIL_CALL_ALLOC(allocator, n - ext_len + sizeof(_AIL_BUILD_EXE_EXT));
+    char *buf = ail_call_alloc(allocator, n - ext_len + sizeof(_AIL_BUILD_EXE_EXT));
     memcpy(buf, s, n - ext_len);
     memcpy(&buf[n - ext_len], _AIL_BUILD_EXE_EXT, sizeof(_AIL_BUILD_EXE_EXT));
     return buf;
@@ -210,12 +211,12 @@ char* ail_build_get_exe_name(const char *s, u32 n, AIL_Allocator allocator)
 // @Note: Code taken almost 1-to-1 from tsoding's nob.h (https://github.com/tsoding/musializer/blob/master/nob.h)
 char* ail_build_cmd_to_str(AIL_DA(pchar) cmd)
 {
-    AIL_ASSERT(cmd.len);
+    ail_assert(cmd.len);
     AIL_DA(char) str = ail_da_new_with_alloc(char, 256, cmd.allocator);
     ail_da_pushn(&str, cmd.data[0], strlen(cmd.data[0]));
     for (u32 i = 1; i < cmd.len; i++) {
         char *arg = cmd.data[i];
-        AIL_ASSERT(arg);
+        ail_assert(arg);
         ail_da_push(&str, ' ');
         if (!strchr(arg, ' ')) {
             ail_da_pushn(&str, arg, strlen(arg));
@@ -284,7 +285,7 @@ AIL_Build_Proc_Res ail_build_proc_exec(AIL_DA(pchar) *argv, AIL_Allocator alloca
         return res;
     }
 
-    char *buf = AIL_CALL_ALLOC(allocator, AIL_BUILD_PIPE_SIZE);
+    char *buf = ail_call_alloc(allocator, AIL_BUILD_PIPE_SIZE);
     if (!buf) {
         printf("Error: Could not allocate enough memory to read child process' output.\n");
         return res;
@@ -348,7 +349,7 @@ void ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *
         case AIL_BUILD_COMP_MSVC: {
             ail_da_push(&argv, "cl");
             u64 out_name_len = strlen(out_name);
-            char *buf = AIL_CALL_ALLOC(allocator, out_name_len + 4);
+            char *buf = ail_call_alloc(allocator, out_name_len + 4);
             memcpy(buf, "/Fe", 3);
             memcpy(&buf[3], out_name, out_name_len + 1);
             ail_da_push(&argv, buf);
@@ -442,7 +443,7 @@ void ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *
         case AIL_BUILD_COMP_DMC: {
             ail_da_push(&argv, "dmc");
             u64 out_name_len = strlen(out_name);
-            char *buf = AIL_CALL_ALLOC(allocator, out_name_len + 3);
+            char *buf = ail_call_alloc(allocator, out_name_len + 3);
             memcpy(buf, "-o", 2);
             memcpy(&buf[2], out_name, out_name_len + 1);
             ail_da_push(&argv, buf);
@@ -458,7 +459,7 @@ void ail_build(AIL_Build_Comp cc, AIL_Build_Flags cflags, char *out_name, char *
         case AIL_BUILD_COMP_PELLESC: {
             ail_da_push(&argv, "cc");
             u64 out_name_len = strlen(out_name);
-            char *buf = AIL_CALL_ALLOC(allocator, out_name_len + 4);
+            char *buf = ail_call_alloc(allocator, out_name_len + 4);
             memcpy(buf, "/Fe", 3);
             memcpy(&buf[3], out_name, out_name_len + 1);
             ail_da_push(&argv, buf);
