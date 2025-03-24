@@ -1,6 +1,6 @@
-#include "../src/base/ail_base.h"
-#include "../src/base/ail_arr.h"
-#include "../src/base/ail_alloc.h"
+#include "../../src/base/ail_base.h"
+#include "../../src/base/ail_arr.h"
+#include "../../src/base/ail_alloc.h"
 #include <stdio.h>
 #include <stdbool.h>
 
