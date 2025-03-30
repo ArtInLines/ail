@@ -28,7 +28,7 @@ AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
 #else
     typedef struct AIL_Bench_Global_Info {
         u64 cpu_timer_freq;
-        HANDLE proc;
+        void* proc;
     } AIL_Bench_Global_Info;
 #endif
 
@@ -398,7 +398,7 @@ u64 ail_bench_count_page_faults(void)
 
 #include <x86intrin.h> // For __rdtsc
 #include <sys/time.h>  // For gettimeofday, struct timeval
-#include <sys/mman.h>  // For getrusage, struct rusage
+#include <sys/resource.h>  // For getrusage, struct rusage
 
 u64 ail_bench_os_timer_freq(void)
 {
