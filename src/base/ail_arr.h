@@ -88,7 +88,7 @@ AIL_SA_INIT(char);  AIL_CA_INIT(char);  AIL_DA_INIT(char);
 #define ail_sa_new_zero_alloc_t(T, l, al)    (AIL_SA(T))ail_sa_new_zero_alloc(T, l, al)
 
 #define ail_ca_empty(T)                 ail_ca_from_parts(NULL, 0, 0)
-#define ail_ca_from_parts(d, l, c, al)  { .data = (d), .len = (l), .cap = (c) }
+#define ail_ca_from_parts(d, l, c)      { .data = (d), .len = (l), .cap = (c) }
 #define ail_ca_from_arr(arr)            ail_ca_from_parts(arr, ail_arrlen(arr), ail_arrlen(arr))
 #define ail_ca_from_sa(sa, al)          ail_ca_from_parts((sa).data, (sa).len, (sa).len)
 #define ail_ca_from_struct(st)          ail_ca_from_parts((st).data, (st).len, (st).cap)
