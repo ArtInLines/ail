@@ -196,6 +196,7 @@ internal AIL_Allocator_Func ail_alloc_freelist_alloc;
 AIL_WARN_PUSH
 AIL_WARN_DISABLE(AIL_WARN_UNREACHABLE_CODE)
 AIL_WARN_DISABLE(AIL_WARN_UNUSED_FUNCTION)
+AIL_WARN_DISABLE(AIL_WARN_PRINTF_FORMAT) // @TODO: Ensure formatting is actually correct, instead of just silencing warnings on linux
 
 #include <stdlib.h> // For std_allocator
 

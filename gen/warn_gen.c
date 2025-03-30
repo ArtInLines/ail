@@ -11,7 +11,7 @@
     X(AIL_WARN_MISSING_ARGLIST)          \
     X(AIL_WARN_IFDEF_0_MACRO)            \
     X(AIL_WARN_SECTION_NAME_TOO_LONG)    \
-    X(AIL_WARN_PRINTF_FORMTAT)           \
+    X(AIL_WARN_PRINTF_FORMAT)           \
     X(AIL_WARN_SIGN_EXTENDED_CONVERSION) \
     X(AIL_WARN_STRING_CAST)              \
     X(AIL_WARN_UNBALANCED_PUSH_POP)      \
@@ -39,6 +39,7 @@ static char* warn_names_clang[AIL_WARN_COUNT] = {
     [AIL_WARN_UNUSED_VARIABLE] = "-Wunused-variable",
     [AIL_WARN_ZERO_LENGTH_ARRAY] = "-Wzero-length-array",
     [AIL_WARN_CAST_QUAL] = "-Wcast-qual",
+    [AIL_WARN_PRINTF_FORMAT] = "-Wformat",
 };
 static char* warn_names_gcc[AIL_WARN_COUNT] = {
     [AIL_WARN_UNKNOWN_PRAGMA] = "-Wunknown-pragmas",
@@ -47,6 +48,7 @@ static char* warn_names_gcc[AIL_WARN_COUNT] = {
     [AIL_WARN_UNUSED_VARIABLE] = "-Wunused-variable",
     [AIL_WARN_ZERO_LENGTH_ARRAY] = "-Wpedantic",
     [AIL_WARN_CAST_QUAL] = "-Wcast-qual",
+    [AIL_WARN_PRINTF_FORMAT] = "-Wformat",
 };
 static char* warn_names_msvc[AIL_WARN_COUNT] = {
     [AIL_WARN_EXHAUSTIVE_SWITCH] = "4061 4062 5262",
@@ -56,7 +58,7 @@ static char* warn_names_msvc[AIL_WARN_COUNT] = {
     [AIL_WARN_UNKNOWN_PRAGMA] = "4619",
     [AIL_WARN_UNKNOWN_MACRO] = "4668",
     [AIL_WARN_SECTION_NAME_TOO_LONG] = "4767",
-    [AIL_WARN_PRINTF_FORMTAT] = "4774 4777",
+    [AIL_WARN_PRINTF_FORMAT] = "4774 4777",
     [AIL_WARN_SIGN_EXTENDED_CONVERSION] = "4826",
     [AIL_WARN_STRING_CAST] = "4905 4906",
     [AIL_WARN_UNBALANCED_PUSH_POP] = "5031 5032",
