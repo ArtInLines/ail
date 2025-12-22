@@ -573,7 +573,7 @@ typedef char* pchar;
 // @Cleanup: Replace with a custom print function & remove dependency libc
 #include <stdio.h>
 #define _ail_dbg_print_ printf
-#define _ail_assert_common_(expr, msg) do { if (!(expr)) { _ail_dbg_print_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  " msg); ail_debugtrap(); } } while(0)
+#define _ail_assert_common_(expr, msg) do { if (!(expr)) { _ail_dbg_print_("Assertion failed in " __FILE__ ":" AIL_STR_LINE "\n  %s", msg); ail_debugtrap(); } } while(0)
 #define _ail_assert_2(expr, msg)       _ail_assert_common_(expr, "with message '" msg "'")
 #ifdef AIL_STRIP_PREFIX
 #   define _ail_assert_1(expr)            _ail_assert_common_(expr, "with expression 'assert(" AIL_STRINGIFY(expr) ")'")
